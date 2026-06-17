@@ -1,23 +1,33 @@
 # InelidaMarketScan
 
-Scanner de marché **temps réel** branché directement sur **MetaTrader 5** via Python.
+**Trouver les bons trades ICT (Asian session, sweeps, Fibonacci) et les exécuter automatiquement sur MetaTrader 5.**
 
-Inspiré du répertoire `trading/` (connexion MT5 singleton, configuration dataclass, CLI argparse), mais recentré sur **un seul objectif** : récupérer le **dernier tick de chaque actif d'une watchlist** et l'afficher proprement dans la console (ou dans un CSV).
+InelidaMarketScan est un outil en ligne de commande pour traders MT5 qui analyse la **session asiatique**, détecte les **liquidity sweeps** (BSL/SSL), calcule les **extensions Fibonacci** (-4.0 à +4.0), et propose un **plan de trade complet** (Entry / SL / TP1-3 / Risk-Reward) — avec option d'**envoi automatique au broker**.
+
+Tout se passe depuis votre terminal, sans interface graphique, sans cloud, sans Docker. Juste MetaTrader 5 + Python.
 
 > ⚠️ Statut : projet en cours de conception. Le code est fonctionnel mais l'API peut évoluer.
 
 ---
 
-## ✨ Fonctionnalités
+## 🎯 À qui s'adresse cet outil ?
 
-- Connexion à MT5 (singleton, retry automatique, context manager)
-- Watchlist multi-symboles (Forex, Métaux, Indices, Crypto — selon broker)
-- Mode **snapshot** : une capture ponctuelle
-- Mode **watch** : boucle temps réel, console redessinée à chaque tick
-- Deltas calculés par rapport au tick précédent (variation en points + %)
-- Couleurs ANSI adaptatives (vert / jaune / rouge selon spread et direction)
-- Journalisation CSV optionnelle (`--csv`)
-- Aucune dépendance externe lourde : juste `MetaTrader5`
+- ✅ **Trader ICT/SMC** : vous tradez le concept « Asian session → London sweep → NY continuation » et vous voulez scanner automatiquement tous les symboles qui correspondent.
+- ✅ **Trader prop firm** (FTMO, MFF, FundedNext, etc.) : vous voulez voir d'un coup d'œil quels actifs ont une opportunité claire, et optionnellement exécuter en micro-lots (0.01) pour tester.
+- ✅ **Dev Python curieux** : le code est lisible, modulaire ; chaque composant (MT5 connector, ICT detector, broker executor) est isolable et testable.
+- ❌ **Pas pour vous si** : vous cherchez un bot « plug & play rentable ». Cet outil *affiche* les opportunités et *facilite* l'exécution — la décision finale reste la vôtre.
+
+---
+
+## ✨ Ce que l'outil fait pour vous
+
+- 📊 **Scan de marché temps réel** — voyez en un coup d'œil le bid/ask, le spread et la variation de chaque symbole de votre watchlist.
+- 🔍 **Détection automatique des sweeps ICT** — l'outil identifie les swings BSL/SSL qui ont été *raids* (sweep) en M15, M30, H1 ou H4.
+- 🌏 **Analyse de la session asiatique** — pour chaque symbole, calcule le High/Low de la session (UTC 00:00–08:00) et détecte si le prix est au-dessus/en-dessous, avec extensions Fibonacci ±1.618 / ±2.618 / ±3.618 / ±4.0.
+- 💡 **Idée de trade complète** — affiche le trade recommandé (BUY / SELL), le point d'entrée, le stop-loss, et trois take-profits, avec le ratio risque:récompense.
+- 🎮 **Exécution automatique MT5** — envoie réellement l'ordre au broker depuis le CLI, avec garde-fous (anti-double-ordre, DRY-RUN de previsualisation, magic number d'identification, retcode mapping lisible).
+- 🎨 **Console claire et colorée** — pas besoin de GUI : tout est affiché dans votre terminal avec des couleurs ANSI (Windows Terminal, PowerShell, ou terminal Linux/Mac).
+- ⚙️ **Aucune dépendance exotique** — juste Python + MetaTrader5. Pas de base de données, pas de cloud, pas de Docker.
 
 ---
 
