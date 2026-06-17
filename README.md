@@ -1,0 +1,463 @@
+# InelidaMarketScan
+
+Scanner de marché **temps réel** branché directement sur **MetaTrader 5** via Python.
+
+Inspiré du répertoire `trading/` (connexion MT5 singleton, configuration dataclass, CLI argparse), mais recentré sur **un seul objectif** : récupérer le **dernier tick de chaque actif d'une watchlist** et l'afficher proprement dans la console (ou dans un CSV).
+
+> ⚠️ Statut : projet en cours de conception. Le code est fonctionnel mais l'API peut évoluer.
+
+---
+
+## ✨ Fonctionnalités
+
+- Connexion à MT5 (singleton, retry automatique, context manager)
+- Watchlist multi-symboles (Forex, Métaux, Indices, Crypto — selon broker)
+- Mode **snapshot** : une capture ponctuelle
+- Mode **watch** : boucle temps réel, console redessinée à chaque tick
+- Deltas calculés par rapport au tick précédent (variation en points + %)
+- Couleurs ANSI adaptatives (vert / jaune / rouge selon spread et direction)
+- Journalisation CSV optionnelle (`--csv`)
+- Aucune dépendance externe lourde : juste `MetaTrader5`
+
+---
+
+## 📁 Structure
+
+```
+InelidaMarketScan/
+├── main.py                  # Entrée CLI (argparse)
+├── start_scan.bat           # Lanceur Windows pour le mode watch
+├── requirements.txt
+├── README.md
+├── LICENSE
+├── .gitignore
+└── src/
+    ├── __init__.py
+    ├── config.py            # Watchlist & dataclasses de config
+    ├── mt5_connector.py     # Singleton MT5 (init / reconnect / shutdown)
+    ├── market_scanner.py    # Scan tick + deltas + CSV
+    └── display.py           # Rendu console ANSI
+```
+
+---
+
+## 🚀 Installation
+
+```bash
+cd InelidaMarketScan
+python -m venv .venv
+.venv\Scripts\activate            # Windows
+pip install -r requirements.txt
+```
+
+> ⚠️ **MetaTrader5** est un binding Python **Windows-only** distribué par MetaQuotes. InelidaMarketScan ne fonctionne donc que sur Windows avec un terminal MT5 lancé et connecté à un compte.
+
+---
+
+## ⚙️ Configuration
+
+Trois façons de configurer la watchlist :
+
+1. **Variable d'environnement** (séparée par virgules) :
+   ```bash
+   set INELIDA_WATCHLIST=XAUUSD,EURUSD,BTCUSD,NAS100
+   ```
+2. **Drapeau CLI** :
+   ```bash
+   python main.py watch --symbols XAUUSD EURUSD BTCUSD NAS100
+   ```
+3. **Édition directe de `DEFAULT_WATCHLIST`** dans `src/config.py`.
+
+Le chemin du terminal MT5 peut être forcé dans `src/config.py` (champ `MT5Config.terminal_path`) :
+
+```python
+MT5 = MT5Config(
+    terminal_path=r"C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe",
+    login=None, password=None, server=None,
+    ...
+)
+```
+
+> 💡 Si `login=None`, MT5 utilisera le compte déjà ouvert dans le terminal (le plus simple pour observer plusieurs comptes).
+
+---
+
+## 🧰 Commandes CLI
+
+| Commande    | Description                                              |
+| ----------- | -------------------------------------------------------- |
+| `snapshot`  | Une seule capture, puis sortie (tableau ou JSON).        |
+| `watch`     | Boucle continue : scan + affichage temps réel (Ctrl+C).   |
+| `watchlist` | Affiche simplement la watchlist configurée.             |
+| `account`   | Infos du compte MT5 (balance, leverage, etc.).           |
+| `terminal`  | Infos du terminal MT5 (broker, build, trade_allowed...).|
+
+Exemples :
+
+```bash
+# Une capture ponctuelle au format tableau
+python main.py snapshot
+
+# Une capture au format JSON
+python main.py snapshot --json
+
+# Watch temps réel sur une watchlist custom
+python main.py watch --symbols XAUUSD EURUSD --verbose
+
+# Voir la watchlist actuellement configurée
+python main.py watchlist
+
+# Infos du compte / terminal
+python main.py account
+python main.py terminal
+```
+
+Sur Windows, double-clique simplement sur `start_scan.bat` (équivalent à `python main.py watch`).
+
+---
+
+## 📊 Colonne par colonne du tableau temps réel
+
+| Colonne        | Description                                          |
+| -------------- | ---------------------------------------------------- |
+| `Symbole`      | Nom du symbole MT5                                   |
+| `Bid`          | Prix de vente                                        |
+| `Ask`          | Prix d'achat                                         |
+| `Last`         | Dernier prix traité (gris si pas dispo)              |
+| `Spread(pts)`  | Spread en points (vert / jaune / rouge selon valeur) |
+| `Δ Bid`        | Variation absolue et % depuis le tick précédent     |
+| `Dernière MAJ` | Horodatage UTC du tick                              |
+
+---
+
+## 🗃️ Journalisation CSV
+
+Active la sortie CSV en éditant `src/config.py` :
+
+```python
+OUT = OutputConfig(
+    csv_log=True,
+    csv_path="./inelida_ticks.csv",
+    pretty=True,
+    flush_each_tick=True,
+)
+```
+
+Chaque ligne écrite : `time, symbol, bid, ask, last, spread, spread_points, deltas…`
+
+---
+
+## 🎯 Liquidity Sweeps (BSL / SSL)
+
+Sous-commande `sweeps` qui scanne **tous les symboles visibles dans la Market Watch MT5** (ou une liste passée via `--symbols`) et identifie les swings ICT qui ont été *raids* (sweeps).
+
+- **Swing points** : highs / lows fractals Williams (N=2 par défaut).
+- **BSL (Buy-Side Liquidity)** : swing haut dont une bougie récente a fait `high > level` **et** `close < level`.
+- **SSL (Sell-Side Liquidity)** : swing bas dont une bougie récente a fait `low < level` **et** `close > level`.
+- Fenêtre d'observation = `--sensitivity` dernières bougies (défaut 5).
+- Profondeur d'historique = `--lookback` bougies (défaut 50).
+
+### Usage rapide
+
+```bash
+# Scan complet sur M15 (50 symboles, 50 bars d'historique, 5 bars de sensibilité)
+python main.py sweeps
+
+# Timeframe H1 avec lookback profond
+python main.py sweeps --timeframe H1 --lookback 100 --sensitivity 8
+
+# Scanner toute la market watch (override du --limit)
+python main.py sweeps --all -v
+
+# Sortie JSON pour intégration externe
+python main.py sweeps --json > sweeps.json
+
+# Limiter à 5 symboles explicites (utile pour debug FTMO)
+python main.py sweeps --symbols XAUUSD EURUSD GBPUSD USDJPY BTCUSD
+```
+
+### Colonnes du tableau
+
+| Colonne    | Description                                              |
+| ---------- | -------------------------------------------------------- |
+| `Side`     | `BSL` ou `SSL` (sens ICT du sweep)                       |
+| `Level`    | Prix du swing point qui a été swept                      |
+| `Now`      | Prix actuel du symbole                                   |
+| `Distance` | % d'écart entre le prix actuel et le niveau swept        |
+| `Dir`      | `reversal_up` (SSL) ou `reversal_down` (BSL)             |
+| `Swept at` | Horodatage UTC de la bougie qui a swept                  |
+
+### Flags de `sweeps`
+
+| Option                 | Défaut | Effet                                              |
+| ---------------------- | ------ | --------------------------------------------------- |
+| `--timeframe`          | `M15`  | M1 / M5 / M15 / M30 / H1 / H4 / D1                 |
+| `--fractal`            | `2`    | Williams fractal N                                  |
+| `--lookback`           | `50`   | Bougies arrière pour les swings                     |
+| `--sensitivity`        | `5`    | Dernières bougies testées pour les sweeps           |
+| `--limit`              | `50`   | Cap symboles (depuis Market Watch)                  |
+| `--all`                | -      | Override du cap, scanne tous les symboles visibles  |
+| `--sort-by-distance`   | ✅     | Trie par distance croissante au prix actuel        |
+| `--json`               | -      | Sortie JSON sinon tableau ASCII                     |
+| `-v, --verbose`        | -      | Logging DEBUG                                       |
+
+⚠️ Les sweeps ICT sont des composants **codables** de la méthodologie, mais leur interprétation reste *discrétionnaire* : un trader chevronné filtrera visuellement les sweeps « propres » vs « faibles ». Ce scanner sort les données brutes — c'est à toi de juger la qualité de chaque signal.
+
+---
+
+## 🌏 Asian Session Range
+
+Sous-commande `asian` qui calcule le **range de la session asiatique** (UTC 00:00–08:00 par défaut) pour chaque symbole visible en Market Watch, puis **détecte si le Asian High ou le Asian Low a été swept** dans les bougies post-Asian.
+
+### Algorithme ICT
+
+1. Récupère ~14 jours de barres `H1` (par défaut) pour le symbole.
+2. Filtre les bougies dont la date UTC est aujourd'hui ET l'heure UTC ∈ [00:00, 08:00).
+3. Calcule :
+   - `Asian High = max(high)` sur ces bougies.
+   - `Asian Low  = min(low)`  sur ces bougies.
+4. Scanne les bougies post-Asian (jusqu'à 240 barres ≈ 10 jours H1) :
+   - **Asian High swept** = `bar.high > Asian High` ET `bar.close < Asian High` (raid BSL).
+   - **Asian Low swept**  = `bar.low  < Asian Low`  ET `bar.close > Asian Low`  (raid SSL).
+5. Si sweep trouvé, identifie la **session ICT** qui en est responsable via l'heure UTC de la bougie (London / NY / NY Open / Asian pre).
+
+### Usage
+
+```bash
+# Scan complet par défaut (50 symboles visibles Market Watch, H1, aujourd'hui UTC)
+python main.py asian
+
+# Timeframe M15 (plus granulaire, plus faux positifs)
+python main.py asian --timeframe M15
+
+# Date specifique (utile pour backtest retroactif)
+python main.py asian --session-date 2026-06-15
+
+# Liste explicite
+python main.py asian --symbols XAUUSD EURUSD GBPUSD USDJPY BTCUSD
+
+# Sortie JSON
+python main.py asian --json > asians.json
+```
+
+### Colonnes du tableau
+
+| Colonne      | Signification                                                              |
+| ------------ | -------------------------------------------------------------------------- |
+| `Symbole`    | Nom MT5                                                                    |
+| `AsianHigh`  | Plus haut sur les bougies H1 entre 00:00 et 08:00 UTC (aujourd'hui)        |
+| `AsianLow`   | Plus bas sur les bougies H1 entre 00:00 et 08:00 UTC (aujourd'hui)         |
+| `Now`        | `bid` courant                                                              |
+| `AH Swept`   | `swept` si Asian High a été raid, `---` sinon                              |
+| `AL Swept`   | `swept` si Asian Low a été raid, `---` sinon                               |
+| `Session`    | Session ICT qui a déclenché le sweep : London / NY / NY Open                |
+| `Target`     | Direction « vers l'autre liquidité » (voir légende ci-dessous)             |
+| `Fib`        | Extension Fibonacci ±1.618 par rapport à la range asiatique (voir légende) |
+| `FibSwept`   | Plus profond niveau Fibonacci sweepé en post-Asian (voir légende)          |
+| `Bars`       | Nombre de bougies post-Asian examinées                                      |
+| `Trade`      | Idée de trade ICT (BUY / SELL / —, voir légende)                           |
+| `Plan`       | Prix SL → prix TP1 (le scalp chiffré ; TP2/TP3 dans `--json`)             |
+| `RR`         | Ratio risque:récompense au TP1 (ex. `1.6×`)                                |
+
+### Légende de la colonne `Target`
+
+La colonne `Target` répond à la question « *le prix est-il en train de se diriger vers l'autre extrémité de la range asiatique ?* » selon la logique ICT :
+
+| Valeur   | Couleur | Signification                                                                                |
+| -------- | ------- | -------------------------------------------------------------------------------------------- |
+| `→ AH`   | vert    | Asian Low swept + prix au-dessus du midpoint → reversal haussier confirmé, on attend un run vers l'Asian High |
+| `→ AL`   | rouge   | Asian High swept + prix en-dessous du midpoint → reversal baissier confirmé, on attend un run vers l'Asian Low  |
+| `↔ Both` | jaune   | Les deux extrémités ont été swept → range cassée, signal mixte / continuation probable     |
+| `·`      | gris    | Sweep enregistré mais le prix n'a pas encore traversé le midpoint → confirmation en attente |
+| `−`      | gris    | Aucun sweep → pas d'info directionnelle                                                     |
+
+### Légende de la colonne `Fib`
+
+Détecte si le prix a « dépassé l'autre liquidité » et affiche la **prochaine extension Fibonacci non atteinte** dans la direction du mouvement. Les niveaux ICT trackés sont calculés sur la range asiatique :
+
+```
+fib_+N   = asian_high  + N × (asian_high − asian_low)   # N in {1.618, 2.0, 2.618, 3.0, 3.618, 4.0}
+fib_-N   = asian_low   − N × (asian_high − asian_low)   # N idem (niveaux négatifs)
+```
+
+L'algo itère sur les niveaux dans l'ordre et affiche le **premier niveau non franchi**. Exemple : AL swept, prix > AH, prix = 1.2 × range au-dessus de AH → affiche `→ +1.618` ; si prix = 1.7 × range → affiche `→ +2.0` (1.618 est dépassé, on regarde le suivant).
+
+| Valeur     | Couleur    | Signification                                                                          |
+| ---------- | ---------- | -------------------------------------------------------------------------------------- |
+| `→ +N`     | vert       | Expansion bullish en cours (AL swept + prix > AH), prochaine cible = +N               |
+| `+N ✓`     | vert gras  | Tous les niveaux +N ont été franchis (on a dépassé la grille standard)                 |
+| `→ -N`     | rouge      | Expansion bearish en cours (AH swept + prix < AL), prochaine cible = -N                |
+| `-N ✓`     | rouge gras | Tous les niveaux -N ont été franchis                                                    |
+| *(vide)*   | -          | Aucun prix n'a encore « dépassé l'autre liquidité » — la colonne reste vide           |
+
+N ∈ {1.618, 2.0, 2.618, 3.0, 3.618, 4.0} par défaut. Pour un GBPUSD qui a déjà cassé -1.618 et -2.618 et continue à baisser, la colonne affichera `→ -3.0` puis `→ -3.618` au fur et à mesure que chaque cible est franchie.
+
+### Légende de la colonne `FibSwept`
+
+Détecte quand un niveau d'extension Fibonacci devient lui-même une « pocket de liquidité » et se fait sweep (BSL sur niveau bull, SSL sur niveau bear) en post-Asian. Pour chaque côté on accumule la liste des niveaux sweepés puis on reporte le **plus profond** (le plus éloigné de la range).
+
+Détection appliquée à chaque niveau `±N` de `_FIB_LEVELS_BULL` / `_FIB_LEVELS_BEAR` :
+
+```
+bull_fib_swept (BSL) : bar.high > fib_+N ET bar.close < fib_+N
+bear_fib_swept (SSL) : bar.low  < fib_-N ET bar.close > fib_-N
+```
+
+| Valeur          | Couleur        | Signification                                                              |
+| --------------- | -------------- | -------------------------------------------------------------------------- |
+| `↑ +1.618`      | vert           | Niveau bull Fibonacci le plus profond sweepé (= +1.618 en général)        |
+| `↑ +2.618`      | vert           | +2.0 et +2.618 ont aussi été sweepés (deepest = +2.618)                   |
+| `↓ -1.618`      | rouge          | Niveau bear Fibonacci le plus profond sweepé                                |
+| `↓ -3.618`      | rouge          | Plusieurs niveaux bear sweepés (1.618, 2.0, 2.618, 3.0, 3.618)             |
+| `↑ +N ↓ -M`     | vert + rouge   | Sweeps détectés sur les deux côtés (range + extensions cassées)            |
+| `—`             | gris           | Pas de niveau Fibonacci sweepé en post-Asian                               |
+
+### Légende de la colonne `Trade` / `Plan` / `RR`
+
+Quand le détecteur asiatique identifie un **biais directionnel clair** (un sweep asiatique + cassure de l'autre extrémité confirmant la cible Fibonacci), il génère automatiquement un plan de trade ICT :
+
+```
+Trigger :  fib_state commence par + (bull) ou − (bear) ET range_pct >= 0.05%
+Entry    : current_price  (market, pour dashboard live)
+SL       : coté opposé de la range + 10% buffers (invalidation modèle complet)
+TP1      : ±1.618 fib (deviation standard 1)
+TP2      : ±2.618 fib (deviation standard 2)
+TP3      : ±4.0   fib (deviation standard 3)
+RR       : (TP1 - EP) / (EP - SL)  en valeur absolue
+```
+
+| `Trade` | `Plan`             | `RR`  | Signification                                                                       |
+| ------- | ------------------ | ----- | ----------------------------------------------------------------------------------- |
+| `BUY`   | `SL 1.34174 → TP1 1.34559` | `1.6×` | AL swept + prix > AH. ACHETER au prix actuel, TP 1.618 fib, RR calculé sur 1× range |
+| `SELL`  | `SL 1.34245 → TP1 1.33775` | `2.0×` | AH swept + prix < AL. VENDRE au prix actuel, cible -1.618 fib                       |
+| `—`     | `TP1-3 hit`        | `—`   | Tout la grille (-4.0 à +4.0) a été parcourue → ne pas chercher de nouveau trade     |
+| `—`     | `Range too tight`  | `—`   | Range asiatique trop étroite (<0.05% du spot) → RR trop faible, pas de trade         |
+| `—`     | `—`                | `—`   | Pas de bias directionnel encore (sweep ambigu, prix reste dans la range)            |
+
+> **Lecture rapide** : tu prends uniquement les lignes où `Trade ∈ {BUY, SELL}` ET `RR >= 1.0`. Celles-ci constituent les setups ICT « valides » du moment. Les autres lignes sont des « wait » (pas d'invalidation : range trop étroite, range pas encore cassée, ou cibles déjà visitées).
+
+## 🎮 Trade Execution (FTMO / broker MT5)
+
+Sous-commande `trade` (et raccourci **`asian --execute`**) qui **pilote MT5 pour envoyer les Trade Ideas** generees par le scanner asiatique. Wrap `mt5.order_send()` avec des garde-fous (anti-double-ordre, validation lot, filling-mode auto-detect, magic 888001).
+
+**Defaut = LIVE** (envoi reel dans MT5). Pour un preview SANS toucher au broker, passer `--dry-run`.
+
+### Commandes
+
+```bash
+# 1) Lister TOUS les trades 'Active' du scan H1 (lecture seule)
+python main.py trade list
+
+# 2) Lister les trades pour UNE liste explicite de symboles
+python main.py trade list --symbols GBPUSD EURUSD XAUUSD
+
+# 3) DRY-RUN avant envoi : montre CE QUI SERAIT envoye, sans toucher au broker
+python main.py trade execute --dry-run
+
+# 4) ENVOI REEL sur FTMO-demo (avec confirmation Y/N globale)
+python main.py trade execute
+
+# 5) Envoi reel d'un SEUL trade (filtre --symbol)
+python main.py trade execute --symbol GBPUSD --lots 0.01
+
+# 6) Auto-confirm (skip Y/N interactif — utilise dans scripts cron / bots)
+python main.py trade execute --symbol XAUUSD --yes
+
+# 7) Filtre RR >= 1.0 (skip les trades dont le risk:reward est trop faible)
+python main.py trade execute --rr-min 1.0
+
+# 8) JSON pour integration externe
+python main.py trade list --json > trades.json
+python main.py trade execute --json > results.json
+
+# 9) Raccourci 'asian --execute' : scan + envoi en UNE commande
+python main.py asian --timeframe M15 --execute --dry-run --lots 0.01   # preview
+python main.py asian --timeframe M15 --execute --yes --lots 0.01        # live sans confirm
+```
+
+### Flags de `trade execute` (et `asian --execute`)
+
+| Option           | Défaut       | Effet                                                                              |
+| ---------------- | ------------ | ---------------------------------------------------------------------------------- |
+| `--timeframe`    | `H1`         | Timeframe du scan asiatique (H1 ou M15)                                            |
+| `--lots`         | `0.01`       | Volume par ordre (aligne sur `lot_step` du symbole)                                |
+| `--rr-min`       | `None`       | Filtre RR minimal (ex. `--rr-min 1.5` skip RR < 1.5)                                |
+| `--symbol`       | `None`       | Filtre sur UN symbole                                                             |
+| `--dry-run`      | LIVE         | Sans ce flag : **LIVE** (envoi reel). Avec `--dry-run` : preview sans rien envoyer. |
+| `--yes`          | interactive  | Skip la confirmation Y/N globale (auto-confirm / cron)                              |
+| `--json`         | ASCII        | Sortie JSON pour integration externe                                                |
+| `-v`             | -            | Logging DEBUG                                                                      |
+
+### Garde-fous d'execution
+
+| Garde-fou                  | Implementation                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------- |
+| DRY-RUN par defaut         | `TradeExecutor.dry_run=True` ; `--live` requis pour envoyer                     |
+| Anti-double-ordre          | Skip si une position `magic == 888001` existe deja sur ce `symbol+direction`   |
+| Validation volume          | Alignement sur `info.volume_step`, clamps `min_lot..max_lot`                    |
+| Filling mode               | Auto-detection `info.filling_mode` (FOK / IOC) avant envoi                      |
+| Tick price                 | Lecture `mt5.symbol_info_tick()` immediatement avant chaque ordre (pas cache)   |
+| Confirmation globale       | Y/N interactif une seule fois (saute si `--yes`)                                |
+| Magic + Comment            | `magic=888001`, `comment="InelidaMarketScan ICT"` (31 chars max sur certains brokers) |
+| Retcode mapping            | Toutes les issues MT5 parsees en messages lisibles (DONE, REJECT, NO_MONEY...)  |
+
+### Exemple de sortie `trade list`
+
+```
+== Available Trade Ideas (scan H1) ==
+Symbole    Action  Lots    EP          SL          TP1         Dev  RR    Magic
+----------------------------------------------------------------------------------
+GBPUSD       SELL  0.01    1.33946   1.34352   1.33917     20  0.1×  888001
+XAUUSD        BUY  0.01  4365.31    4314.39   4401.02     20  0.7×  888001
+
+[DRY-RUN] 2 ordre(s) prets (sources: AsianSession_Fib_*).
+```
+
+### Exemple de sortie `trade execute --live`
+
+```
+=== LIVE EXECUTION ===
+  2 ordre(s) vont etre envoyes.
+  Lot=0.01, RR_min=no
+  Confirmer ? [y/N] y
+
+== Trade Execution Results ==
+
+Symbole    Status    Action    Lots  OrderID    DealID    Retcode       Note
+GBPUSD    FILLED     SELL      0.01  1234567   1234567    DONE          Trade successful
+XAUUSD    FILLED      BUY      0.01  1234568   1234568    DONE          Trade successful
+
+2 filled | 0 dry-run | 0 failed | 0 skipped (sur 2 total)
+```
+
+### Note live / FTMO
+
+Utilise sur **FTMO-Demo** (terminal `FTMO Global Markets MT5 Terminal`, compte demo 100k). Le capital FTMO impose des regles strictes (pas de SL, pas d'algo, target journaliere 1%, max DD 5%) — garde toujours un **journal de tes executions** pour backtest.
+
+### Disclaimer
+
+La plage Asian utilisée est **UTC 00:00–08:00** (convention ICT). Sur FTMO-Demo, ça correspond à 03:00–11:00 horloge serveur (décalage EEST). ICT alternatif propose parfois 18:00–02:00 NY — non implémenté ici, mais modifiable dans `src/config.py` → `ASIAN.start_utc / end_utc`.
+
+---
+
+## 🐞 Dépannage
+
+| Erreur                                                | Cause / Solution                                                            |
+| ----------------------------------------------------- | --------------------------------------------------------------------------- |
+| `ImportError: No module named 'MetaTrader5'`          | Installer sur Windows ; le binding ne tourne pas sous macOS / Linux.        |
+| `initialize() returned None`                          | Terminal MT5 non lancé. Ouvre-le et connecte-toi à un compte.               |
+| `[-1] Terminal: Unauthorized`                         | Login/password erronés. Renseigne `MT5Config.login/password/server` ou laisse le terminal ouvert et déjà logué. |
+| `Symbole inconnu chez le broker`                      | Ton broker ne propose pas le symbole. Remplace-le dans la watchlist.        |
+| Couleur ANSI cassée sous Windows                      | Utilise Windows Terminal ou PowerShell récents ; sinon le mode dégradé print les lignes sans couleur. |
+
+---
+
+## ⚖️ Avertissement
+
+Ce projet est fourni à des fins éducatives. Le trading comporte un risque de perte en capital. L'auteur ne saura être tenu responsable des pertes résultant de l'utilisation de cet outil.
+
+---
+
+## 📜 Licence
+
+Voir le fichier `LICENSE`.
