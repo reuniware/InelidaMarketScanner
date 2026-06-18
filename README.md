@@ -41,6 +41,7 @@ Tout se passe depuis votre terminal, sans interface graphique, sans cloud, sans 
 InelidaMarketScanner/
 ├── main.py                  # Entrée CLI (argparse)
 ├── app.py                   # Dashboard Streamlit
+├── live_monitor.py          # Détecteur live de sweeps (Asian + Fractal + Daily/Weekly) - NO TRADE
 ├── start_scan.bat           # Lanceur Windows pour le mode watch
 ├── start_dashboard.bat      # Lanceur Windows pour le dashboard Streamlit
 ├── requirements.txt
@@ -116,6 +117,7 @@ MT5 = MT5Config(
 | `setups`    | Filtre les setups directionnels (sweep + mouvement vers l'autre liquidité).|
 | `trade`     | Liste ou exécute les Trade Ideas sur MT5.                |
 | `db`        | Interagit avec la base de données SQLite (stats, list, path).|
+| `live`      | **NOUVEAU** — Détecteur live de sweeps ICT (écran + log, pas de trade). |
 
 Exemples :
 
@@ -570,6 +572,56 @@ XAUUSD    FILLED      BUY      0.01  1234568   1234568    DONE          Trade su
 
 2 filled | 0 dry-run | 0 failed | 0 skipped (sur 2 total)
 ```
+
+---
+
+---
+
+## 🔴 LIVE SWEEP DETECTOR (sans trade)
+
+`live_monitor.py` est un **détecteur de sweeps en temps réel** qui NE TRADE JAMAIS.
+
+Il surveille les symboles et alerte à l'écran dès qu'un sweep ICT est détecté, avec une **explication complète** du trade potentiel. Aucun ordre n'est envoyé au broker.
+
+### Trois couches de détection
+
+| Couche | Mécanisme | Timeframe |
+|--------|-----------|-----------|
+| 🌏 **Asian** | Mèche traverse AH/AL + close rejette (range asiatique) | M1 |
+| 🔷 **Fractal** | Williams N=2, BSL/SSL sur swing points | M15 |
+| 🏛️ **Daily/Weekly** | PDH/PDL (Previous Day High/Low) + PWH/PWL (Previous Week High/Low) | H1 / D1 |
+
+### Usage
+
+```bash
+# Scan les 43 symboles par défaut (forex, indices, or, crypto, pétrole)
+python live_monitor.py
+
+# Watchlist custom (variable d'environnement)
+set INELIDA_LIVE_WATCHLIST=GBPJPY,XAUUSD,EURUSD
+python live_monitor.py
+
+# Un seul symbole
+set INELIDA_LIVE_WATCHLIST=GBPJPY
+python live_monitor.py
+```
+
+**Ctrl+C** pour arrêter. Toutes les alertes sont journalisées dans `live_sweeps.log`.
+
+### Ce que vous voyez
+
+Quand un sweep est détecté, une alerte s'affiche avec :
+
+- **Type de sweep** : BSL (Buy-Side Liquidity) ou SSL (Sell-Side Liquidity)
+- **Niveau sweepé** : prix exact du niveau (AH/AL, PDH/PDL, PWH/PWL, ou swing fractal)
+- **Trade potentiel** : BUY ou SELL avec Entry, SL, TP1, TP2, RR (Asian sweeps uniquement)
+- **Direction ICT** : reversal_down (BSL) ou reversal_up (SSL)
+- **Heure plateforme** et **session ICT** en cours
+- **Son** (BELL) pour attirer l'attention
+
+### ⚠️ Zéro trade
+
+Le script utilise MT5 uniquement pour **lire** les données (barres M1/M15/H1/D1/W1, ticks). Aucun `order_send` n'est présent dans le code. C'est un pur outil de **surveillance et d'alerte**.
 
 ---
 
