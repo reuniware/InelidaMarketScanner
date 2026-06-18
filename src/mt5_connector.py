@@ -148,6 +148,23 @@ class MT5Connector:
             logger.warning("symbols_get() a Ã©chouÃ©: %s", e)
             return []
 
+    def list_all_symbols(self) -> list:
+        """
+        Renvoie la liste triée de TOUS les symboles disponibles chez le broker
+        (y compris ceux non visibles dans la Market Watch).
+        Utilisé par --scan-all pour scanner un maximum d'actifs.
+        """
+        if not self.ensure_connected():
+            return []
+        try:
+            syms = mt5.symbols_get()
+            if not syms:
+                return []
+            return sorted({s.name for s in syms})
+        except Exception as e:
+            logger.warning("symbols_get(all) a échoué: %s", e)
+            return []
+
 
 def list_market_watch_symbols() -> list:
     """Helper module-level pour usage direct sans instancier MT5Connector."""

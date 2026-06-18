@@ -63,6 +63,15 @@ class OutputConfig:
     flush_each_tick: bool = True           # Flush immediat du CSV a chaque tick
 
 
+# ─── Base de données ────────────────────────────────────────────────────────────
+@dataclass
+class DBConfig:
+    """Configuration de la base de données SQLite."""
+    path: str = "./inelida_market_data.db"   # Chemin du fichier SQLite
+    auto_save_asian: bool = True               # Sauvegarder auto les ranges asiatiques
+    auto_save_sweeps: bool = True              # Sauvegarder auto les sweeps détectés
+
+
 # ─── Alertes ───────────────────────────────────────────────────────────────────
 @dataclass
 class AlertConfig:
@@ -103,6 +112,7 @@ MT5 = MT5Config(
 SCAN = ScanConfig()
 OUT = OutputConfig()
 ALERT = AlertConfig()
+DB = DBConfig()
 SWEEP = SweepConfig()
 ASIAN = AsianSessionConfig()
 

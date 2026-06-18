@@ -18,7 +18,7 @@ from typing import Dict, List, Optional, Tuple
 
 import MetaTrader5 as mt5
 
-from .config import SWEEP
+from .config import SWEEP, DB
 from .mt5_connector import MT5Connector
 
 logger = logging.getLogger("SweepDetector")
@@ -225,8 +225,15 @@ def scan_market_watch_for_sweeps(
     lookback: Optional[int] = None,
     sensitivity: Optional[int] = None,
     max_symbols: Optional[int] = None,
+    symbols_override: Optional[List[str]] = None,
+    save_to_db: bool = False,
 ) -> Tuple[List[SweepEvent], List[str]]:
-    """Scanne tous les Market Watch symbols pour BSL/SSL sweeps."""
+    """Scanne tous les Market Watch symbols pour BSL/SSL sweeps.
+
+    Args:
+        symbols_override: Si fourni, utilise cette liste au lieu de Market Watch.
+        save_to_db: Si True, sauvegarde les événements dans la base SQLite.
+    """
     tf_name = timeframe or SWEEP.timeframe
     f_n = fractal_n if fractal_n is not None else SWEEP.fractal_n
     lb = lookback if lookback is not None else SWEEP.lookback
@@ -237,13 +244,16 @@ def scan_market_watch_for_sweeps(
     if not mt5c.ensure_connected():
         return [], []
 
-    symbols = mt5c.list_market_watch_symbols()
-    if cap and len(symbols) > cap:
-        logger.info(
-            "Market Watch contient %d symboles ; limite appliquee = %d (utilise --all pour tout scanner).",
-            len(symbols), cap,
-        )
-        symbols = symbols[:cap]
+    if symbols_override is not None:
+        symbols = list(symbols_override)
+    else:
+        symbols = mt5c.list_market_watch_symbols()
+        if cap and len(symbols) > cap:
+            logger.info(
+                "Market Watch contient %d symboles ; limite appliquee = %d (utilise --all pour tout scanner).",
+                len(symbols), cap,
+            )
+            symbols = symbols[:cap]
 
     all_events: List[SweepEvent] = []
     for sym in symbols:
@@ -254,6 +264,12 @@ def scan_market_watch_for_sweeps(
                 all_events.extend(evs)
         except Exception as e:
             logger.debug("Sweep scan failed pour %s: %s", sym, e)
+
+    # Sauvegarde automatique en DB (import lazy pour eviter l'import circulaire)
+    if save_to_db and all_events and DB.auto_save_sweeps:
+        from .database import get_db
+        db = get_db()
+        db.save_sweep_events_bulk(all_events)
 
     return all_events, symbols
 
@@ -645,8 +661,15 @@ def scan_market_watch_asian_ranges(
     timeframe: Optional[str] = None,
     session_date: Optional[str] = None,
     max_symbols: Optional[int] = None,
+    symbols_override: Optional[List[str]] = None,
+    save_to_db: bool = False,
 ) -> Tuple[List[AsianRangeResult], List[str]]:
-    """Scan tous les symboles visibles du Market Watch pour leur range asiatique."""
+    """Scan tous les symboles visibles du Market Watch pour leur range asiatique.
+
+    Args:
+        symbols_override: Si fourni, utilise cette liste au lieu de Market Watch.
+        save_to_db: Si True, sauvegarde les résultats dans la base SQLite.
+    """
     tf_name = (timeframe or "H1").upper()
     cap = max_symbols if max_symbols is not None else SWEEP.max_symbols
 
@@ -654,13 +677,16 @@ def scan_market_watch_asian_ranges(
     if not mt5c.ensure_connected():
         return [], []
 
-    symbols = mt5c.list_market_watch_symbols()
-    if cap and len(symbols) > cap:
-        logger.info(
-            "Market Watch contient %d symboles ; limite appliquee = %d (utilise --all).",
-            len(symbols), cap,
-        )
-        symbols = symbols[:cap]
+    if symbols_override is not None:
+        symbols = list(symbols_override)
+    else:
+        symbols = mt5c.list_market_watch_symbols()
+        if cap and len(symbols) > cap:
+            logger.info(
+                "Market Watch contient %d symboles ; limite appliquee = %d (utilise --all).",
+                len(symbols), cap,
+            )
+            symbols = symbols[:cap]
 
     results: List[AsianRangeResult] = []
     for sym in symbols:
@@ -670,6 +696,12 @@ def scan_market_watch_asian_ranges(
                 results.append(r)
         except Exception as e:
             logger.debug("Asian scan failed pour %s: %s", sym, e)
+
+    # Sauvegarde automatique en DB (import lazy pour eviter l'import circulaire)
+    if save_to_db and results and DB.auto_save_asian:
+        from .database import get_db
+        db = get_db()
+        db.save_asian_results_bulk(results)
 
     return results, symbols
 

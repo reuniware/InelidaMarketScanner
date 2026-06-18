@@ -13,12 +13,13 @@ Modes disponibles :
 import argparse
 import json
 import logging
+import os
 import sys
 import time
 from datetime import datetime as _dt
 
 from src.config import (
-    MT5, OUT, SWEEP, ASIAN, resolve_watchlist, DEFAULT_WATCHLIST,
+    DB, MT5, OUT, SWEEP, ASIAN, resolve_watchlist, DEFAULT_WATCHLIST,
 )
 from src.mt5_connector import MT5Connector
 from src.market_scanner import MarketScanner
@@ -28,6 +29,7 @@ from src.display import (
     render_asian_ranges, render_asian_ranges_plain,
     RESET, BOLD, DIM, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, GRAY,
 )
+from src.database import get_db
 from src.sweep_detector import (
     detect_sweeps_for_symbol,
     scan_market_watch_for_sweeps,
@@ -169,9 +171,12 @@ def cmd_sweeps(args):
     lookback = args.lookback if args.lookback is not None else SWEEP.lookback
     sensitivity = args.sensitivity if args.sensitivity is not None else SWEEP.sensitivity
     max_syms = None if args.all else (args.limit if args.limit is not None else SWEEP.max_symbols)
+    scan_all = getattr(args, "scan_all", False)
+    save_to_db = DB.auto_save_sweeps and not args.json  # pas de sauvegarde en mode JSON
 
     all_events: list = []
     scanned_count = 0
+    symbols_override = None
 
     if args.symbols:
         explicit = [s.strip().upper() for s in args.symbols if s.strip()]
@@ -190,13 +195,26 @@ def cmd_sweeps(args):
                 logger.info("[SWEEP] %s: %d evenement(s).", sym, len(evs))
             else:
                 logger.info("[SWEEP] %s: 0 evenement.", sym)
+        # Sauvegarde en DB si demande
+        if save_to_db and all_events:
+            get_db().save_sweep_events_bulk(all_events)
     else:
+        # Mode --scan-all : tous les symboles disponibles chez le broker
+        if scan_all:
+            mt5c = MT5Connector()
+            if not mt5c.ensure_connected():
+                return 2
+            symbols_override = mt5c.list_all_symbols()
+            print(f"{YELLOW}Scan de TOUS les symboles ({len(symbols_override)})...{RESET}")
+
         all_events, scanned = scan_market_watch_for_sweeps(
             timeframe=timeframe, fractal_n=fractal_n,
             lookback=lookback, sensitivity=sensitivity,
             max_symbols=max_syms,
+            symbols_override=symbols_override,
+            save_to_db=save_to_db,
         )
-        scanned_count = len(scanned)
+        scanned_count = len(scanned) if not symbols_override else len(symbols_override)
 
     all_events = sort_events(all_events, by_distance=args.sort_by_distance)
 
@@ -205,6 +223,8 @@ def cmd_sweeps(args):
     elif all_events:
         print(render_sweeps(all_events, scanned_count=scanned_count, timeframe=timeframe))
         print(f"\n{GREEN}{len(all_events)} sweep(s) detecte(s) sur {timeframe}.{RESET}")
+        if save_to_db:
+            print(f"  {GRAY}Donnees enregistrees dans la base SQLite.{RESET}")
     else:
         print(render_sweeps([], scanned_count=scanned_count, timeframe=timeframe))
         print(f"\n{YELLOW}Aucun sweep detecte sur {scanned_count} symboles scanne(s) ({timeframe}).{RESET}")
@@ -221,9 +241,12 @@ def cmd_asian(args):
     cap = None if args.all else (
         args.limit if args.limit is not None else ASIAN.max_symbols
     )
+    scan_all = getattr(args, "scan_all", False)
+    save_to_db = DB.auto_save_asian and not args.json
 
     all_results: list = []
     scanned_count = 0
+    symbols_override = None
 
     if args.symbols:
         explicit = [s.strip().upper() for s in args.symbols if s.strip()]
@@ -237,11 +260,24 @@ def cmd_asian(args):
             )
             if r is not None:
                 all_results.append(r)
+        # Sauvegarde en DB si demande
+        if save_to_db and all_results:
+            get_db().save_asian_results_bulk(all_results)
     else:
+        # Mode --scan-all : tous les symboles disponibles chez le broker
+        if scan_all:
+            mt5c = MT5Connector()
+            if not mt5c.ensure_connected():
+                return 2
+            symbols_override = mt5c.list_all_symbols()
+            print(f"{YELLOW}Scan de TOUS les symboles ({len(symbols_override)})...{RESET}")
+
         all_results, scanned = scan_market_watch_asian_ranges(
             timeframe=timeframe, session_date=session_date, max_symbols=cap,
+            symbols_override=symbols_override,
+            save_to_db=save_to_db,
         )
-        scanned_count = len(scanned)
+        scanned_count = len(scanned) if not symbols_override else len(symbols_override)
 
     date_str = session_date or _dt.utcfromtimestamp(time.time()).strftime("%Y-%m-%d")
 
@@ -260,6 +296,8 @@ def cmd_asian(args):
             f"\n{GREEN}{n_swept}/{len(all_results)} symbole(s) ont eu leur "
             f"High ou Low asiatique sweep sur {timeframe} (session {date_str}).{RESET}"
         )
+        if save_to_db:
+            print(f"  {GRAY}Donnees enregistrees dans la base SQLite.{RESET}")
     else:
         print(render_asian_ranges(
             [], scanned_count=scanned_count,
@@ -460,8 +498,13 @@ def _scan_to_decisions(timeframe: str, symbols, lots: float, rr_min,
                 r for sym in explicit
                 if (r := detect_asian_range_for_symbol(sym, timeframe)) is not None
             ]
+            # Sauvegarde en DB pour les stats
+            if DB.auto_save_asian and results:
+                get_db().save_asian_results_bulk(results)
         else:
-            results, _scanned = scan_market_watch_asian_ranges(timeframe=timeframe)
+            results, _scanned = scan_market_watch_asian_ranges(
+                timeframe=timeframe, save_to_db=True,
+            )
     decisions = asian_to_decisions(results, lots=lots, rr_min=rr_min)
     if only_symbol:
         decisions = [d for d in decisions if d.symbol == only_symbol.upper()]
@@ -504,6 +547,128 @@ def cmd_trade(args):
         )
 
     return 0
+
+# ─── Base de données ──────────────────────────────────────────────────────────
+def cmd_db(args):
+    """Commandes d'interaction avec la base de données SQLite."""
+    _setup_logging(args.verbose)
+
+    db_action = args.db_action
+
+    if db_action == "stats":
+        db = get_db()
+        if not db.connect():
+            print(f"{RED}Impossible d'ouvrir la base de donnees.{RESET}")
+            return 2
+        stats = db.get_statistics()
+        if not stats:
+            print(f"{YELLOW}Aucune statistique disponible.{RESET}")
+            return 0
+
+        print(f"{BOLD}{CYAN}== Statistiques de la base de donnees =={RESET}")
+        print(f"  {GRAY}Fichier:{RESET} {db.db_path}")
+        print(f"")
+        print(f"  {BOLD}Sessions asiatiques :{RESET}")
+        print(f"    Total enregistrees : {stats.get('asian_total', 0)}")
+        print(f"    Symboles suivis     : {stats.get('symbols_tracked', 0)}")
+        print(f"    High sweeps         : {stats.get('asian_high_swept', 0)}")
+        print(f"    Low sweeps          : {stats.get('asian_low_swept', 0)}")
+        print(f"")
+        print(f"  {BOLD}Sweep events :{RESET}")
+        print(f"    Total sweeps        : {stats.get('sweep_total', 0)}")
+        print(f"    BSL sweeps          : {stats.get('bsl_total', 0)}")
+        print(f"    SSL sweeps          : {stats.get('ssl_total', 0)}")
+        print(f"")
+        print(f"  {BOLD}Dernieres sessions:{RESET}")
+        for d in stats.get("last_dates", []):
+            print(f"    {d['session_date']} : {d['cnt']} symbole(s)")
+        return 0
+
+    if db_action == "list":
+        db = get_db()
+        if not db.connect():
+            print(f"{RED}Impossible d'ouvrir la base de donnees.{RESET}")
+            return 2
+
+        limit = args.limit or 30
+        what = args.what
+        symbol_filter = args.symbol.upper() if args.symbol else None
+
+        if what == "asian":
+            rows = db.get_asian_sessions(
+                symbol=symbol_filter,
+                session_date=args.date,
+                limit=limit,
+            )
+            if not rows:
+                print(f"{YELLOW}Aucune session asiatique trouvee.{RESET}")
+                return 0
+            print(f"{BOLD}{CYAN}== Sessions asiatiques enregistrees =={RESET}")
+            print(
+                f"{BOLD}{'Symbole':<12} {'Date':<12} {'AH':>11} {'AL':>11} "
+                f"{'AH Swp':>8} {'AL Swp':>8} {'Swept H@':>22} {'Swept L@':>22}{RESET}"
+            )
+            for r in rows:
+                ah_s = f"{GREEN}OUI{RESET}" if r["asian_high_swept"] else f"{GRAY}non{RESET}"
+                al_s = f"{GREEN}OUI{RESET}" if r["asian_low_swept"] else f"{GRAY}non{RESET}"
+                h_at = (
+                    time.strftime("%Y-%m-%d %H:%M", time.gmtime(r["high_swept_at"]))
+                    if r["high_swept_at"] else f"{GRAY}---{RESET}"
+                )
+                l_at = (
+                    time.strftime("%Y-%m-%d %H:%M", time.gmtime(r["low_swept_at"]))
+                    if r["low_swept_at"] else f"{GRAY}---{RESET}"
+                )
+                print(
+                    f"{MAGENTA}{r['symbol']:<12}{RESET} {r['session_date']:<12} "
+                    f"{r['asian_high']:>11.5f} {r['asian_low']:>11.5f} "
+                    f"{ah_s:>16} {al_s:>16} "
+                    f"{h_at:>22} {l_at:>22}"
+                )
+            print(f"\n{GRAY}{len(rows)} ligne(s) affichee(s) sur {limit} max.{RESET}")
+
+        elif what == "sweeps":
+            rows = db.get_sweep_events(
+                symbol=symbol_filter,
+                limit=limit,
+            )
+            if not rows:
+                print(f"{YELLOW}Aucun sweep event trouve.{RESET}")
+                return 0
+            print(f"{BOLD}{CYAN}== Sweep events enregistres =={RESET}")
+            print(
+                f"{BOLD}{'Symbole':<12} {'Label':>5} {'Level':>14} "
+                f"{'Sweep Time':>19} {'Dir':>14}{RESET}"
+            )
+            for r in rows:
+                sweep_time = (
+                    time.strftime("%Y-%m-%d %H:%M", time.gmtime(r["sweep_time"]))
+                    if r["sweep_time"] else "---"
+                )
+                dir_col = f"{GREEN}{r['direction']}{RESET}" if r["direction"] == "reversal_up" else f"{RED}{r['direction']}{RESET}"
+                label_col = f"{YELLOW}{r['sweep_label']}{RESET}"
+                print(
+                    f"{MAGENTA}{r['symbol']:<12}{RESET} "
+                    f"{label_col:>13} "
+                    f"{r['level']:>14.5f} "
+                    f"{sweep_time:>19} "
+                    f"{dir_col:>22}"
+                )
+            print(f"\n{GRAY}{len(rows)} ligne(s) affichee(s) sur {limit} max.{RESET}")
+
+        return 0
+
+    if db_action == "path":
+        db = get_db()
+        print(f"{BOLD}Chemin de la base de donnees :{RESET}")
+        print(f"  {CYAN}{os.path.abspath(db.db_path)}{RESET}")
+        taille = os.path.getsize(db.db_path) if os.path.exists(db.db_path) else 0
+        if taille > 0:
+            print(f"  Taille : {taille / 1024:.1f} Ko")
+        return 0
+
+    print(f"{RED}Action inconnue : {db_action}{RESET}")
+    return 1
 
 
 # ─── Parser ──────────────────────────────────────────────────────────────────
@@ -582,6 +747,8 @@ def build_parser() -> argparse.ArgumentParser:
                           help="Max symboles scannés (défaut 50).")
     p_sweeps.add_argument("--all", action="store_true",
                           help="Override --limit, scan tous les symboles visibles.")
+    p_sweeps.add_argument("--scan-all", action="store_true",
+                          help="Scan TOUS les symboles disponibles chez le broker (visible + non-visibles).")
     p_sweeps.add_argument("--sort-by-distance", dest="sort_by_distance",
                           action="store_true", default=True,
                           help="Trie les sweeps par distance au prix actuel (défaut).")
@@ -605,6 +772,8 @@ def build_parser() -> argparse.ArgumentParser:
                          help="Max symboles scannes (defaut 50).")
     p_asian.add_argument("--all", action="store_true",
                          help="Override --limit.")
+    p_asian.add_argument("--scan-all", action="store_true",
+                         help="Scan TOUS les symboles disponibles chez le broker (visible + non-visibles).")
     # Flags d'execution (alias pratique pour 'trade execute' inline).
     p_asian.add_argument("--execute", action="store_true",
                          help="Apres le scan, envoyer les Trade Ideas au broker "
@@ -622,6 +791,23 @@ def build_parser() -> argparse.ArgumentParser:
     p_asian.add_argument("--json", action="store_true",
                          help="Sortie JSON au lieu du tableau ASCII.")
     _add_common(p_asian)
+
+    # ── db ─────────────────────────────────────────────────────────────────
+    p_db = sub.add_parser(
+        "db",
+        help="Interagir avec la base de donnees SQLite (stats, list, path).",
+    )
+    p_db.add_argument("db_action", choices=("stats", "list", "path"),
+                      help="Action : 'stats' = statistiques, 'list' = lister, 'path' = chemin.")
+    p_db.add_argument("--what", choices=("asian", "sweeps"), default="asian",
+                      help="Type de donnees a lister (defaut 'asian').")
+    p_db.add_argument("--symbol", default=None,
+                      help="Filtre sur un symbole (list).")
+    p_db.add_argument("--date", default=None,
+                      help="Filtre sur une date YYYY-MM-DD (list asian).")
+    p_db.add_argument("--limit", type=int, default=30,
+                      help="Nombre max de lignes a afficher (defaut 30).")
+    _add_common(p_db)
 
     return parser
 
@@ -644,6 +830,7 @@ def main():
         "sweeps":    cmd_sweeps,
         "asian":     cmd_asian,
         "trade":     cmd_trade,
+        "db":        cmd_db,
     }
     try:
         return handlers[args.command](args)

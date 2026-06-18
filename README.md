@@ -27,7 +27,9 @@ Tout se passe depuis votre terminal, sans interface graphique, sans cloud, sans 
 - 💡 **Idée de trade complète** — affiche le trade recommandé (BUY / SELL), le point d'entrée, le stop-loss, et trois take-profits, avec le ratio risque:récompense.
 - 🎮 **Exécution automatique MT5** — envoie réellement l'ordre au broker depuis le CLI, avec garde-fous (anti-double-ordre, DRY-RUN de previsualisation, magic number d'identification, retcode mapping lisible).
 - 🎨 **Console claire et colorée** — pas besoin de GUI : tout est affiché dans votre terminal avec des couleurs ANSI (Windows Terminal, PowerShell, ou terminal Linux/Mac).
-- ⚙️ **Aucune dépendance exotique** — juste Python + MetaTrader5. Pas de base de données, pas de cloud, pas de Docker.
+- 🗄️ **Base de données SQLite intégrée** — les sessions asiatiques (AH/AL + timestamps) et les sweeps (BSL/SSL) sont automatiquement enregistrés dans une base SQLite pour les statistiques futures.
+- 📈 **Scan multi-actifs** — scanne tous les symboles visibles dans MarketWatch (`--all`) ou **tous les symboles disponibles chez le broker** (`--scan-all`) pour une couverture maximale.
+- ⚙️ **Aucune dépendance exotique** — juste Python + MetaTrader5. SQLite est intégré à Python. Pas de cloud, pas de Docker.
 
 ---
 
@@ -46,7 +48,10 @@ InelidaMarketScan/
     ├── config.py            # Watchlist & dataclasses de config
     ├── mt5_connector.py     # Singleton MT5 (init / reconnect / shutdown)
     ├── market_scanner.py    # Scan tick + deltas + CSV
-    └── display.py           # Rendu console ANSI
+    ├── display.py           # Rendu console ANSI
+    ├── sweep_detector.py    # Détection sweeps BSL/SSL + range asiatique + Fibonacci
+    ├── trade_executor.py    # Exécution d'ordres MT5 (DRY-RUN / LIVE)
+    └── database.py          # Base SQLite (sessions asiatiques + sweeps)
 ```
 
 ---
@@ -101,6 +106,10 @@ MT5 = MT5Config(
 | `watchlist` | Affiche simplement la watchlist configurée.             |
 | `account`   | Infos du compte MT5 (balance, leverage, etc.).           |
 | `terminal`  | Infos du terminal MT5 (broker, build, trade_allowed...).|
+| `sweeps`    | Détection des sweeps BSL/SSL (ICT Williams fractals).    |
+| `asian`     | Analyse du range asiatique + sweeps post-Asian + Fibonacci.|
+| `trade`     | Liste ou exécute les Trade Ideas sur MT5.                |
+| `db`        | Interagit avec la base de données SQLite (stats, list, path).|
 
 Exemples :
 
@@ -207,6 +216,7 @@ python main.py sweeps --symbols XAUUSD EURUSD GBPUSD USDJPY BTCUSD
 | `--sensitivity`        | `5`    | Dernières bougies testées pour les sweeps           |
 | `--limit`              | `50`   | Cap symboles (depuis Market Watch)                  |
 | `--all`                | -      | Override du cap, scanne tous les symboles visibles  |
+| `--scan-all`           | -      | Scan TOUS les symboles disponibles chez le broker   |
 | `--sort-by-distance`   | ✅     | Trie par distance croissante au prix actuel        |
 | `--json`               | -      | Sortie JSON sinon tableau ASCII                     |
 | `-v, --verbose`        | -      | Logging DEBUG                                       |
@@ -236,6 +246,9 @@ Sous-commande `asian` qui calcule le **range de la session asiatique** (UTC 00:0
 ```bash
 # Scan complet par défaut (50 symboles visibles Market Watch, H1, aujourd'hui UTC)
 python main.py asian
+
+# Scan TOUS les symboles disponibles chez le broker (visible + non-visibles)
+python main.py asian --scan-all
 
 # Timeframe M15 (plus granulaire, plus faux positifs)
 python main.py asian --timeframe M15
@@ -345,6 +358,56 @@ RR       : (TP1 - EP) / (EP - SL)  en valeur absolue
 | `—`     | `—`                | `—`   | Pas de bias directionnel encore (sweep ambigu, prix reste dans la range)            |
 
 > **Lecture rapide** : tu prends uniquement les lignes où `Trade ∈ {BUY, SELL}` ET `RR >= 1.0`. Celles-ci constituent les setups ICT « valides » du moment. Les autres lignes sont des « wait » (pas d'invalidation : range trop étroite, range pas encore cassée, ou cibles déjà visitées).
+
+## 🗄️ Base de données SQLite
+
+Sous-commande `db` qui permet de consulter et analyser les données collectées automatiquement lors des scans.
+
+Les sessions asiatiques (High/Low + timestamps) et les sweeps (BSL/SSL + date/heure de sweep) sont **automatiquement enregistrés** dans une base SQLite à chaque scan (`asian` ou `sweeps`). Pas de manipulation manuelle nécessaire.
+
+### Structure des données
+
+**Table `asian_sessions`** — une ligne par `(symbole, date, timeframe)` :
+- `asian_high` / `asian_low` : les extrêmes de la session
+- `high_swept_at` / `low_swept_at` : timestamps UTC du sweep de chaque côté
+- `high_swept_session` / `low_swept_session` : session ICT responsable (London, NY...)
+- `bull_fib_swept_label` / `bear_fib_swept_label` : niveaux Fibonacci sweepés
+- UPSERT : si vous relancez le scan dans la même journée, la même ligne est **mise à jour** (pas de doublon)
+
+**Table `sweep_events`** — chaque sweep BSL/SSL détecté :
+- `sweep_label` : BSL ou SSL
+- `level` : prix du swing point swept
+- `sweep_time` : timestamp UTC de la bougie qui a swept
+- `direction` : `reversal_up` ou `reversal_down`
+
+### Commandes
+
+```bash
+# Statistiques globales (total sessions, sweeps, symboles suivis)
+python main.py db stats
+
+# Lister les 30 dernières sessions asiatiques
+python main.py db list
+
+# Filtrer par symbole
+python main.py db list --symbol XAUUSD
+
+# Filtrer par date
+python main.py db list --date 2026-06-17
+
+# Lister les sweeps plutôt que les sessions asiatiques
+python main.py db list --what sweeps --symbol EURUSD
+
+# Limiter le nombre de résultats
+python main.py db list --limit 100
+
+# Voir le chemin et la taille du fichier
+python main.py db path
+```
+
+> 💡 Le fichier `inelida_market_data.db` est créé dans le dossier du projet. Tu peux aussi l'ouvrir avec n'importe quel client SQLite (DB Browser, DBeaver, etc.) pour faire des requêtes personnalisées.
+
+---
 
 ## 🎮 Trade Execution (FTMO / broker MT5)
 
