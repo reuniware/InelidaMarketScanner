@@ -1,5 +1,5 @@
 @echo off
-REM ─── InelidaMarketScan — lancement du mode watch sur Windows ───────────────
+REM ─── InelidaMarketScanner — lancement du mode watch sur Windows ───────────────
 setlocal
 cd /d "%~dp0"
 

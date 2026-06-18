@@ -1,5 +1,5 @@
 """
-Scanner de ticks temps réel InelidaMarketScan.
+Scanner de ticks temps réel InelidaMarketScanner.
 Scan les symboles de la watchlist via MT5 et produit des TickSnapshot.
 """
 

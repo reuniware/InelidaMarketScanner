@@ -1,5 +1,5 @@
 """
-Executeur d'ordres MetaTrader 5 pour InelidaMarketScan.
+Executeur d'ordres MetaTrader 5 pour InelidaMarketScanner.
 
 Prend les Trade Ideas generees par sweep_detector.detect_asian_range_for_symbol
 (meme magic number = 888001) et les envoie au broker via mt5.order_send.
@@ -28,12 +28,12 @@ from .sweep_detector import AsianRangeResult
 
 logger = logging.getLogger("TradeExecutor")
 
-# Magic number identifiant les ordres passes par InelidaMarketScan.
+# Magic number identifiant les ordres passes par InelidaMarketScanner.
 # Permet de filtrer / identifier / cleanup les positions issues du bot.
 INELIDA_MAGIC: int = 888001
 
 # Commentaire affiche dans le journal MT5 (max ~31 chars selon broker).
-INELIDA_COMMENT: str = "InelidaMarketScan ICT"
+INELIDA_COMMENT: str = "InelidaMarketScanner ICT"
 
 # Slack de deviation max autorise entre prix-theorique et prix-execute (points).
 DEFAULT_DEVIATION: int = 20

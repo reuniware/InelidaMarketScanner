@@ -1,5 +1,5 @@
 """
-Gestionnaire de base de données SQLite pour InelidaMarketScan.
+Gestionnaire de base de données SQLite pour InelidaMarketScanner.
 
 Enregistre les ranges de session asiatique (high/low + dates/heures) ainsi que
 les sweeps détectés (date/heure de sweep), dans l'objectif de pouvoir faire
@@ -17,7 +17,7 @@ import time
 from typing import List, Optional
 
 from .config import DB
-from .sweep_detector import AsianRangeResult, SweepEvent
+from .sweep_detector import AsianRangeResult, SweepEvent, LevelSweepResult
 
 logger = logging.getLogger("DatabaseManager")
 
@@ -32,16 +32,20 @@ CREATE TABLE IF NOT EXISTS asian_sessions (
     -- Range asiatique
     asian_high          REAL    NOT NULL,
     asian_low           REAL    NOT NULL,
-    -- Sweep du Asian High
+    -- Sweep du Asian High (avec rejet)
     asian_high_swept    INTEGER NOT NULL DEFAULT 0,   -- bool
     high_swept_at       REAL,                -- epoch UTC
     high_swept_close    REAL,
     high_swept_session  TEXT,                -- "Asian"/"London"/"NY"/...
-    -- Sweep du Asian Low
+    -- Breach du Asian High (mèche traverse, sans close condition)
+    asian_high_breached INTEGER NOT NULL DEFAULT 0,   -- bool
+    -- Sweep du Asian Low (avec rejet)
     asian_low_swept     INTEGER NOT NULL DEFAULT 0,   -- bool
     low_swept_at        REAL,                -- epoch UTC
     low_swept_close     REAL,
     low_swept_session   TEXT,
+    -- Breach du Asian Low (mèche traverse, sans close condition)
+    asian_low_breached  INTEGER NOT NULL DEFAULT 0,   -- bool
     -- Prix courant au moment du scan
     current_price       REAL,
     -- Sweeps Fibonacci (bull/bear)
@@ -82,6 +86,29 @@ CREATE INDEX IF NOT EXISTS idx_sweep_symbol
 
 CREATE INDEX IF NOT EXISTS idx_asian_swept
     ON asian_sessions(asian_high_swept, asian_low_swept);
+
+CREATE TABLE IF NOT EXISTS level_sweeps (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol          TEXT    NOT NULL,
+    level_type      TEXT    NOT NULL,   -- 'daily' / 'weekly'
+    level_date      TEXT    NOT NULL,   -- YYYY-MM-DD ou YYYY-WW
+    level_high      REAL    NOT NULL,
+    level_low       REAL    NOT NULL,
+    high_swept      INTEGER NOT NULL DEFAULT 0,
+    low_swept       INTEGER NOT NULL DEFAULT 0,
+    high_breached   INTEGER NOT NULL DEFAULT 0,
+    low_breached    INTEGER NOT NULL DEFAULT 0,
+    high_swept_at   REAL,
+    high_swept_close REAL,
+    low_swept_at    REAL,
+    low_swept_close REAL,
+    current_price   REAL,
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(symbol, level_type, level_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_level_symbol
+    ON level_sweeps(symbol, level_type);
 """
 
 
@@ -114,11 +141,13 @@ class DatabaseManager:
             if parent and not os.path.exists(parent):
                 os.makedirs(parent, exist_ok=True)
 
-            self._conn = sqlite3.connect(self.db_path)
+            self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
             self._conn.row_factory = sqlite3.Row
             self._conn.execute("PRAGMA journal_mode=WAL")
             self._conn.executescript(_SCHEMA_SQL)
             self._conn.commit()
+            # Migration : ajouter les colonnes manquantes si la DB date d'avant les modifications
+            self._migrate()
             logger.info("Base de données SQLite ouverte : %s", self.db_path)
             return True
         except sqlite3.Error as e:
@@ -156,7 +185,9 @@ class DatabaseManager:
                     symbol, session_date, timeframe,
                     asian_high, asian_low,
                     asian_high_swept, high_swept_at, high_swept_close, high_swept_session,
+                    asian_high_breached,
                     asian_low_swept, low_swept_at, low_swept_close, low_swept_session,
+                    asian_low_breached,
                     current_price,
                     bull_fib_swept_label, bull_fib_swept_at, bull_fib_swept_close, bull_fib_swept_session,
                     bear_fib_swept_label, bear_fib_swept_at, bear_fib_swept_close, bear_fib_swept_session
@@ -164,7 +195,9 @@ class DatabaseManager:
                     ?, ?, ?,
                     ?, ?,
                     ?, ?, ?, ?,
+                    ?,
                     ?, ?, ?, ?,
+                    ?,
                     ?,
                     ?, ?, ?, ?,
                     ?, ?, ?, ?
@@ -176,10 +209,12 @@ class DatabaseManager:
                     high_swept_at       = excluded.high_swept_at,
                     high_swept_close    = excluded.high_swept_close,
                     high_swept_session  = excluded.high_swept_session,
+                    asian_high_breached = excluded.asian_high_breached,
                     asian_low_swept     = excluded.asian_low_swept,
                     low_swept_at        = excluded.low_swept_at,
                     low_swept_close     = excluded.low_swept_close,
                     low_swept_session   = excluded.low_swept_session,
+                    asian_low_breached  = excluded.asian_low_breached,
                     current_price       = excluded.current_price,
                     bull_fib_swept_label  = excluded.bull_fib_swept_label,
                     bull_fib_swept_at     = excluded.bull_fib_swept_at,
@@ -200,10 +235,12 @@ class DatabaseManager:
                     result.high_swept_at,
                     result.high_swept_close,
                     result.high_swept_session,
+                    int(result.asian_high_breached),
                     int(result.asian_low_swept),
                     result.low_swept_at,
                     result.low_swept_close,
                     result.low_swept_session,
+                    int(result.asian_low_breached),
                     result.current_price,
                     result.bull_fib_swept_label,
                     result.bull_fib_swept_at,
@@ -274,6 +311,98 @@ class DatabaseManager:
         if count > 0:
             logger.info("DB : %d sweep(s) enregistré(s).", count)
         return count
+
+    # ─── Daily / Weekly Level Sweeps ───────────────────────────────────────
+
+    def save_level_sweep(self, result: LevelSweepResult) -> bool:
+        """Insère ou met à jour un résultat de sweep de niveau daily/weekly."""
+        if self.conn is None:
+            return False
+        try:
+            self.conn.execute(
+                """
+                INSERT INTO level_sweeps (
+                    symbol, level_type, level_date,
+                    level_high, level_low,
+                    high_swept, low_swept,
+                    high_breached, low_breached,
+                    high_swept_at, high_swept_close,
+                    low_swept_at, low_swept_close,
+                    current_price
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(symbol, level_type, level_date) DO UPDATE SET
+                    level_high       = excluded.level_high,
+                    level_low        = excluded.level_low,
+                    high_swept       = excluded.high_swept,
+                    low_swept        = excluded.low_swept,
+                    high_breached    = excluded.high_breached,
+                    low_breached     = excluded.low_breached,
+                    high_swept_at    = excluded.high_swept_at,
+                    high_swept_close = excluded.high_swept_close,
+                    low_swept_at     = excluded.low_swept_at,
+                    low_swept_close  = excluded.low_swept_close,
+                    current_price    = excluded.current_price
+                """,
+                (
+                    result.symbol,
+                    result.level_type,
+                    result.level_date,
+                    result.level_high,
+                    result.level_low,
+                    int(result.high_swept),
+                    int(result.low_swept),
+                    int(result.high_breached),
+                    int(result.low_breached),
+                    result.high_swept_at,
+                    result.high_swept_close,
+                    result.low_swept_at,
+                    result.low_swept_close,
+                    result.current_price,
+                ),
+            )
+            self.conn.commit()
+            return True
+        except sqlite3.Error as e:
+            logger.error("Erreur DB save_level_sweep(%s) : %s", result.symbol, e)
+            return False
+
+    def save_level_sweeps_bulk(self, results: list) -> int:
+        """Sauvegarde une liste de LevelSweepResult."""
+        count = 0
+        for r in results:
+            if self.save_level_sweep(r):
+                count += 1
+        if count > 0:
+            logger.info("DB : %d niveau(x) enregistré(s).", count)
+        return count
+
+    def get_level_sweeps(
+        self,
+        symbol: Optional[str] = None,
+        level_type: Optional[str] = None,
+        limit: int = 30,
+    ) -> List[sqlite3.Row]:
+        """Récupère les niveaux daily/weekly stockés."""
+        if self.conn is None:
+            return []
+        query = "SELECT * FROM level_sweeps WHERE 1=1"
+        params: list = []
+        if symbol:
+            query += " AND symbol = ?"
+            params.append(symbol)
+        if level_type:
+            query += " AND level_type = ?"
+            params.append(level_type)
+        query += " ORDER BY created_at DESC"
+        if limit:
+            query += " LIMIT ?"
+            params.append(limit)
+        try:
+            cur = self.conn.execute(query, params)
+            return cur.fetchall()
+        except sqlite3.Error as e:
+            logger.error("Erreur DB get_level_sweeps : %s", e)
+            return []
 
     # ─── Requêtes de statistiques ──────────────────────────────────────────
 
@@ -374,6 +503,25 @@ class DatabaseManager:
         except sqlite3.Error as e:
             logger.error("Erreur DB get_statistics : %s", e)
         return stats
+
+
+    # ─── Migration ────────────────────────────────────────────────────────────
+
+    def _migrate(self):
+        """Ajoute les colonnes manquantes pour les bases créées avant les modifications."""
+        migrations = [
+            ("asian_sessions", "asian_high_breached", "INTEGER NOT NULL DEFAULT 0"),
+            ("asian_sessions", "asian_low_breached", "INTEGER NOT NULL DEFAULT 0"),
+            ("level_sweeps", "high_breached", "INTEGER NOT NULL DEFAULT 0"),
+            ("level_sweeps", "low_breached", "INTEGER NOT NULL DEFAULT 0"),
+        ]
+        for table, column, col_type in migrations:
+            try:
+                self._conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+                self._conn.commit()
+                logger.info("Migration : colonne %s.%s ajoutée.", table, column)
+            except sqlite3.OperationalError:
+                pass  # La colonne existe déjà
 
 
 # ─── Module-level helpers ──────────────────────────────────────────────────────

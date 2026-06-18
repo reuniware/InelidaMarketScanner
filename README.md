@@ -1,8 +1,8 @@
-# InelidaMarketScan
+# InelidaMarketScanner
 
 **Trouver les bons trades ICT (Asian session, sweeps, Fibonacci) et les exécuter automatiquement sur MetaTrader 5.**
 
-InelidaMarketScan est un outil en ligne de commande pour traders MT5 qui analyse la **session asiatique**, détecte les **liquidity sweeps** (BSL/SSL), calcule les **extensions Fibonacci** (-4.0 à +4.0), et propose un **plan de trade complet** (Entry / SL / TP1-3 / Risk-Reward) — avec option d'**envoi automatique au broker**.
+InelidaMarketScanner est un outil en ligne de commande pour traders MT5 qui analyse la **session asiatique**, détecte les **liquidity sweeps** (BSL/SSL), calcule les **extensions Fibonacci** (-4.0 à +4.0), et propose un **plan de trade complet** (Entry / SL / TP1-3 / Risk-Reward) — avec option d'**envoi automatique au broker**.
 
 Tout se passe depuis votre terminal, sans interface graphique, sans cloud, sans Docker. Juste MetaTrader 5 + Python.
 
@@ -24,21 +24,25 @@ Tout se passe depuis votre terminal, sans interface graphique, sans cloud, sans 
 - 📊 **Scan de marché temps réel** — voyez en un coup d'œil le bid/ask, le spread et la variation de chaque symbole de votre watchlist.
 - 🔍 **Détection automatique des sweeps ICT** — l'outil identifie les swings BSL/SSL qui ont été *raids* (sweep) en M15, M30, H1 ou H4.
 - 🌏 **Analyse de la session asiatique** — pour chaque symbole, calcule le High/Low de la session (UTC 00:00–08:00) et détecte si le prix est au-dessus/en-dessous, avec extensions Fibonacci ±1.618 / ±2.618 / ±3.618 / ±4.0.
+- 📈 **Niveaux Daily & Weekly** — détecte les sweeps des PDH/PDL (Previous Day) et PWH/PWL (Previous Week) avec direction target.
 - 💡 **Idée de trade complète** — affiche le trade recommandé (BUY / SELL), le point d'entrée, le stop-loss, et trois take-profits, avec le ratio risque:récompense.
+- 🚨 **Détection de « breach »** — en plus des sweeps classiques (avec rejet), détecte aussi quand la mèche traverse un niveau sans rejet (breach), dans les deux sens.
 - 🎮 **Exécution automatique MT5** — envoie réellement l'ordre au broker depuis le CLI, avec garde-fous (anti-double-ordre, DRY-RUN de previsualisation, magic number d'identification, retcode mapping lisible).
-- 🎨 **Console claire et colorée** — pas besoin de GUI : tout est affiché dans votre terminal avec des couleurs ANSI (Windows Terminal, PowerShell, ou terminal Linux/Mac).
-- 🗄️ **Base de données SQLite intégrée** — les sessions asiatiques (AH/AL + timestamps) et les sweeps (BSL/SSL) sont automatiquement enregistrés dans une base SQLite pour les statistiques futures.
+- 🎨 **Dashboard Streamlit** — interface web pour visualiser les résultats, filtrer les données, et lancer les scans en direct.
+- 🗄️ **Base de données SQLite intégrée** — les sessions asiatiques (AH/AL + timestamps), niveaux daily/weekly, et les sweeps (BSL/SSL) sont automatiquement enregistrés dans une base SQLite pour les statistiques futures.
 - 📈 **Scan multi-actifs** — scanne tous les symboles visibles dans MarketWatch (`--all`) ou **tous les symboles disponibles chez le broker** (`--scan-all`) pour une couverture maximale.
-- ⚙️ **Aucune dépendance exotique** — juste Python + MetaTrader5. SQLite est intégré à Python. Pas de cloud, pas de Docker.
+- ⚙️ **Aucune dépendance exotique** — juste Python + MetaTrader5 + Streamlit. SQLite est intégré à Python. Pas de cloud, pas de Docker.
 
 ---
 
 ## 📁 Structure
 
 ```
-InelidaMarketScan/
+InelidaMarketScanner/
 ├── main.py                  # Entrée CLI (argparse)
+├── app.py                   # Dashboard Streamlit
 ├── start_scan.bat           # Lanceur Windows pour le mode watch
+├── start_dashboard.bat      # Lanceur Windows pour le dashboard Streamlit
 ├── requirements.txt
 ├── README.md
 ├── LICENSE
@@ -49,9 +53,9 @@ InelidaMarketScan/
     ├── mt5_connector.py     # Singleton MT5 (init / reconnect / shutdown)
     ├── market_scanner.py    # Scan tick + deltas + CSV
     ├── display.py           # Rendu console ANSI
-    ├── sweep_detector.py    # Détection sweeps BSL/SSL + range asiatique + Fibonacci
+    ├── sweep_detector.py    # Détection sweeps BSL/SSL + range asiatique + Fibonacci + niveaux daily/weekly + breach
     ├── trade_executor.py    # Exécution d'ordres MT5 (DRY-RUN / LIVE)
-    └── database.py          # Base SQLite (sessions asiatiques + sweeps)
+    └── database.py          # Base SQLite (sessions asiatiques + sweeps + levels)
 ```
 
 ---
@@ -59,13 +63,13 @@ InelidaMarketScan/
 ## 🚀 Installation
 
 ```bash
-cd InelidaMarketScan
+cd InelidaMarketScanner
 python -m venv .venv
 .venv\Scripts\activate            # Windows
 pip install -r requirements.txt
 ```
 
-> ⚠️ **MetaTrader5** est un binding Python **Windows-only** distribué par MetaQuotes. InelidaMarketScan ne fonctionne donc que sur Windows avec un terminal MT5 lancé et connecté à un compte.
+> ⚠️ **MetaTrader5** est un binding Python **Windows-only** distribué par MetaQuotes. InelidaMarketScanner ne fonctionne donc que sur Windows avec un terminal MT5 lancé et connecté à un compte.
 
 ---
 
@@ -108,6 +112,8 @@ MT5 = MT5Config(
 | `terminal`  | Infos du terminal MT5 (broker, build, trade_allowed...).|
 | `sweeps`    | Détection des sweeps BSL/SSL (ICT Williams fractals).    |
 | `asian`     | Analyse du range asiatique + sweeps post-Asian + Fibonacci.|
+| `levels`    | Scanne les niveaux PDH/PDL (daily) et PWH/PWL (weekly) + sweeps.|
+| `setups`    | Filtre les setups directionnels (sweep + mouvement vers l'autre liquidité).|
 | `trade`     | Liste ou exécute les Trade Ideas sur MT5.                |
 | `db`        | Interagit avec la base de données SQLite (stats, list, path).|
 
@@ -222,6 +228,68 @@ python main.py sweeps --symbols XAUUSD EURUSD GBPUSD USDJPY BTCUSD
 | `-v, --verbose`        | -      | Logging DEBUG                                       |
 
 ⚠️ Les sweeps ICT sont des composants **codables** de la méthodologie, mais leur interprétation reste *discrétionnaire* : un trader chevronné filtrera visuellement les sweeps « propres » vs « faibles ». Ce scanner sort les données brutes — c'est à toi de juger la qualité de chaque signal.
+
+---
+
+## 📈 Niveaux Daily & Weekly (PDH/PDL / PWH/PWL)
+
+Sous-commande `levels` qui scanne les **niveaux quotidiens et hebdomadaires** pour détecter les sweeps et la direction vers l'autre côté.
+
+- **PDH/PDL** (Previous Day High/Low) : charge les D1, prend la veille comme niveau, scanne les bougies H1 du jour courant.
+- **PWH/PWL** (Previous Week High/Low) : charge les W1, prend la semaine dernière comme niveau, scanne les bougies D1 de la semaine courante.
+- Détecte les **sweeps** (mèche traverse + close rejette) et les **breaches** (mèche traverse seulement).
+- Direction target : si le haut a été swept, le prix se dirige vers le bas (→ AL), et inversement.
+
+### Usage
+
+```bash
+# Daily + Weekly (défaut)
+python main.py levels
+
+# Uniquement daily
+python main.py levels --type daily
+
+# Uniquement weekly
+python main.py levels --type weekly
+
+# Tous les symboles disponibles
+python main.py levels --scan-all
+```
+
+### Colonnes du tableau
+
+| Colonne      | Signification                                                |
+|------------- |------------------------------------------------------------- |
+| `Symbole`    | Nom MT5                                                      |
+| `Type`       | `Daily` ou `Weekly`                                           |
+| `Sweep`      | `H` (high swept), `L` (low swept), `H+L` (les deux), `H'`/`L'` (breach sans rejet) |
+| `Direction`  | `→ AH` / `→ AL` / `↔ Both` / `·` / `−`                       |
+| `Niv.Haut`   | Prix du niveau haut (PDH ou PWH)                              |
+| `Niv.Bas`    | Prix du niveau bas (PDL ou PWL)                               |
+| `Now`        | Prix actuel                                                   |
+
+---
+
+## 🚨 Détection de Breach (sweep sans rejet)
+
+En complément du sweep classique ICT (mèche traverse + close rejette), le détecteur identifie désormais les **breaches** : quand la **mèche traverse** un niveau, même si le close **ne rejette pas** de l'autre côté.
+
+### Utilité
+
+Cela permet de détecter des cas comme :
+- Prix sweepe l'Asian High (rejet confirmé ✅), puis descend, traverse l'Asian Low mais **reste en dessous** (continuation baissière)
+- Le breach est marqué (`AH'` ou `AL'` dans l'affichage) même si le close reste du même côté
+
+### Où le voir
+
+| Interface    | Indicateur                                           |
+|------------- |----------------------------------------------------- |
+| CLI `asian`  | `touch` (gris) au lieu de `swept` (rouge/vert)       |
+| CLI `levels` | `H'` / `L'` (apostrophe) pour breach simple          |
+| CLI `setups` | `AH'` / `AL'` combinés si les deux breachés          |
+| Dashboard    | Colonnes `AH Touch` / `AL Touch` dans les tableaux   |
+
+> ⚠️ La `direction_target` (→ AH / → AL) reste basée **uniquement** sur les sweeps avec rejet (logique ICT). Les breaches sont informatifs mais ne génèrent pas de signal directionnel.
 
 ---
 
@@ -471,7 +539,7 @@ python main.py asian --timeframe M15 --execute --yes --lots 0.01        # live s
 | Filling mode               | Auto-detection `info.filling_mode` (FOK / IOC) avant envoi                      |
 | Tick price                 | Lecture `mt5.symbol_info_tick()` immediatement avant chaque ordre (pas cache)   |
 | Confirmation globale       | Y/N interactif une seule fois (saute si `--yes`)                                |
-| Magic + Comment            | `magic=888001`, `comment="InelidaMarketScan ICT"` (31 chars max sur certains brokers) |
+| Magic + Comment            | `magic=888001`, `comment="InelidaMarketScanner ICT"` (31 chars max sur certains brokers) |
 | Retcode mapping            | Toutes les issues MT5 parsees en messages lisibles (DONE, REJECT, NO_MONEY...)  |
 
 ### Exemple de sortie `trade list`
@@ -502,6 +570,44 @@ XAUUSD    FILLED      BUY      0.01  1234568   1234568    DONE          Trade su
 
 2 filled | 0 dry-run | 0 failed | 0 skipped (sur 2 total)
 ```
+
+---
+
+## 📊 Dashboard Streamlit
+
+Le projet inclut une **interface web Streamlit** pour visualiser les résultats sans passer par le terminal.
+
+### Lancement
+
+```bash
+# Depuis le dossier du projet
+streamlit run app.py
+
+# Ou via le lanceur Windows (tue l'ancien process + nettoie le cache)
+start_dashboard.bat
+```
+
+### Pages
+
+| Page                          | Description                                                   |
+|-------------------------------|---------------------------------------------------------------|
+| 🏠 **Dashboard**              | Métriques globales (sessions, sweeps, taux), dernières dates  |
+| 🌏 **Sessions Asiatiques**    | Tableau filtré (symbole, date, sweep, breach) avec couleurs   |
+| 📈 **Niveaux Daily/Weekly**   | PDH/PDL et PWH/PWL depuis la DB                               |
+| ⚡ **Sweep Events**           | BSL/SSL events avec filtres                                   |
+| 🗄️ **Base de Données**        | Infos DB + liste des tables + réinitialisation du cache       |
+| 🔍 **Scan en Direct**         | Boutons pour lancer les scans (asian, levels, sweeps, setups) |
+
+Les données sont lues depuis la base SQLite avec un cache de 10 secondes. Les scans en direct appellent `main.py` en subprocess et les résultats sont sauvegardés en DB.
+
+### start_dashboard.bat
+
+Le batch `start_dashboard.bat` (inspiré du projet `trading`) automatise le redémarrage :
+1. Tue les anciens processus Streamlit sur le port 8501 (`netstat` + `taskkill`)
+2. Nettoie les caches Python (`__pycache__`, `*.pyc`)
+3. Lance Streamlit fraîchement avec `python -B`
+
+---
 
 ### Note live / FTMO
 

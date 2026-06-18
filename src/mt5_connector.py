@@ -1,5 +1,5 @@
 """
-Gestionnaire de connexion MetaTrader 5 pour InelidaMarketScan.
+Gestionnaire de connexion MetaTrader 5 pour InelidaMarketScanner.
 Pattern singleton avec auto-reconnect, retry, et context manager.
 """
 

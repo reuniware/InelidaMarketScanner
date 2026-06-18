@@ -88,7 +88,7 @@ def render_snapshot(
 
     if show_header:
         now = time.strftime("%Y-%m-%d %H:%M:%S")
-        lines.append(f"{BOLD}{CYAN}╔══ InelidaMarketScan ══╗{RESET}")
+        lines.append(f"{BOLD}{CYAN}╔══ InelidaMarketScanner ══╗{RESET}")
         lines.append(f"  {GRAY}Watchlist:{RESET} {len(scanner.symbols)} symboles  |  "
                      f"{GRAY}Rafraichissement:{RESET} ≥ {scanner.symbols and 500} ms  |  "
                      f"{GRAY}Heure UTC:{RESET} {now}")
@@ -262,8 +262,19 @@ def render_asian_ranges(
     )
 
     for r in results:
-        ah_status = f"{RED}swept{RESET}" if r.asian_high_swept else f"{GRAY}---{RESET}"
-        al_status = f"{GREEN}swept{RESET}" if r.asian_low_swept else f"{GRAY}---{RESET}"
+        if r.asian_high_swept:
+            ah_status = f"{RED}swept{RESET}"
+        elif r.asian_high_breached:
+            ah_status = f"{DIM}touch{RESET}"
+        else:
+            ah_status = f"{GRAY}---{RESET}"
+
+        if r.asian_low_swept:
+            al_status = f"{GREEN}swept{RESET}"
+        elif r.asian_low_breached:
+            al_status = f"{DIM}touch{RESET}"
+        else:
+            al_status = f"{GRAY}---{RESET}"
 
         # Contrainte d'alignement : chaque cellule doit utiliser UNE SEULE paire
         # d'ANSI escape (couleur + RESET), pour que la longueur brute de la chaine
@@ -381,8 +392,8 @@ def _trade_rr_col(r) -> str:
 def render_asian_ranges_plain(results: List[AsianRangeResult]) -> None:
     """Variante non-TTY : une ligne ASCII par symbole (compatible pipe / log)."""
     for r in results:
-        ah = "AH_SWEPT" if r.asian_high_swept else "AH_---"
-        al = "AL_SWEPT" if r.asian_low_swept else "AL_---"
+        ah = "AH_SWEPT" if r.asian_high_swept else ("AH_BREACH" if r.asian_high_breached else "AH_---")
+        al = "AL_SWEPT" if r.asian_low_swept else ("AL_BREACH" if r.asian_low_breached else "AL_---")
         session_info = ""
         if r.asian_high_swept:
             session_info += f" H@{r.high_swept_session_label}"

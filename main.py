@@ -1,5 +1,5 @@
 """
-Point d'entrée CLI du scanner de marché temps réel InelidaMarketScan.
+Point d'entrée CLI du scanner de marché temps réel InelidaMarketScanner.
 Modes disponibles :
   - snapshot  : une capture ponctuelle puis sortie
   - watch     : boucle continue jusqu'à Ctrl+C
@@ -27,6 +27,7 @@ from src.display import (
     render_snapshot,
     render_sweeps, render_sweeps_plain, make_display,
     render_asian_ranges, render_asian_ranges_plain,
+    _fmt_price,
     RESET, BOLD, DIM, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, GRAY,
 )
 from src.database import get_db
@@ -38,6 +39,9 @@ from src.sweep_detector import (
     detect_asian_range_for_symbol,
     scan_market_watch_asian_ranges,
     asians_to_dicts,
+    detect_daily_levels_for_symbol,
+    detect_weekly_levels_for_symbol,
+    scan_market_watch_levels,
 )
 from src.trade_executor import (
     TradeExecutor,
@@ -671,6 +675,312 @@ def cmd_db(args):
     return 1
 
 
+# ─── Levels (daily / weekly) ────────────────────────────────────────────────
+def cmd_levels(args):
+    """
+    Scanne les niveaux quotidiens (PDH/PDL) et hebdomadaires (PWH/PWL)
+    pour détecter les sweeps + direction vers l'autre côté.
+    """
+    _setup_logging(args.verbose)
+    level_type = getattr(args, "level_type", "all")
+    scan_all = getattr(args, "scan_all", False)
+
+    mt5c = MT5Connector()
+    if not mt5c.ensure_connected():
+        print(f"{RED}Connexion MT5 impossible.{RESET}")
+        return 2
+
+    symbols_override = None
+    if scan_all:
+        symbols_override = mt5c.list_all_symbols()
+        print(f"{YELLOW}Scan de TOUS les symboles ({len(symbols_override)})...{RESET}")
+    elif args.symbols:
+        explicit = [s.strip().upper() for s in args.symbols if s.strip()]
+        if explicit:
+            symbols_override = explicit
+
+    all_results: list = []
+    scanned_count = 0
+
+    # Daily levels
+    if level_type in ("all", "daily"):
+        d_results, d_scanned = scan_market_watch_levels(
+            level_type="daily", scan_tf="H1",
+            symbols_override=symbols_override,
+        )
+        if d_results:
+            get_db().save_level_sweeps_bulk(d_results)
+        all_results.extend(d_results)
+        scanned_count = max(scanned_count, len(d_scanned))
+
+    # Weekly levels
+    if level_type in ("all", "weekly"):
+        w_results, w_scanned = scan_market_watch_levels(
+            level_type="weekly", scan_tf="D1",
+            symbols_override=symbols_override,
+        )
+        if w_results:
+            get_db().save_level_sweeps_bulk(w_results)
+        all_results.extend(w_results)
+        scanned_count = max(scanned_count, len(w_scanned))
+
+    if not all_results:
+        print(f"{YELLOW}Aucun niveau calcule.{RESET}")
+        return 0
+
+    # Filtrer les setups directionnels
+    setups = [
+        r for r in all_results
+        if r.direction_target in ("AH", "AL", "BOTH")
+        and r.direction_target_label not in ("−", "·")
+    ]
+
+    # Pas de filtre RR pour les niveaux daily/weekly (pas de trade plan)
+    setups.sort(key=lambda r: (r.level_type, r.symbol))
+
+    if not setups:
+        print(f"{YELLOW}Aucun setup directionnel detecte sur {len(all_results)} niveaux.{RESET}")
+        return 0
+
+    # ── Affichage ───────────────────────────────────────────────────────
+    lines: list = []
+    lines.append(f"{BOLD}{CYAN}== Niveaux (PDH/PDL / PWH/PWL) - Setups directionnels =={RESET}")
+    lines.append(
+        f"  {GRAY}Scannes:{RESET} {scanned_count} symboles  |  "
+        f"{GRAY}Niveaux:{RESET} {len(all_results)}  |  "
+        f"{GRAY}Setups:{RESET} {len(setups)}"
+    )
+    lines.append("")
+
+    header = (
+        f"{BOLD}{'Symbole':<10}  {'Type':>7}  {'Sweep':>8}  {'Direction':>18}  "
+        f"{'Niv.Haut':>11} {'Niv.Bas':>11} {'Now':>11}{RESET}"
+    )
+    lines.append(header)
+    lines.append(f"{GRAY}{'-' * (len(header) - len(BOLD) - len(RESET))}{RESET}")
+
+    for r in setups:
+        # Type label
+        type_cell = f"{CYAN}Daily{RESET}" if r.level_type == "daily" else f"{MAGENTA}Weekly{RESET}"
+
+        # Sweep / Breach
+        if r.high_swept and r.low_swept:
+            sweep_cell = f"{YELLOW}H+L{RESET}"
+        elif r.high_swept:
+            sweep_cell = f"{RED}H{RESET}"
+        elif r.low_swept:
+            sweep_cell = f"{GREEN}L{RESET}"
+        elif r.high_breached or r.low_breached:
+            parts = []
+            if r.high_breached:
+                parts.append(f"{DIM}H'{RESET}")
+            if r.low_breached:
+                parts.append(f"{DIM}L'{RESET}")
+            sweep_cell = "+".join(parts)
+        else:
+            sweep_cell = f"{GRAY}---{RESET}"
+
+        # Direction
+        if r.direction_target == "AH":
+            dir_cell = f"{GREEN}{r.direction_target_label}{RESET}"
+        elif r.direction_target == "AL":
+            dir_cell = f"{RED}{r.direction_target_label}{RESET}"
+        else:
+            dir_cell = f"{YELLOW}{r.direction_target_label}{RESET}"
+
+        lines.append(
+            f"{MAGENTA}{r.symbol:<10}{RESET}  "
+            f"{type_cell:>15}  "
+            f"{sweep_cell:>16}  "
+            f"{dir_cell:>18}  "
+            f"{_fmt_price(r.level_high):>11} {_fmt_price(r.level_low):>11} {_fmt_price(r.current_price):>11}"
+        )
+
+    n_haut = sum(1 for r in setups if r.direction_target == "AH")
+    n_bas = sum(1 for r in setups if r.direction_target == "AL")
+    n_mix = sum(1 for r in setups if r.direction_target == "BOTH")
+    lines.append("")
+    lines.append(
+        f"{BOLD}Resume :{RESET} {GREEN}{n_haut} HAUSSIER{RESET} (-> H)  |  "
+        f"{RED}{n_bas} BAISSIER{RESET} (-> B)  |  "
+        f"{YELLOW}{n_mix} MIXTE{RESET} (H+L sweepes)"
+    )
+
+    print("\n".join(lines))
+    return 0
+
+
+# ─── Setups (sweep + direction) ──────────────────────────────────────────────
+def cmd_setups(args):
+    """
+    Scan asiatique + filtre pour n'afficher QUE les setups directionnels :
+    un sweep (AH ou AL) détecté + prix qui se dirige vers l'autre côté de la range.
+    """
+    _setup_logging(args.verbose)
+    timeframe = (args.timeframe or "H1").upper()
+    session_date = args.session_date if args.session_date else None
+    scan_all = getattr(args, "scan_all", False)
+    save_to_db = DB.auto_save_asian
+    rr_min = args.rr_min
+
+    # ── Scan ────────────────────────────────────────────────────────────────
+    mt5c = MT5Connector()
+    if not mt5c.ensure_connected():
+        print(f"{RED}Connexion MT5 impossible.{RESET}")
+        return 2
+
+    symbols_override = None
+    if scan_all:
+        symbols_override = mt5c.list_all_symbols()
+        print(f"{YELLOW}Scan de TOUS les symboles ({len(symbols_override)})...{RESET}")
+    elif args.symbols:
+        explicit = [s.strip().upper() for s in args.symbols if s.strip()]
+        if explicit:
+            symbols_override = explicit
+
+    all_results, scanned = scan_market_watch_asian_ranges(
+        timeframe=timeframe, session_date=session_date,
+        symbols_override=symbols_override,
+        save_to_db=save_to_db,
+    )
+
+    if not all_results:
+        print(f"{YELLOW}Aucun range asiatique calcule.{RESET}")
+        return 0
+
+    # ── Filtrer les setups directionnels ───────────────────────────────────
+    # direction_target = "AH" (AL swept → vers AH), "AL" (AH swept → vers AL), "BOTH"
+    setups = [
+        r for r in all_results
+        if r.direction_target in ("AH", "AL", "BOTH")
+        and r.direction_target_label not in ("−", "·")
+    ]
+
+    # Si --rr-min est fourni, ne garder que les trades avec RR >= rr_min
+    if rr_min is not None:
+        setups = [
+            r for r in setups
+            if r.trade_action != "-" and r.trade_rr1 is not None and r.trade_rr1 >= rr_min
+        ]
+
+    # Tri : trades actifs avec RR en premier, puis par direction
+    def _sort_key(r):
+        rr = r.trade_rr1 or 0
+        # Priorité : RR élevé d'abord, puis actif avant inactif
+        is_active = 1 if r.trade_status == "Active" else 0
+        return (is_active, rr)
+
+    setups.sort(key=_sort_key, reverse=True)
+
+    # ── Affichage ──────────────────────────────────────────────────────────
+    if not setups:
+        print(f"{YELLOW}Aucun setup directionnel detecte sur {len(all_results)} symboles.{RESET}")
+        return 0
+
+    date_str = session_date or time.strftime("%Y-%m-%d", time.gmtime())
+    lines: list = []
+    lines.append(f"{BOLD}{CYAN}== Setups directionnels (sweep AH/AL + mouvement vers l'autre liquidite) =={RESET}")
+    lines.append(
+        f"  {GRAY}Session UTC:{RESET} {date_str}  |  "
+        f"{GRAY}Scannes:{RESET} {len(all_results)}  |  "
+        f"{GRAY}Setups:{RESET} {len(setups)}"
+    )
+    lines.append("")
+
+    # Header
+    header = (
+        f"{BOLD}{'Symbole':<10}  {'Sweep':>8}  {'Direction':>18}  "
+        f"{'Session':>14}  {'AH':>11} {'AL':>11} {'Now':>11}  "
+        f"{'RR':>5}  {'Trade':>6}  {'Plan':>26}{RESET}"
+    )
+    lines.append(header)
+    lines.append(f"{GRAY}{'-' * (len(header) - len(BOLD) - len(RESET))}{RESET}")
+
+    for r in setups:
+        # Sweep / Breach label
+        if r.asian_high_swept and r.asian_low_swept:
+            sweep_cell = f"{YELLOW}AH+AL{RESET}"
+        elif r.asian_high_swept:
+            sweep_cell = f"{RED}AH{RESET}"
+        elif r.asian_low_swept:
+            sweep_cell = f"{GREEN}AL{RESET}"
+        elif r.asian_high_breached or r.asian_low_breached:
+            parts = []
+            if r.asian_high_breached:
+                parts.append(f"{DIM}AH'{RESET}")
+            if r.asian_low_breached:
+                parts.append(f"{DIM}AL'{RESET}")
+            sweep_cell = "+".join(parts)
+        else:
+            sweep_cell = f"{GRAY}---{RESET}"
+
+        # Direction target
+        if r.direction_target == "AH":
+            dir_cell = f"{GREEN}{r.direction_target_label}{RESET}"
+        elif r.direction_target == "AL":
+            dir_cell = f"{RED}{r.direction_target_label}{RESET}"
+        else:
+            dir_cell = f"{YELLOW}{r.direction_target_label}{RESET}"
+
+        # Session
+        if r.asian_high_swept and r.asian_low_swept:
+            sess_cell = f"{DIM}H:{r.high_swept_session_label or '?'}/L:{r.low_swept_session_label or '?'}{RESET}"
+        elif r.asian_high_swept:
+            sess_cell = f"{RED}{r.high_swept_session_label or '?'}{RESET}"
+        else:
+            sess_cell = f"{GREEN}{r.low_swept_session_label or '?'}{RESET}"
+
+        # RR
+        if r.trade_rr1 and r.trade_rr1 > 0:
+            rr_cell = f"{YELLOW}{r.trade_rr1:.1f}x{RESET}" if r.trade_rr1 >= 1.0 else f"{DIM}{r.trade_rr1:.1f}x{RESET}"
+        else:
+            rr_cell = f"{GRAY}-{RESET}"
+
+        # Trade action
+        if r.trade_action == "BUY":
+            trade_cell = f"{GREEN}BUY{RESET}"
+        elif r.trade_action == "SELL":
+            trade_cell = f"{RED}SELL{RESET}"
+        else:
+            trade_cell = f"{GRAY}-{RESET}"
+
+        # Plan
+        if r.trade_status == "Active" and r.trade_sl and r.trade_tp1:
+            plan_cell = f"{CYAN}SL {_fmt_price(r.trade_sl)} -> TP1 {_fmt_price(r.trade_tp1)}{RESET}"
+        elif r.trade_status == "Targets hit":
+            plan_cell = f"{DIM}TP hit{RESET}"
+        else:
+            plan_cell = f"{GRAY}-{RESET}"
+
+        lines.append(
+            f"{MAGENTA}{r.symbol:<10}{RESET}  "
+            f"{sweep_cell:>16}  "
+            f"{dir_cell:>18}  "
+            f"{sess_cell:>22}  "
+            f"{_fmt_price(r.asian_high):>11} {_fmt_price(r.asian_low):>11} {_fmt_price(r.current_price):>11}  "
+            f"{rr_cell:>5}  "
+            f"{trade_cell:>6}  "
+            f"{plan_cell:>26}"
+        )
+
+    # Summary
+    n_active = sum(1 for r in setups if r.trade_status == "Active" and r.trade_rr1 and r.trade_rr1 >= 1.0)
+    n_ah = sum(1 for r in setups if r.direction_target == "AH")
+    n_al = sum(1 for r in setups if r.direction_target == "AL")
+    n_both = sum(1 for r in setups if r.direction_target == "BOTH")
+
+    lines.append("")
+    lines.append(
+        f"{BOLD}Resume :{RESET} {GREEN}{n_ah} HAUSSIER{RESET} (-> AH)  |  "
+        f"{RED}{n_al} BAISSIER{RESET} (-> AL)  |  "
+        f"{YELLOW}{n_both} MIXTE{RESET} (les deux)  |  "
+        f"{CYAN}{n_active} trade(s) avec RR >= 1.0{RESET}"
+    )
+
+    print("\n".join(lines))
+    return 0
+
+
 # ─── Parser ──────────────────────────────────────────────────────────────────
 def _add_common(subparser: argparse.ArgumentParser) -> None:
     """Attache --verbose et --symbols à un subparser (pattern parents=[common])."""
@@ -682,8 +992,8 @@ def _add_common(subparser: argparse.ArgumentParser) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="inelida-marketscan",
-        description="InelidaMarketScan — scanner de marché temps réel MetaTrader 5.",
+        prog="inelida-marketscanner",
+        description="InelidaMarketScanner — scanner de marché temps réel MetaTrader 5.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -792,6 +1102,35 @@ def build_parser() -> argparse.ArgumentParser:
                          help="Sortie JSON au lieu du tableau ASCII.")
     _add_common(p_asian)
 
+    # ── levels ───────────────────────────────────────────────────────────────
+    p_levels = sub.add_parser(
+        "levels",
+        help="Scanne les niveaux PDH/PDL (quotidiens) et PWH/PWL (hebdomadaires) "
+             "+ detecte les sweeps et la direction.",
+    )
+    p_levels.add_argument("--type", dest="level_type",
+                          choices=("daily", "weekly", "all"), default="all",
+                          help="Type de niveau a scanner (defaut: les deux).")
+    p_levels.add_argument("--scan-all", action="store_true",
+                          help="Scan TOUS les symboles disponibles chez le broker.")
+    _add_common(p_levels)
+
+    # ── setups ───────────────────────────────────────────────────────────────
+    p_setups = sub.add_parser(
+        "setups",
+        help="Scan asiatique + filtre : affiche uniquement les setups directionnels "
+             "(AH/AL sweep + mouvement vers l'autre liquidite).",
+    )
+    p_setups.add_argument("--timeframe", default=None,
+                          help="Timeframe de travail (defaut H1; M15 possible).")
+    p_setups.add_argument("--session-date", dest="session_date", default=None,
+                          help="Date ISO YYYY-MM-DD UTC (defaut = aujourd'hui).")
+    p_setups.add_argument("--scan-all", action="store_true",
+                          help="Scan TOUS les symboles disponibles chez le broker.")
+    p_setups.add_argument("--rr-min", type=float, default=None,
+                          help="Filtre RR minimal (ex. 1.0 pour ne garder QUE les trades RR >= 1).")
+    _add_common(p_setups)
+
     # ── db ─────────────────────────────────────────────────────────────────
     p_db = sub.add_parser(
         "db",
@@ -831,6 +1170,8 @@ def main():
         "asian":     cmd_asian,
         "trade":     cmd_trade,
         "db":        cmd_db,
+        "levels":    cmd_levels,
+        "setups":    cmd_setups,
     }
     try:
         return handlers[args.command](args)

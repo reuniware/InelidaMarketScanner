@@ -1,5 +1,5 @@
 """
-Configuration centralisee pour le scanner de marche temps reel InelidaMarketScan.
+Configuration centralisee pour le scanner de marche temps reel InelidaMarketScanner.
 """
 
 import os

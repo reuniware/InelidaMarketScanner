@@ -49,6 +49,7 @@ _TIMEFRAME_MAP: Dict[str, int] = {
     "H1":  mt5.TIMEFRAME_H1,
     "H4":  mt5.TIMEFRAME_H4,
     "D1":  mt5.TIMEFRAME_D1,
+    "W1":  mt5.TIMEFRAME_W1,
 }
 
 # Niveaux d extension Fibonacci - expansion au-dessus / en-dessous de la range Asian.
@@ -285,6 +286,302 @@ def events_to_dicts(events: List[SweepEvent]) -> List[dict]:
     return [asdict(e) for e in events]
 
 
+# --- Level Sweep Result (generic for daily / weekly / asian) ---
+@dataclass
+class LevelSweepResult:
+    """Resultat de sweep d'un niveau (quotidien, hebdomadaire, etc.)."""
+    symbol: str
+    level_type: str            # "daily" / "weekly"
+    level_date: str            # date du niveau (YYYY-MM-DD ou YYYY-WW)
+    level_high: float          # PDH / PWH
+    level_low: float           # PDL / PWL
+    high_swept: bool
+    low_swept: bool
+    high_swept_at: Optional[float]
+    high_swept_close: Optional[float]
+    low_swept_at: Optional[float]
+    low_swept_close: Optional[float]
+    high_breached: bool        # mèche a traversé le haut (sans condition de close)
+    low_breached: bool         # mèche a traversé le bas (sans condition de close)
+    current_price: float
+    current_time: float
+    direction_target: str      # "AH" / "AL" / "BOTH" / "-"
+    direction_target_label: str # "→ AH" / "→ AL" / "↔ Both" / "−" / "·"
+    bars_checked: int
+
+
+# --- Daily / Weekly level detection ---
+def _check_level_sweeps(level_high: float, level_low: float,
+                        bars: List[dict],
+                        max_bars: int = 48) -> Tuple[bool, bool, Optional[float], Optional[float], Optional[float], Optional[float], bool, bool]:
+    """Scanne les bougies pour des sweeps du niveau high/low.
+    Retourne (high_swept, low_swept, high_at, high_close, low_at, low_close,
+              high_breached, low_breached).
+    - swept : mèche traverse + close rejette (ICT classique)
+    - breached : mèche traverse (peu importe le close)"""
+    high_swept = False
+    low_swept = False
+    high_breached = False
+    low_breached = False
+    high_at: Optional[float] = None
+    high_close: Optional[float] = None
+    low_at: Optional[float] = None
+    low_close: Optional[float] = None
+
+    for b in bars[:max_bars]:
+        if not high_swept and _bar_sweeps_Asian_high(b, level_high):
+            high_swept = True
+            high_at = b["time"]
+            high_close = b["close"]
+        if not low_swept and _bar_sweeps_Asian_low(b, level_low):
+            low_swept = True
+            low_at = b["time"]
+            low_close = b["close"]
+        if not high_breached and _bar_breaches_high(b, level_high):
+            high_breached = True
+        if not low_breached and _bar_breaches_low(b, level_low):
+            low_breached = True
+        if high_swept and low_swept and high_breached and low_breached:
+            break
+
+    return high_swept, low_swept, high_at, high_close, low_at, low_close, high_breached, low_breached
+
+
+def detect_daily_levels_for_symbol(
+    symbol: str,
+    scan_tf: str = "H1",
+    lookback_days: int = 3,
+) -> Optional[LevelSweepResult]:
+    """Détecte PDH/PDL (Previous Day High/Low) + sweeps.
+
+    Charge les D1, prend la veille comme niveau, scanne les bougies H1
+    post-ouverture du jour pour détecter les sweeps.
+    """
+    tf = _TIMEFRAME_MAP.get(scan_tf.upper())
+    if tf is None:
+        logger.warning("Timeframe inconnu pour daily scan: %s", scan_tf)
+        return None
+
+    mt5c = MT5Connector()
+    if not mt5c.ensure_connected():
+        return None
+    mt5c.select_symbol(symbol)
+
+    # Récupérer les D1 pour trouver le PDH/PDL
+    d1_rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_D1, 0, lookback_days)
+    if d1_rates is None or len(d1_rates) < 2:
+        logger.debug("%s: pas assez de barres D1", symbol)
+        return None
+
+    d1_bars = _bars_to_dicts(d1_rates)
+    d1_bars.sort(key=lambda b: b["time"])
+    yesterday = d1_bars[-2]
+    today_d1 = d1_bars[-1]
+
+    level_high = yesterday["high"]
+    level_low = yesterday["low"]
+    yesterday_date = time.strftime("%Y-%m-%d", time.gmtime(yesterday["time"]))
+
+    # Récupérer les bougies du timeframe de scan pour détecter les sweeps
+    now_epoch = int(time.time())
+    rates_raw = mt5.copy_rates_from(symbol, tf, now_epoch, 240)
+    if rates_raw is None or len(rates_raw) == 0:
+        # Fallback: copy_rates_from_pos
+        rates_raw = mt5.copy_rates_from_pos(symbol, tf, 0, 48)
+        if rates_raw is None or len(rates_raw) == 0:
+            logger.debug("%s: pas de barres %s", symbol, scan_tf)
+            return None
+
+    scan_bars = _bars_to_dicts(rates_raw)
+    scan_bars.sort(key=lambda b: b["time"])
+
+    # Ne garder que les bougies après l'ouverture d'aujourd'hui (D1)
+    today_open = today_d1["time"]
+    post_bars = [b for b in scan_bars if b["time"] >= today_open]
+
+    if not post_bars:
+        # Si aucune bougie aujourd'hui, prendre les dernières bougies
+        post_bars = scan_bars[-12:]
+
+    # Détection des sweeps + breaches
+    high_swept, low_swept, h_at, h_close, l_at, l_close, high_breached, low_breached = _check_level_sweeps(
+        level_high, level_low, post_bars
+    )
+
+    # Prix courant
+    tick = mt5.symbol_info_tick(symbol)
+    current_price = float(tick.bid) if tick else (scan_bars[-1]["close"] if scan_bars else 0.0)
+    current_time = float(tick.time) if tick else time.time()
+
+    # Direction target
+    midpoint = (level_high + level_low) / 2.0
+    target_key = "-"
+    target_label = "−"
+    if high_swept and low_swept:
+        target_key = "BOTH"
+        target_label = "↔ Both"
+    elif high_swept:
+        target_key = "AL"
+        target_label = "→ AL" if current_price < midpoint else "·"
+    elif low_swept:
+        target_key = "AH"
+        target_label = "→ AH" if current_price > midpoint else "·"
+
+    return LevelSweepResult(
+        symbol=symbol,
+        level_type="daily",
+        level_date=yesterday_date,
+        level_high=level_high,
+        level_low=level_low,
+        high_swept=high_swept,
+        low_swept=low_swept,
+        high_swept_at=h_at,
+        high_swept_close=h_close,
+        low_swept_at=l_at,
+        low_swept_close=l_close,
+        high_breached=high_breached,
+        low_breached=low_breached,
+        current_price=current_price,
+        current_time=current_time,
+        direction_target=target_key,
+        direction_target_label=target_label,
+        bars_checked=len(post_bars),
+    )
+
+
+def detect_weekly_levels_for_symbol(
+    symbol: str,
+    scan_tf: str = "D1",
+    lookback_weeks: int = 3,
+) -> Optional[LevelSweepResult]:
+    """Détecte PWH/PWL (Previous Week High/Low) + sweeps.
+
+    Charge les W1, prend la semaine dernière comme niveau, scanne les bougies D1
+    de cette semaine pour détecter les sweeps.
+    """
+    tf = _TIMEFRAME_MAP.get(scan_tf.upper())
+    if tf is None:
+        logger.warning("Timeframe inconnu pour weekly scan: %s", scan_tf)
+        return None
+
+    mt5c = MT5Connector()
+    if not mt5c.ensure_connected():
+        return None
+    mt5c.select_symbol(symbol)
+
+    # Récupérer les W1
+    w1_rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_W1, 0, lookback_weeks)
+    if w1_rates is None or len(w1_rates) < 2:
+        logger.debug("%s: pas assez de barres W1", symbol)
+        return None
+
+    w1_bars = _bars_to_dicts(w1_rates)
+    w1_bars.sort(key=lambda b: b["time"])
+    last_week = w1_bars[-2]
+    this_week = w1_bars[-1]
+
+    level_high = last_week["high"]
+    level_low = last_week["low"]
+    level_week = time.strftime("%Y-W%W", time.gmtime(last_week["time"]))
+
+    # Récupérer les D1 de cette semaine pour détecter les sweeps
+    this_week_start = this_week["time"]
+    now_epoch = int(time.time())
+    d1_rates = mt5.copy_rates_from(symbol, mt5.TIMEFRAME_D1, now_epoch, 14)
+    if d1_rates is None or len(d1_rates) == 0:
+        d1_rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_D1, 0, 14)
+        if d1_rates is None or len(d1_rates) == 0:
+            logger.debug("%s: pas de barres D1", symbol)
+            return None
+
+    d1_bars = _bars_to_dicts(d1_rates)
+    d1_bars.sort(key=lambda b: b["time"])
+    post_bars = [b for b in d1_bars if b["time"] >= this_week_start]
+
+    if not post_bars:
+        post_bars = d1_bars[-3:]  # fallback
+
+    # Détection des sweeps + breaches
+    high_swept, low_swept, h_at, h_close, l_at, l_close, high_breached, low_breached = _check_level_sweeps(
+        level_high, level_low, post_bars
+    )
+
+    # Prix courant
+    tick = mt5.symbol_info_tick(symbol)
+    current_price = float(tick.bid) if tick else (d1_bars[-1]["close"] if d1_bars else 0.0)
+    current_time = float(tick.time) if tick else time.time()
+
+    # Direction target
+    midpoint = (level_high + level_low) / 2.0
+    target_key = "-"
+    target_label = "−"
+    if high_swept and low_swept:
+        target_key = "BOTH"
+        target_label = "↔ Both"
+    elif high_swept:
+        target_key = "AL"
+        target_label = "→ AL" if current_price < midpoint else "·"
+    elif low_swept:
+        target_key = "AH"
+        target_label = "→ AH" if current_price > midpoint else "·"
+
+    return LevelSweepResult(
+        symbol=symbol,
+        level_type="weekly",
+        level_date=level_week,
+        level_high=level_high,
+        level_low=level_low,
+        high_swept=high_swept,
+        low_swept=low_swept,
+        high_swept_at=h_at,
+        high_swept_close=h_close,
+        low_swept_at=l_at,
+        low_swept_close=l_close,
+        high_breached=high_breached,
+        low_breached=low_breached,
+        current_price=current_price,
+        current_time=current_time,
+        direction_target=target_key,
+        direction_target_label=target_label,
+        bars_checked=len(post_bars),
+    )
+
+
+def scan_market_watch_levels(
+    level_type: str = "daily",
+    scan_tf: str = "H1",
+    max_symbols: Optional[int] = None,
+    symbols_override: Optional[List[str]] = None,
+) -> Tuple[List[LevelSweepResult], List[str]]:
+    """Scanne tous les symboles du Market Watch pour les niveaux daily ou weekly."""
+    cap = max_symbols if max_symbols is not None else SWEEP.max_symbols
+
+    mt5c = MT5Connector()
+    if not mt5c.ensure_connected():
+        return [], []
+
+    if symbols_override is not None:
+        symbols = list(symbols_override)
+    else:
+        symbols = mt5c.list_market_watch_symbols()
+        if cap and len(symbols) > cap:
+            symbols = symbols[:cap]
+
+    results: List[LevelSweepResult] = []
+    for sym in symbols:
+        try:
+            if level_type == "daily":
+                r = detect_daily_levels_for_symbol(sym, scan_tf)
+            else:
+                r = detect_weekly_levels_for_symbol(sym, scan_tf)
+            if r is not None:
+                results.append(r)
+        except Exception as e:
+            logger.debug("%s scan failed pour %s: %s", level_type, sym, e)
+
+    return results, symbols
+
+
 # --- Asian Session Range + Sweep detection ---
 @dataclass
 class AsianRangeResult:
@@ -297,6 +594,8 @@ class AsianRangeResult:
     asian_low: float
     asian_high_swept: bool
     asian_low_swept: bool
+    asian_high_breached: bool   # mèche a traversé le AH (sweep ou non)
+    asian_low_breached: bool    # mèche a traversé le AL (sweep ou non)
     high_swept_at: Optional[float]
     high_swept_close: Optional[float]
     high_swept_session: Optional[str]
@@ -359,11 +658,23 @@ def _session_for_epoch(epoch: float) -> Tuple[str, str]:
 
 
 def _bar_sweeps_Asian_high(b: dict, h: float) -> bool:
+    """Sweep classique ICT : mèche traverse + close rejette de l'autre côté."""
     return b["high"] > h and b["close"] < h
 
 
 def _bar_sweeps_Asian_low(b: dict, low: float) -> bool:
+    """Sweep classique ICT : mèche traverse + close rejette de l'autre côté."""
     return b["low"] < low and b["close"] > low
+
+
+def _bar_breaches_high(b: dict, level: float) -> bool:
+    """Breach : la mèche traverse le niveau haut, peu importe le close (pas de rejet)."""
+    return b["high"] > level
+
+
+def _bar_breaches_low(b: dict, level: float) -> bool:
+    """Breach : la mèche traverse le niveau bas, peu importe le close (pas de rejet)."""
+    return b["low"] < level
 
 
 def detect_asian_range_for_symbol(
@@ -421,6 +732,8 @@ def detect_asian_range_for_symbol(
 
     high_swept = False
     low_swept = False
+    high_breached = False
+    low_breached = False
     high_swept_at: Optional[float] = None
     high_swept_close: Optional[float] = None
     high_swept_session: Optional[str] = None
@@ -441,7 +754,11 @@ def detect_asian_range_for_symbol(
             low_swept_at = b["time"]
             low_swept_close = b["close"]
             low_swept_session, low_swept_label = _session_for_epoch(b["time"])
-        if high_swept and low_swept:
+        if not high_breached and _bar_breaches_high(b, asian_high):
+            high_breached = True
+        if not low_breached and _bar_breaches_low(b, asian_low):
+            low_breached = True
+        if high_swept and low_swept and high_breached and low_breached:
             break
 
     # --- Fibonacci level sweep detection ---
@@ -613,6 +930,8 @@ def detect_asian_range_for_symbol(
         asian_low=asian_low,
         asian_high_swept=high_swept,
         asian_low_swept=low_swept,
+        asian_high_breached=high_breached,
+        asian_low_breached=low_breached,
         high_swept_at=high_swept_at,
         high_swept_close=high_swept_close,
         high_swept_session=high_swept_session,
@@ -717,6 +1036,8 @@ def asians_to_dicts(results: List[AsianRangeResult]) -> List[dict]:
             "asian_low": r.asian_low,
             "asian_high_swept": r.asian_high_swept,
             "asian_low_swept": r.asian_low_swept,
+            "asian_high_breached": r.asian_high_breached,
+            "asian_low_breached": r.asian_low_breached,
             "high_swept_at": r.high_swept_at,
             "high_swept_close": r.high_swept_close,
             "high_swept_session": r.high_swept_session,
