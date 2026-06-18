@@ -416,9 +416,13 @@ class LiveSweepMonitor:
         return True
 
     def _compute_asian(self, symbol):
+        """Calcule le range asiatique du jour.
+        - PENDANT la session (UTC 0-7) : range partiel, frozen=False.
+        - APRES la session (UTC >= 8) : range final, frozen=True."""
         today = datetime.now(UTC).strftime("%Y-%m-%d")
         now_h = datetime.now(UTC).hour
         inside = ASIAN_START_UTC <= now_h < ASIAN_END_UTC
+        frozen = not inside  # Le range est verrouille seulement apres 08:00 UTC
 
         rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H1, 0, 48)
         asian_bars = []
@@ -443,18 +447,29 @@ class LiveSweepMonitor:
         ah = max(b["high"] for b in asian_bars)
         al = min(b["low"] for b in asian_bars)
         self.asian_ranges[symbol] = {"ah": ah, "al": al, "mid": (ah + al) / 2,
-                                     "day": today, "range": ah - al}
-        return self.asian_ranges[symbol]
+                                     "day": today, "range": ah - al,
+                                     "frozen": frozen, "bars": len(asian_bars)}
 
     def _ensure_asian(self, symbol):
         today = datetime.now(UTC).strftime("%Y-%m-%d")
         r = self.asian_ranges.get(symbol)
+        # Verrouillage : si le range est encore partiel mais que la session
+        # vient de finir (UTC >= 8), on force un recalcul avec toutes les barres.
+        if r is not None and r["day"] == today and not r["frozen"]:
+            now_h = datetime.now(UTC).hour
+            if now_h >= ASIAN_END_UTC:
+                self._compute_asian(symbol)
+        # Nouveau jour ou pas encore de range -> calculer
         if r is None or r["day"] != today:
             self._compute_asian(symbol)
 
     def _check_asian_sweeps(self, symbol):
         rng = self.asian_ranges.get(symbol)
         if rng is None:
+            return []
+        # Si le range n'est pas encore verrouille (session en cours),
+        # on ne detecte PAS de sweep asiatique. Le range est encore partiel.
+        if not rng.get("frozen", False):
             return []
         ah, al = rng["ah"], rng["al"]
         found = []
@@ -566,11 +581,14 @@ class LiveSweepMonitor:
         for sym in self.symbols:
             r = self._compute_asian(sym)
             if r:
-                print(f"    {MAGENTA}{sym:<12}{RESET} AH={_fmt(r['ah'])} AL={_fmt(r['al'])} Range={_fmt(r['range'])}")
+                status = "[FORME]" if r.get("frozen") else f"[EN COURS - {r.get('bars', '?')} barres]"
+                print(f"    {MAGENTA}{sym:<12}{RESET} AH={_fmt(r['ah'])} AL={_fmt(r['al'])} Range={_fmt(r['range'])} {YELLOW}{status}{RESET}")
 
         today = datetime.now(UTC).strftime("%Y-%m-%d")
         n_ranges = sum(1 for r in self.asian_ranges.values() if r["day"] == today)
-        print(f"\n  {GREEN}{n_ranges}/{len(self.symbols)} ranges asiatiques.{RESET}")
+        n_frozen = sum(1 for r in self.asian_ranges.values() if r["day"] == today and r.get("frozen"))
+        frozen_label = f"({n_frozen} verrouilles)" if n_frozen < n_ranges else "(tous verrouilles)"
+        print(f"\n  {GREEN}{n_ranges}/{len(self.symbols)} ranges asiatiques {frozen_label}.{RESET}")
 
         # Pre-compute daily/weekly levels
         print(f"  Calcul des niveaux Daily/Weekly...")
@@ -588,7 +606,7 @@ class LiveSweepMonitor:
                 if dw_parts:
                     print(f"    {MAGENTA}{sym:<12}{RESET} {' | '.join(dw_parts)}")
         print(f"\n  {GREEN}{n_dw}/{len(self.symbols)} niveaux Daily/Weekly.{RESET}")
-        print(f"  {YELLOW}En attente de sweeps (Asian + Fractal + Daily/Weekly)...{RESET}\n")
+        print(f"  {YELLOW}En attente de sweeps (Asian=apres 10:00 / Fractal=live / Daily/Weekly=live)...{RESET}\n")
 
         self._running = True
         check_count = 0

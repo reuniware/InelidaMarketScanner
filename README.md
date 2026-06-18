@@ -585,11 +585,13 @@ Il surveille les symboles et alerte à l'écran dès qu'un sweep ICT est détect
 
 ### Trois couches de détection
 
-| Couche | Mécanisme | Timeframe |
-|--------|-----------|-----------|
-| 🌏 **Asian** | Mèche traverse AH/AL + close rejette (range asiatique) | M1 |
-| 🔷 **Fractal** | Williams N=2, BSL/SSL sur swing points | M15 |
-| 🏛️ **Daily/Weekly** | PDH/PDL (Previous Day High/Low) + PWH/PWL (Previous Week High/Low) | H1 / D1 |
+| Couche | Mécanisme | Timeframe | Quand ? |
+|--------|-----------|-----------|---------|
+| 🌏 **Asian** | Mèche traverse AH/AL + close rejette (range asiatique) | M1 | Seulement après 10:00 (range verrouillé) |
+| 🔷 **Fractal** | Williams N=2, BSL/SSL sur swing points | M15 | 24h/24 |
+| 🏛️ **Daily/Weekly** | PDH/PDL (Previous Day High/Low) + PWH/PWL (Previous Week High/Low) | H1 / D1 | 24h/24 |
+
+> ⚠️ **Important** : Le range asiatique évolue pendant les 8h de la session (02:00–10:00 plateforme). Les sweeps asiatiques sont **bloqués** jusqu'à ce que le range soit verrouillé à 10:00. Le statut `[EN COURS]` / `[FORME]` est affiché au démarrage. Fractal et Daily/Weekly restent actifs 24h/24.
 
 ### Usage
 
