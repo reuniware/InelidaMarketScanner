@@ -422,10 +422,20 @@ def detect_daily_levels_for_symbol(
         target_label = "↔ Both"
     elif high_swept:
         target_key = "AL"
-        target_label = "→ AL" if current_price < midpoint else "·"
+        if current_price < level_low:
+            target_label = "·"  # deja sous le Low, plus une cible valide
+        elif current_price < midpoint:
+            target_label = "→ AL"
+        else:
+            target_label = "·"
     elif low_swept:
         target_key = "AH"
-        target_label = "→ AH" if current_price > midpoint else "·"
+        if current_price > level_high:
+            target_label = "·"  # deja au-dessus du High, plus une cible valide
+        elif current_price > midpoint:
+            target_label = "→ AH"
+        else:
+            target_label = "·"
 
     return LevelSweepResult(
         symbol=symbol,
@@ -520,10 +530,20 @@ def detect_weekly_levels_for_symbol(
         target_label = "↔ Both"
     elif high_swept:
         target_key = "AL"
-        target_label = "→ AL" if current_price < midpoint else "·"
+        if current_price < level_low:
+            target_label = "·"  # deja sous le Low, plus une cible valide
+        elif current_price < midpoint:
+            target_label = "→ AL"
+        else:
+            target_label = "·"
     elif low_swept:
         target_key = "AH"
-        target_label = "→ AH" if current_price > midpoint else "·"
+        if current_price > level_high:
+            target_label = "·"  # deja au-dessus du High, plus une cible valide
+        elif current_price > midpoint:
+            target_label = "→ AH"
+        else:
+            target_label = "·"
 
     return LevelSweepResult(
         symbol=symbol,
@@ -835,10 +855,20 @@ def detect_asian_range_for_symbol(
         target_label = "↔ Both"
     elif high_swept:
         target_key = "AL"
-        target_label = "→ AL" if current_price < midpoint_value else "·"
+        if current_price < asian_low:
+            target_label = "·"  # deja sous le AL, plus une cible valide
+        elif current_price < midpoint_value:
+            target_label = "→ AL"
+        else:
+            target_label = "·"
     elif low_swept:
         target_key = "AH"
-        target_label = "→ AH" if current_price > midpoint_value else "·"
+        if current_price > asian_high:
+            target_label = "·"  # deja au-dessus du AH, plus une cible valide
+        elif current_price > midpoint_value:
+            target_label = "→ AH"
+        else:
+            target_label = "·"
 
     # Fib expansion multi-niveaux (prochaine cible non atteinte dans la direction du mouvement)
     fib_plus_1618 = asian_high + 1.618 * range_size

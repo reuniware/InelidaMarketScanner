@@ -58,6 +58,14 @@ def _color_swept(val: bool) -> str:
     return "✅" if val else "❌"
 
 
+import re
+
+
+def _strip_ansi(text: str) -> str:
+    """Supprime les codes ANSI (couleurs) d'une chaîne."""
+    return re.sub(r"\033\[[0-9;]*[a-zA-Z]", "", text)
+
+
 def _filter_logs(stderr: str) -> tuple:
     """Sépare les vraies erreurs (ERROR/CRITICAL) des logs INFO/WARNING.
     Retourne (full_log, error_lines)."""
@@ -73,7 +81,7 @@ def _run_scan(command: str) -> tuple:
     try:
         r = subprocess.run(
             ["python", "main.py"] + command.split(),
-            capture_output=True, text=True, timeout=120,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
         )
         return r.stdout, r.stderr, r.returncode
     except subprocess.TimeoutExpired:
@@ -94,7 +102,8 @@ def _show_scan_results(stdout: str, stderr: str, code: int):
         with st.expander("📋 Logs"):
             st.code(full_log[:2000], language="")
     if stdout:
-        st.text(stdout[:2000])
+        cleaned = _strip_ansi(stdout)
+        st.code(cleaned, language="", line_numbers=True)
     if code == 0:
         st.success("✅ Scan terminé !")
         st.cache_data.clear()

@@ -5,6 +5,7 @@ rafraichissement en place. Sans dépendance externe (pas de rich) pour rester le
 """
 
 import os
+import re
 import sys
 import time
 import shutil
@@ -12,6 +13,26 @@ from typing import Dict, List
 
 from .market_scanner import MarketScanner, TickSnapshot
 from .sweep_detector import SweepEvent, AsianRangeResult
+
+
+def _pad_cell(text: str, width: int, align: str = ">") -> str:
+    """Pad a string containing ANSI codes to a given VISIBLE width.
+
+    Les codes ANSI sont invisibles dans le terminal mais comptent comme des
+    octets dans le padding `:>N` de Python, ce qui désaligne les colonnes
+    quand les codes ont des longueurs différentes (\033[31m = 5 octets,
+    \033[2m = 4 octets). Cette fonction calcule le padding sur la LARGEUR
+    VISIBLE uniquement.
+    """
+    visible = re.sub(r"\033\[[0-9;]*[a-zA-Z]", "", text)
+    pad = width - len(visible)
+    if pad <= 0:
+        return text
+    if align == ">":
+        return " " * pad + text
+    if align == "<":
+        return text + " " * pad
+    return text
 
 
 # Force l'encodage UTF-8 sur stdout/stderr pour eviter les UnicodeEncodeError
@@ -181,8 +202,8 @@ def render_sweeps(
 
     sym_w = max(10, max(len(e.symbol) for e in events))
     header = (
-        f"{BOLD}{'Symbole':<{sym_w}}  {'Side':>3}  {'Level':>14}  {'Now':>14}  "
-        f"{'Distance':>9}  {'Dir':>14}  {'Swept at':>19}{RESET}"
+        f"{BOLD}{'Symbole':<{sym_w}}  {'Side':>4}  {'Level':>14}  {'Now':>14}  "
+        f"{'Distance':>9}  {'Dir':>14}  {'Swept at':>16}{RESET}"
     )
     lines.append(header)
     lines.append(f"{GRAY}{'-' * (len(header) - len(BOLD) - len(RESET))}{RESET}")
@@ -196,12 +217,12 @@ def render_sweeps(
         swept_at = time.strftime("%Y-%m-%d %H:%M", time.gmtime(e.sweep_time))
         lines.append(
             f"{MAGENTA}{e.symbol:<{sym_w}}{RESET}  "
-            f"{side_col:>18}  "
+            f"{_pad_cell(side_col, 4)}  "
             f"{_fmt_price(e.level):>14}  "
             f"{_fmt_price(e.current_price):>14}  "
-            f"{DIM}{e.distance_pct:>8.3f}%{RESET}  "
-            f"{dcol:>22}  "
-            f"{GRAY}{swept_at}{RESET}"
+            f"{_pad_cell(DIM + f'{e.distance_pct:>8.3f}%' + RESET, 9)}  "
+            f"{_pad_cell(dcol, 14)}  "
+            f"{_pad_cell(f'{GRAY}{swept_at}{RESET}', 16)}"
         )
 
     return "\n".join(lines)
@@ -252,9 +273,9 @@ def render_asian_ranges(
     sym_w = max(10, max(len(r.symbol) for r in results))
     header = (
         f"{BOLD}{'Symbole':<{sym_w}}  {'AsianHigh':>11}  {'AsianLow':>11}  "
-        f"{'Now':>11}  {'AH Swept':>10}  {'AL Swept':>10}  "
-        f"{'Session':>28}  {'Target':>22}  {'Fib':>24}  {'FibSwept':>28}  {'Bars':>5}"
-        f"  {'Trade':>22}  {'Plan':>36}  {'RR':>8}{RESET}"
+        f"{'Now':>11}  {'AH Swp':>10}  {'AL Swp':>10}  "
+        f"{'Session':>20}  {'Target':>14}  {'Fib':>14}  {'Fib Swp':>22}  {'Bars':>5}"
+        f"  {'Trade':>14}  {'Plan':>26}  {'RR':>8}{RESET}"
     )
     lines.append(header)
     lines.append(
@@ -336,16 +357,16 @@ def render_asian_ranges(
             f"{MAGENTA}{r.symbol:<{sym_w}}{RESET}  "
             f"{_fmt_price(r.asian_high):>11}  {_fmt_price(r.asian_low):>11}  "
             f"{_fmt_price(r.current_price):>11}  "
-            f"{ah_status:>22}  "
-            f"{al_status:>22}  "
-            f"{session:>28}  "
-            f"{target_col:>22}  "
-            f"{fib_col:>24}  "
-            f"{fib_swept_col:>28}  "
+            f"{_pad_cell(ah_status, 10)}  "
+            f"{_pad_cell(al_status, 10)}  "
+            f"{_pad_cell(session, 20)}  "
+            f"{_pad_cell(target_col, 14)}  "
+            f"{_pad_cell(fib_col, 14)}  "
+            f"{_pad_cell(fib_swept_col, 22)}  "
             f"{DIM}{r.bars_checked:>5}{RESET}  "
-            f"{_trade_action_col(r):>22}  "
-            f"{_trade_plan_col(r):>36}  "
-            f"{_trade_rr_col(r):>15}"
+            f"{_pad_cell(_trade_action_col(r), 14)}  "
+            f"{_pad_cell(_trade_plan_col(r), 26)}  "
+            f"{_pad_cell(_trade_rr_col(r), 8)}"
         )
 
     return "\n".join(lines)

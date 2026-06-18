@@ -27,7 +27,7 @@ from src.display import (
     render_snapshot,
     render_sweeps, render_sweeps_plain, make_display,
     render_asian_ranges, render_asian_ranges_plain,
-    _fmt_price,
+    _fmt_price, _pad_cell,
     RESET, BOLD, DIM, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, GRAY,
 )
 from src.database import get_db
@@ -790,9 +790,9 @@ def cmd_levels(args):
 
         lines.append(
             f"{MAGENTA}{r.symbol:<10}{RESET}  "
-            f"{type_cell:>15}  "
-            f"{sweep_cell:>16}  "
-            f"{dir_cell:>18}  "
+            f"{_pad_cell(type_cell, 7)}  "
+            f"{_pad_cell(sweep_cell, 8)}  "
+            f"{_pad_cell(dir_cell, 18)}  "
             f"{_fmt_price(r.level_high):>11} {_fmt_price(r.level_low):>11} {_fmt_price(r.current_price):>11}"
         )
 
@@ -954,13 +954,13 @@ def cmd_setups(args):
 
         lines.append(
             f"{MAGENTA}{r.symbol:<10}{RESET}  "
-            f"{sweep_cell:>16}  "
-            f"{dir_cell:>18}  "
-            f"{sess_cell:>22}  "
+            f"{_pad_cell(sweep_cell, 8)}  "
+            f"{_pad_cell(dir_cell, 18)}  "
+            f"{_pad_cell(sess_cell, 14)}  "
             f"{_fmt_price(r.asian_high):>11} {_fmt_price(r.asian_low):>11} {_fmt_price(r.current_price):>11}  "
-            f"{rr_cell:>5}  "
-            f"{trade_cell:>6}  "
-            f"{plan_cell:>26}"
+            f"{_pad_cell(rr_cell, 5)}  "
+            f"{_pad_cell(trade_cell, 6)}  "
+            f"{_pad_cell(plan_cell, 26)}"
         )
 
     # Summary

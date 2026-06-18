@@ -359,7 +359,7 @@ La colonne `Target` répond à la question « *le prix est-il en train de se dir
 | `→ AH`   | vert    | Asian Low swept + prix au-dessus du midpoint → reversal haussier confirmé, on attend un run vers l'Asian High |
 | `→ AL`   | rouge   | Asian High swept + prix en-dessous du midpoint → reversal baissier confirmé, on attend un run vers l'Asian Low  |
 | `↔ Both` | jaune   | Les deux extrémités ont été swept → range cassée, signal mixte / continuation probable     |
-| `·`      | gris    | Sweep enregistré mais le prix n'a pas encore traversé le midpoint → confirmation en attente |
+| `·`      | gris    | Sweep enregistré mais le prix n'a pas encore traversé le midpoint → confirmation en attente ; ou la cible a déjà été atteinte (prix déjà sous l'AL / au-dessus du AH) |
 | `−`      | gris    | Aucun sweep → pas d'info directionnelle                                                     |
 
 ### Légende de la colonne `Fib`
