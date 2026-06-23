@@ -46,3 +46,8 @@ Thumbs.db
 *.mq5
 *.ex5
 Tester/
+
+# ─── Secrets (cles API, jamais commitees) ──────────────────────────────────
+.env
+*.pem
+*.key

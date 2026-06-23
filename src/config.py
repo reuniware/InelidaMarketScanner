@@ -7,6 +7,48 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 
+def load_dotenv(env_path: Optional[str] = None) -> None:
+    """Charge les variables d'environnement depuis un fichier .env.
+
+    Supporte UTF-8 et UTF-16 (cree par PowerShell).
+    Ne surcharge pas les variables deja definies.
+
+    Args:
+        env_path: Chemin vers le fichier .env (defaut: .env a la racine).
+    """
+    if env_path is None:
+        env_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            ".env",
+        )
+    if not os.path.isfile(env_path):
+        return
+
+    # Essayer plusieurs encodages (PowerShell cree du UTF-16 LE)
+    content = None
+    for encoding in ("utf-8", "utf-16", "utf-16-le", "utf-16-be", "latin-1"):
+        try:
+            with open(env_path, encoding=encoding) as f:
+                content = f.read()
+            break
+        except (UnicodeDecodeError, UnicodeError):
+            continue
+
+    if content is None:
+        return
+
+    # Enlever le BOM UTF-16 si present (\ufeff)
+    content = content.lstrip("\ufeff")
+
+    for line in content.split("\n"):
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            k, v = line.split("=", 1)
+            k = k.strip()
+            if k and k not in os.environ:
+                os.environ[k] = v.strip().strip('"').strip("'")
+
+
 # ─── Watchlist par defaut ──────────────────────────────────────────────────────
 # Symboles surveilles par defaut si l'utilisateur ne precise rien.
 # Tu peux surcharger via la variable d'environnement INELIDA_WATCHLIST
