@@ -27,6 +27,31 @@ def extract_date_from_filename(pdf_path: str) -> str:
     return datetime.fromtimestamp(os.path.getmtime(pdf_path), UTC).strftime("%Y-%m-%d")
 
 
+def extract_scan_timestamp_from_text(full_text: str):
+    """Extrait l'heure UTC du scan depuis le texte complet du PDF.
+
+    Cherche une ligne du type : Heure UTC: 2026-06-23 22:09:37 UTC
+    Retourne un datetime UTC, ou None si pas trouve.
+    """
+    for line in full_text.split("\n"):
+        # Accepter avec ou sans deux-points : "Heure UTC: 2026..." ou "Heure UTC   2026..."
+        m = re.search(r'Heure UTC[:\s]+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})', line)
+        if m:
+            try:
+                return datetime.strptime(m.group(1), "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
+            except ValueError:
+                continue
+    # Fallback : chercher "Genere le YYYY-MM-DD HH:MM:SS UTC" dans le pied de page
+    for line in full_text.split("\n"):
+        m = re.search(r'(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s+UTC', line)
+        if m:
+            try:
+                return datetime.strptime(m.group(1), "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
+            except ValueError:
+                continue
+    return None
+
+
 def extract_trades_from_pdf(pdf_path: str) -> list:
     """Extrait les trades de la section TRADE TRACKING du PDF.
 
@@ -125,6 +150,20 @@ def extract_trades_from_pdf(pdf_path: str) -> list:
             "date": date_str,
         })
 
+    # Extraire le timestamp du scan depuis le texte complet
+    scan_ts = extract_scan_timestamp_from_text(full_text)
+    scan_epoch = int(scan_ts.timestamp()) if scan_ts else 0
+
+    if scan_ts is None:
+        print("[AVERTISSEMENT] Timestamp 'Heure UTC' introuvable dans le PDF."
+              " Le backtest utilisera minuit UTC (barres pre-scan incluses).")
+    else:
+        print(f"  Scan a  : {scan_ts.strftime('%Y-%m-%d %H:%M UTC')}")
+
+    # Injecter scan_epoch dans chaque trade
+    for t in trades:
+        t["scan_epoch"] = scan_epoch
+
     return trades
 
 
@@ -143,12 +182,15 @@ def backtest_trade(trade, bars):
     is_buy = trade["dir"] == "BUY"
     report_date = trade.get("date", "2026-06-19")
 
-    # Barres apres la date du rapport (00:00 UTC)
-    try:
-        start_dt = datetime.strptime(report_date, "%Y-%m-%d").replace(tzinfo=UTC)
-        start_epoch = int(start_dt.timestamp())
-    except ValueError:
-        start_epoch = 0
+    # Barres APRES le scan uniquement (pas de midnight UTC qui inclut des
+    # barres avant le scan). Si scan_epoch absent, fallback sur minuit.
+    start_epoch = trade.get("scan_epoch", 0)
+    if start_epoch == 0:
+        try:
+            start_dt = datetime.strptime(report_date, "%Y-%m-%d").replace(tzinfo=UTC)
+            start_epoch = int(start_dt.timestamp())
+        except ValueError:
+            start_epoch = 0
 
     post_bars = [b for b in bars if b["time"] >= start_epoch]
     if not post_bars:

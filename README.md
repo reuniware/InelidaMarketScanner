@@ -684,33 +684,38 @@ python backtest_report_trades.py --pdf inelida_report_2026-06-23.pdf
 4. **Règle ICT** : si le prix touche **TP1 avant SL** → ✅ GAGNÉ, si **SL touché avant TP1** → ❌ PERDU, sinon → 🟡 OUVERT
 
 > 💡 Plus besoin d'éditer le script ! Le `--pdf` fait tout automatiquement. Fonctionne avec n'importe quel rapport généré par `generate_live_report.py`. Nécessite `PyPDF2` (`pip install PyPDF2`).
+>
+> ⚙️ **Correction de timestamp (24 juin)** : le backtest extrait désormais l'heure exacte du scan depuis la ligne `Heure UTC` du PDF. Seules les barres **postérieures au scan** sont simulées — les barres antérieures (qui faussaient les résultats) sont exclues.
 
 ### 📊 Résultats des backtests
 
-#### Rapport du 19 juin 2026 (backtesté après 4 jours)
+#### Rapport du 19 juin 2026 (scan à 19:20 UTC, backtesté après 5 jours)
 
-Le rapport original contenait **9 trades**. Backtesté le 23 juin :
+**8 trades** extraits automatiquement du PDF. Backtesté le 24 juin avec le timestamp corrigé :
 
 | Issue | Détail |
 |-------|--------|
-| 🟢 **GAGNÉS** | **6** — CORN.c, NATGAS.cash, CADCHF, USDNOK, DXY.cash (same-day!), WHEAT.c |
+| 🟢 **GAGNÉS** | **5** — CORN.c, NATGAS.cash, CADCHF, USDNOK, DXY.cash (TP same-day !) |
 | 🔴 **PERDUS** | **2** — GBPJPY, EURCAD |
 | 🟡 **OUVERT** | **1** — SOYBEAN.c (en gain, ni SL ni TP touché) |
-| 🎯 **Winrate** | **75%** (6/8 clôturés) |
+| 🎯 **Winrate** | **71.4%** (5/7 clôturés) |
 
-Tous les TP gagnants ont été atteints entre **5h et 3 jours** après le scan.
+Tous les TP gagnants ont été atteints entre **5h et 3 jours** après le scan. WHEAT.c (présent dans l'ancienne version hardcodée) n'apparaît pas dans la section TRADE TRACKING du PDF — d'où 8 trades au lieu de 9.
 
-#### Rapport du 23 juin 2026 (backtesté le jour même)
+#### Rapport du 23 juin 2026 (scan à 22:09 UTC, ~13 min de données)
 
-Rapport généré à ~14:00 UTC, backtesté à ~15:00 UTC. **16 trades** extraits automatiquement :
+Rapport généré à 22:09 UTC (00:09 Paris le 24 juin). **16 trades** extraits automatiquement :
 
 | Issue | Détail |
 |-------|--------|
-| 🟢 **GAGNÉ** | **1** — USDCZK (TP touché à 14:25 UTC, ~25 min après le scan !) |
-| 🔴 **PERDUS** | **15** — SL touchés dans l'heure suivant le scan |
-| 🎯 **Winrate** | **6.2%** (1/16 clôturés) |
+| 🟢 **GAGNÉS** | **6** — DXY.cash, EURJPY, EURUSD, GBPJPY, HEATOIL.c, USDCZK (TP à 22:10 UTC) |
+| 🔴 **PERDUS** | **2** |
+| 🟡 **OUVERTS** | **8** — pas encore assez de données |
+| 🎯 **Winrate** | **75%** (6/8 clôturés) — mais **non fiable** (13 min de données) |
 
-> 📝 **Leçon** : un backtest le jour même n'est pas représentatif — les trades n'ont pas eu le temps de maturer. Attendre **48-72h minimum** pour un backtest fiable. Le rapport du 19 juin (backtesté 4 jours plus tard) donne une image beaucoup plus réaliste avec 75% de winrate.
+> ⚠️ **Attention** : le scan datant de ~13 minutes, les 6 TP « touchés » à 22:10 UTC (1 minute après le scan) sont probablement des artefacts de la barre M5 post-NY close plutôt que de vrais setups matures. Les 8 trades « ouverts » représentent le vrai potentiel à évaluer après 48-72h.
+>
+> 📝 **Leçon** : un backtest fiable nécessite **48-72h minimum** de données post-scan. Avant le fix de timestamp (24 juin), le backtest utilisait minuit UTC comme point de départ, incluant 22h de barres pré-scan et produisant des résultats erronés (15 pertes fantômes).
 
 ### 🔗 Workflow complet — 2 commandes seulement
 
