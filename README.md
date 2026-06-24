@@ -689,33 +689,35 @@ python backtest_report_trades.py --pdf inelida_report_2026-06-23.pdf
 
 ### 📊 Résultats des backtests
 
-#### Rapport du 19 juin 2026 (scan à 19:20 UTC, backtesté après 5 jours)
+> ⚠️ **Bug corrigé le 24 juin 2026** : le TP était hardcodé à `1.618 × range` pour tous les trades. Or un trade ICT n'est généré que si le prix a déjà cassé le côté opposé du range asiatique — il peut donc être au-delà de +1.618. Dans ce cas, le TP hardcodé se retrouvait **en-dessous du prix d'entrée** pour un BUY (et au-dessus pour un SELL) → toucher le TP = perdre de l'argent. Le backtest comptait ces trades comme « gagnés » alors qu'ils étaient financièrement **perdants**.  
+> **Fix** : le TP est maintenant dérivé du prochain niveau Fibonacci non atteint (`fib_state_val`) plutôt que de 1.618 en dur. Voir `src/sweep_detector.py`.
 
-**8 trades** extraits automatiquement du PDF. Backtesté le 24 juin avec le timestamp corrigé :
+#### Rapport du 19 juin 2026 (scan à 19:20 UTC)
 
-| Issue | Détail |
-|-------|--------|
-| 🟢 **GAGNÉS** | **5** — CORN.c, NATGAS.cash, CADCHF, USDNOK, DXY.cash (TP same-day !) |
-| 🔴 **PERDUS** | **2** — GBPJPY, EURCAD |
-| 🟡 **OUVERT** | **1** — SOYBEAN.c (en gain, ni SL ni TP touché) |
-| 🎯 **Winrate** | **71.4%** (5/7 clôturés) |
-
-Tous les TP gagnants ont été atteints entre **5h et 3 jours** après le scan. WHEAT.c (présent dans l'ancienne version hardcodée) n'apparaît pas dans la section TRADE TRACKING du PDF — d'où 8 trades au lieu de 9.
-
-#### Rapport du 23 juin 2026 (scan à 22:09 UTC, ~13 min de données)
-
-Rapport généré à 22:09 UTC (00:09 Paris le 24 juin). **16 trades** extraits automatiquement :
+**8 trades** extraits du PDF. Backtesté avec le fix de timestamp + correction TP inversé :
 
 | Issue | Détail |
 |-------|--------|
-| 🟢 **GAGNÉS** | **6** — DXY.cash, EURJPY, EURUSD, GBPJPY, HEATOIL.c, USDCZK (TP à 22:10 UTC) |
-| 🔴 **PERDUS** | **2** |
-| 🟡 **OUVERTS** | **8** — pas encore assez de données |
-| 🎯 **Winrate** | **75%** (6/8 clôturés) — mais **non fiable** (13 min de données) |
+| 🟢 **VRAIS GAGNÉS** | **3** — CORN.c, NATGAS.cash, CADCHF (TP correctement placé ET touché) |
+| 🔴 **PERDUS** | **4** — GBPJPY, EURCAD + USDNOK, DXY.cash (ces 2 derniers avaient un **TP inversé** : le backtest disait « gagné » mais le TP était du mauvais côté → perte réelle) |
+| 🟡 **OUVERT** | **1** — SOYBEAN.c (TP correct) |
+| 🎯 **Winrate réel** | **42.9%** (3/7 clôturés) — le winrate de 71.4% affiché avant le fix était gonflé par les 2 faux gagnants |
 
-> ⚠️ **Attention** : le scan datant de ~13 minutes, les 6 TP « touchés » à 22:10 UTC (1 minute après le scan) sont probablement des artefacts de la barre M5 post-NY close plutôt que de vrais setups matures. Les 8 trades « ouverts » représentent le vrai potentiel à évaluer après 48-72h.
->
-> 📝 **Leçon** : un backtest fiable nécessite **48-72h minimum** de données post-scan. Avant le fix de timestamp (24 juin), le backtest utilisait minuit UTC comme point de départ, incluant 22h de barres pré-scan et produisant des résultats erronés (15 pertes fantômes).
+#### Rapport du 23 juin 2026 (scan à 22:09 UTC, backtesté le 24 juin)
+
+**16 trades** extraits du PDF. Backtesté avec le fix de timestamp + correction TP inversé :
+
+| Issue | Détail |
+|-------|--------|
+| 🟢 **VRAIS GAGNÉS** | **3** — CORN.c, NATGAS.cash, USDCHF (TP correct ET touché) |
+| 🔴 **PERDUS** | **6** — DXY.cash, EURJPY, EURUSD, GBPJPY, HEATOIL.c, USDCZK (**TP inversé** : le backtest disait « gagné à 22:10 UTC » mais le TP était du mauvais côté de l'entry → perte financière réelle) |
+| 🟡 **OUVERTS** | **7** — ALGUSD, AVAUSD, CHFJPY, DASHUSD, IMXUSD, SOYBEAN.c, UK100.cash (tous avec TP correctement placé, encore en cours) |
+| 🎯 **Winrate réel** | **33.3%** (3/9 clôturés) — le winrate de 100% affiché avant le fix était entièrement faux (6 faux gagnants sur 9) |
+
+> 📝 **Leçons** :  
+> 1. **Vérifier le placement du TP** : un TP doit toujours être du côté attendu (au-dessus de l'entry pour BUY, en-dessous pour SELL).  
+> 2. **48-72h minimum** pour un backtest fiable — les trades du 23 juin ouverts sont encore en cours.  
+> 3. Le fix de timestamp (24 juin) exclut les barres antérieures au scan pour éviter les faux SL pré-scan.
 
 ### 🔗 Workflow complet — 2 commandes seulement
 

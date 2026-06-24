@@ -903,9 +903,17 @@ def detect_asian_range_for_symbol(
             fib_state_val, fib_label_val = _next_bear(current_price, asian_low, range_size)
 
     # --- Trade idea generation (ICT model) ---
-    # SL = 0.10*range past the opposite side (full setup invalidation wick + buffer)
-    # TP ladder = +-1.618 / +-2.618 / +-4.0 fib extensions
-    # Entry = current_price (market) so the dashboard shows what is happening NOW.
+    # SL = 0.10*range past the opposite side (full setup invalidation wick + buffer).
+    #
+    # TP : on utilise le PROCHAIN niveau fib non atteint (celui de fib_state_val)
+    # et pas 1.618 hardcode.  Explication du bug corrige : quand le prix a deja
+    # depasse AH, il peut etre au-dessus de +1.618.  Hardcoder TP1 a 1.618
+    # donne un TP en-dessous du prix d'entree pour un BUY -> TP = perte.
+    #
+    # fib_state_val est le resultat de _next_bull / _next_bear qui renvoie le
+    # premier niveau fib au-dessus du prix (bull) ou en-dessous (bear).
+    # Exemples : "+1.618" "+2.0" "-2.618"  (jamais _DONE ici car filtre avant).
+    # Entry = current_price (market entry).
     is_bull_trade = bool(fib_state_val and fib_state_val.startswith("+"))
     is_bear_trade = bool(fib_state_val and fib_state_val.startswith("-"))
     is_done_trade = "_DONE" in fib_state_val
@@ -920,7 +928,7 @@ def detect_asian_range_for_symbol(
     trade_rr2_v: Optional[float] = None
     trade_plan_label_v = "-"
     if midpoint_value > 0 and range_size > 0:
-        range_pct = range_size / midpoint_value * 100.0  # dimensionless % scale-invariant
+        range_pct = range_size / midpoint_value * 100.0
         if range_pct < 0.05:
             trade_status_v = "Range too tight"
         elif is_done_trade:
@@ -929,26 +937,75 @@ def detect_asian_range_for_symbol(
             trade_action = "BUY"
             trade_entry_v = current_price
             trade_sl_v = asian_low - 0.10 * range_size
-            trade_tp1_v = asian_high + 1.618 * range_size
-            trade_tp2_v = asian_high + 2.618 * range_size
-            trade_tp3_v = asian_high + 4.0 * range_size
+            # ---- TP derives de fib_state_val (prochain niveau au-dessus du prix) ----
+            try:
+                fib_num = float(fib_state_val[1:])  # "+2.0" -> 2.0
+            except (ValueError, AttributeError):
+                fib_num = 1.618
+            # Index du premier niveau >= fib_num dans la liste bull
+            idx = next((i for i, n in enumerate(_FIB_LEVELS_BULL)
+                        if n >= fib_num - 0.001), 0)
+            tp_candidates = _FIB_LEVELS_BULL[idx:idx + 3]
+            if len(tp_candidates) >= 1:
+                trade_tp1_v = asian_high + tp_candidates[0] * range_size
+            if len(tp_candidates) >= 2:
+                trade_tp2_v = asian_high + tp_candidates[1] * range_size
+            if len(tp_candidates) >= 3:
+                trade_tp3_v = asian_high + tp_candidates[2] * range_size
+            # Securite : si TP1 est en-dessous (ou egal) a l'entry, on skip au suivant
+            if trade_tp1_v is not None and trade_tp1_v <= trade_entry_v:
+                if len(tp_candidates) >= 2:
+                    trade_tp1_v = asian_high + tp_candidates[1] * range_size
+                    trade_tp2_v = (asian_high + tp_candidates[2] * range_size
+                                   if len(tp_candidates) >= 3 else None)
+                    trade_tp3_v = None
+                else:
+                    trade_tp1_v = None
+                    trade_status_v = "No valid TP"
+            # ---- RR ----
             risk = trade_entry_v - trade_sl_v
-            if risk > 0:
+            if risk > 0 and trade_tp1_v is not None and trade_tp1_v > trade_entry_v:
                 trade_rr1_v = (trade_tp1_v - trade_entry_v) / risk
-                trade_rr2_v = (trade_tp2_v - trade_entry_v) / risk
+                if trade_tp2_v is not None and trade_tp2_v > trade_entry_v:
+                    trade_rr2_v = (trade_tp2_v - trade_entry_v) / risk
             trade_status_v = "Active"
             trade_plan_label_v = f"BUY {_fmt_price_adaptive(trade_entry_v)}"
         elif is_bear_trade:
             trade_action = "SELL"
             trade_entry_v = current_price
             trade_sl_v = asian_high + 0.10 * range_size
-            trade_tp1_v = asian_low - 1.618 * range_size
-            trade_tp2_v = asian_low - 2.618 * range_size
-            trade_tp3_v = asian_low - 4.0 * range_size
+            # ---- TP derives de fib_state_val (prochain niveau en-dessous du prix) ----
+            try:
+                fib_num = float(fib_state_val[1:])  # "-2.0" -> 2.0
+            except (ValueError, AttributeError):
+                fib_num = 1.618
+            # Index du premier niveau <= -fib_num dans la liste bear
+            # (_FIB_LEVELS_BEAR contient des valeurs negatives: -1.618, -2.0, ...)
+            idx = next((i for i, n in enumerate(_FIB_LEVELS_BEAR)
+                        if n <= -fib_num + 0.001), 0)
+            tp_candidates = _FIB_LEVELS_BEAR[idx:idx + 3]
+            if len(tp_candidates) >= 1:
+                trade_tp1_v = asian_low + tp_candidates[0] * range_size
+            if len(tp_candidates) >= 2:
+                trade_tp2_v = asian_low + tp_candidates[1] * range_size
+            if len(tp_candidates) >= 3:
+                trade_tp3_v = asian_low + tp_candidates[2] * range_size
+            # Securite : si TP1 est au-dessus (ou egal) a l'entry, on skip au suivant
+            if trade_tp1_v is not None and trade_tp1_v >= trade_entry_v:
+                if len(tp_candidates) >= 2:
+                    trade_tp1_v = asian_low + tp_candidates[1] * range_size
+                    trade_tp2_v = (asian_low + tp_candidates[2] * range_size
+                                   if len(tp_candidates) >= 3 else None)
+                    trade_tp3_v = None
+                else:
+                    trade_tp1_v = None
+                    trade_status_v = "No valid TP"
+            # ---- RR ----
             risk = trade_sl_v - trade_entry_v
-            if risk > 0:
+            if risk > 0 and trade_tp1_v is not None and trade_tp1_v < trade_entry_v:
                 trade_rr1_v = (trade_entry_v - trade_tp1_v) / risk
-                trade_rr2_v = (trade_entry_v - trade_tp2_v) / risk
+                if trade_tp2_v is not None and trade_tp2_v < trade_entry_v:
+                    trade_rr2_v = (trade_entry_v - trade_tp2_v) / risk
             trade_status_v = "Active"
             trade_plan_label_v = f"SELL {_fmt_price_adaptive(trade_entry_v)}"
 
