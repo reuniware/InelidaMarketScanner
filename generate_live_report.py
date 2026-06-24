@@ -23,7 +23,7 @@ from src.sweep_detector import (
 
 UTC = timezone.utc
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-OUTPUT_PDF = os.path.join(PROJECT_DIR, f"inelida_report_{datetime.now(UTC).strftime('%Y-%m-%d')}.pdf")
+OUTPUT_PDF = os.path.join(PROJECT_DIR, f"inelida_report_{datetime.now(UTC).strftime('%Y-%m-%d_%H%M')}.pdf")
 
 F = 'Helvetica'; FB = 'Helvetica'; FM = 'Courier'
 
