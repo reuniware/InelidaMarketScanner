@@ -30,8 +30,10 @@ inelida_ticks.csv
 live_sweeps.log
 logs/
 
-# ─── Rapports generes ─────────────────────────────────────────────────────
+# --- Rapports generes ---
 *.pdf
+!reports/*.pdf
+!reports/*.docx
 
 # ─── OS ───────────────────────────────────────────────────────────────────
 .DS_Store
