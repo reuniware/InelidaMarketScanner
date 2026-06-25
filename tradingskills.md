@@ -22,8 +22,10 @@ InelidaMarketScan/
 │   ├── ai_client.py        # Client API AI (Gemini)
 │   └── trade_executor.py   # Exécution trades automatisée
 ├── generate_live_report.py # Générateur PDF rapport live
+├── generate_user_guide_pdf.py # Générateur PDF guide utilisateur
 ├── app.py                  # Dashboard Streamlit
-├── live_monitor.py         # Surveillance temps réel
+├── live_monitor.py         # Surveillance temps réel (sweeps fractals + daily)
+├── live_alerts.py          # Moniteur continu signaux trades (entry, SL, TP, RR)
 ├── main.py                 # Point d'entrée CLI
 ├── tradingskills.md        # ← Ce document
 └── .env                    # Variables d'environnement (clés API)
@@ -36,6 +38,8 @@ InelidaMarketScan/
 | `src/sweep_detector.py` | Détection sweeps, Asian range, Fibonacci, trades | Cœur de l'analyse |
 | `src/config.py` | Watchlist, paramètres MT5/Sweep/DB | Personnalisation |
 | `generate_live_report.py` | PDF complet avec tous les scans | Rapport final |
+| `live_monitor.py` | Sweeps fractals (BSL/SSL) + daily/weekly en temps réel | Surveillance - aucune exécution |
+| `live_alerts.py` | Signaux trades ICT (entry, SL, TP, RR) en continu | Moniteur 30s avec BEEP |
 | `app.py` | Dashboard Streamlit | Visualisation live |
 
 ---
@@ -512,7 +516,23 @@ for i in range(len(d1_bars) - 1):
         print(f"{date_i} → {date_i+1}: Gap {gap:+.3f}")
 ```
 
-### 12.3 Rappel : Les niveaux de gap incluent la bougie d'avant
+### 12.3 Filtre de spread dans live_alerts.py
+
+Le moniteur `live_alerts.py` filtre les trades dont le spread est trop large :
+
+```python
+MAX_SPREAD_PCT = 0.10  # spread max en % du prix
+
+# Exemples avec ce seuil :
+# XAUUSD  (spread 48pts, prix 3999) → 0.012% ✅ Accepté
+# XAGUSD  (spread 44pts, prix 57.6) → 0.076% ✅ Accepté
+# XLMUSD  (spread 1pt,  prix 0.184) → 0.054% ✅ Accepté
+# UK100   (spread 65pts, prix 10494) → 0.006% ✅ Accepté
+# XPDUSD  (spread 833pts, prix 1185) → 0.700% 🔴 Rejeté
+# XPTUSD  (spread 745pts, prix 950)  → 0.784% 🔴 Rejeté
+```
+
+### 12.4 Rappel : Les niveaux de gap incluent la bougie d'avant
 
 ```
 Pour vérifier un gap :
@@ -531,8 +551,20 @@ Mais le High 27/02 = 73.834 est aussi un niveau clé !
 ## 13. Commandes de Scan Rapides
 
 ```bash
+# Moniteur continu (signaux trades avec SL/TP)
+python live_alerts.py                         # tous les symboles, intervalle 30s
+python live_alerts.py --interval 15           # toutes les 15s
+python live_alerts.py --symbols EURUSD,GBPUSD # symboles spécifiques
+python live_alerts.py --no-sound              # sans beep
+
+# Détection sweeps fractale + daily/weekly
+python live_monitor.py                        # sweeps BSL/SSL en temps réel
+
 # Scan complet + rapport PDF
 python generate_live_report.py
+
+# Générer le guide utilisateur complet
+python generate_user_guide_pdf.py
 
 # Scan Asian range uniquement (tous symboles)
 python -c "from src.sweep_detector import scan_market_watch_asian_ranges; from src.config import resolve_watchlist; r, s = scan_market_watch_asian_ranges(symbols_override=resolve_watchlist()); print(f'{len(r)} results'); [print(f'{x.symbol}: {x.trade_action} fib={x.fib_state}') for x in r if x.trade_action and x.trade_action != '-']"
@@ -547,7 +579,7 @@ python -c "import MetaTrader5 as mt5; from datetime import datetime,timezone; mt
 python -c "import MetaTrader5 as mt5; mt5.initialize(); i=mt5.symbol_info('ETHUSD'); print(f'contract={i.trade_contract_size} tick_val={i.trade_tick_value} tick_size={i.trade_tick_size}') if i else print('N/A')"
 
 # Vérifier le compte
-python -c "import MetaTraver5 as mt5; mt5.initialize(); a=mt5.account_info(); print(f'Balance={a.balance} {a.currency} Levier=1:{a.leverage}') if a else print('N/A')"
+python -c "import MetaTrader5 as mt5; mt5.initialize(); a=mt5.account_info(); print(f'Balance={a.balance} {a.currency} Levier=1:{a.leverage}') if a else print('N/A')"
 ```
 
 ---
