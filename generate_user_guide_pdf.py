@@ -13,6 +13,7 @@ from fpdf import FPDF
 
 OUTPUT_PDF = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
+    "reports",
     "Comment_trader_et_gagner_avec_Inelida_Market_Scanner.pdf"
 )
 
@@ -153,6 +154,7 @@ class UserGuidePDF(FPDF):
 
 
 def build_guide():
+    os.makedirs(os.path.dirname(OUTPUT_PDF), exist_ok=True)
     pdf = UserGuidePDF()
     
     # ════════════════════════════════════════

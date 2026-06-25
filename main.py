@@ -863,6 +863,17 @@ def cmd_setups(args):
             if r.trade_action != "-" and r.trade_rr1 is not None and r.trade_rr1 >= rr_min
         ]
 
+    # Filtrer les trades avec spread > 0.10% (seuil reel)
+    MAX_SPREAD_PCT = 0.10
+    n_spread_skipped = 0
+    setups_filtered = []
+    for r in setups:
+        if r.spread_pct > 0 and r.spread_pct > MAX_SPREAD_PCT:
+            n_spread_skipped += 1
+        else:
+            setups_filtered.append(r)
+    setups = setups_filtered
+
     # Tri : trades actifs avec RR en premier, puis par direction
     def _sort_key(r):
         rr = r.trade_rr1 or 0
@@ -891,7 +902,7 @@ def cmd_setups(args):
     header = (
         f"{BOLD}{'Symbole':<10}  {'Sweep':>8}  {'Direction':>18}  "
         f"{'Session':>14}  {'AH':>11} {'AL':>11} {'Now':>11}  "
-        f"{'RR':>5}  {'Trade':>6}  {'Plan':>26}{RESET}"
+        f"{'Spread':>8}  {'RR':>5}  {'Trade':>6}  {'Plan':>26}{RESET}"
     )
     lines.append(header)
     lines.append(f"{GRAY}{'-' * (len(header) - len(BOLD) - len(RESET))}{RESET}")
@@ -936,6 +947,17 @@ def cmd_setups(args):
         else:
             rr_cell = f"{GRAY}-{RESET}"
 
+        # Spread en %
+        if r.spread_pct > 0:
+            if r.spread_pct <= 0.10:
+                sp_cell = f"{GREEN}{r.spread_pct:.3f}%{RESET}"
+            elif r.spread_pct <= 0.30:
+                sp_cell = f"{YELLOW}{r.spread_pct:.3f}%{RESET}"
+            else:
+                sp_cell = f"{RED}{r.spread_pct:.3f}%{RESET}"
+        else:
+            sp_cell = f"{GRAY}?{RESET}"
+
         # Trade action
         if r.trade_action == "BUY":
             trade_cell = f"{GREEN}BUY{RESET}"
@@ -958,6 +980,7 @@ def cmd_setups(args):
             f"{_pad_cell(dir_cell, 18)}  "
             f"{_pad_cell(sess_cell, 14)}  "
             f"{_fmt_price(r.asian_high):>11} {_fmt_price(r.asian_low):>11} {_fmt_price(r.current_price):>11}  "
+            f"{_pad_cell(sp_cell, 8)}  "
             f"{_pad_cell(rr_cell, 5)}  "
             f"{_pad_cell(trade_cell, 6)}  "
             f"{_pad_cell(plan_cell, 26)}"
@@ -976,6 +999,10 @@ def cmd_setups(args):
         f"{YELLOW}{n_both} MIXTE{RESET} (les deux)  |  "
         f"{CYAN}{n_active} trade(s) avec RR >= 1.0{RESET}"
     )
+    if n_spread_skipped > 0:
+        lines.append(
+            f"{RED}{n_spread_skipped} filtre(s) spread (> {MAX_SPREAD_PCT:.2f}%){RESET}"
+        )
 
     print("\n".join(lines))
     return 0

@@ -4,8 +4,8 @@ Lit le PDF via PyPDF2, extrait les trades de la section TRADE TRACKING,
 puis les simule contre les donnees MT5 reelles posterieures.
 
 Usage:
-    python backtest_report_trades.py --pdf inelida_report_2026-06-19.pdf
-    python backtest_report_trades.py --pdf inelida_report_2026-06-23.pdf
+    python backtest_report_trades.py --pdf reports/inelida_report_2026-06-19.pdf
+    python backtest_report_trades.py --pdf reports/inelida_report_2026-06-23.pdf
 """
 import sys, os, re, time, argparse
 from datetime import datetime, timezone
@@ -14,6 +14,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import MetaTrader5 as mt5
 
 UTC = timezone.utc
+
+# Répertoire par défaut des rapports PDF
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPORTS_DIR = os.path.join(PROJECT_DIR, "reports")
 
 # ─── Extraction des trades depuis le PDF ────────────────────────────────
 
@@ -175,7 +179,14 @@ def bars_to_dicts(rates_raw):
 
 
 def backtest_trade(trade, bars):
-    """Simule le trade sur les barres M5/M15/H1 dispo. Retourne outcome."""
+    """Simule le trade sur les barres M1/M5/M15/H1 dispo. Retourne outcome.
+
+    Verifie CHAQUE barre dans l'ordre chronologique. Pour un BUY :
+    si low <= SL -> PERDU. Si high >= TP -> GAGNE.
+    L'ordre importe : la première condition remplie dans le temps détermine le résultat.
+    Avec M1, la probabilité que SL et TP soient touchés dans la même minute
+    est très faible -> précision maximale.
+    """
     entry = trade["entry"]
     sl = trade["sl"]
     tp = trade["tp"]
@@ -226,11 +237,27 @@ def main():
     parser = argparse.ArgumentParser(
         description="Backtest automatique des trades depuis un rapport PDF Inelida"
     )
-    parser.add_argument("--pdf", required=True,
-                       help="Chemin vers le rapport PDF (ex: inelida_report_2026-06-23.pdf)")
+    parser.add_argument("--pdf", default=None,
+                       help="Chemin vers le rapport PDF (ex: reports/inelida_report_2026-06-23.pdf). "
+                            "Si non specifie, utilise le dernier PDF du repertoire reports/.")
     args = parser.parse_args()
 
     pdf_path = args.pdf
+    if pdf_path is None:
+        # Chercher le PDF le plus recent dans reports/
+        if not os.path.isdir(REPORTS_DIR):
+            print(f"[ERREUR] Le dossier reports/ n'existe pas. Creez-le ou specifiez --pdf.")
+            return 1
+        pdf_files = sorted(
+            [f for f in os.listdir(REPORTS_DIR) if f.endswith('.pdf') and f.startswith('inelida_report')],
+            reverse=True
+        )
+        if pdf_files:
+            pdf_path = os.path.join(REPORTS_DIR, pdf_files[0])
+            print(f"[INFO] Aucun --pdf fourni, utilisation du dernier rapport : {pdf_files[0]}")
+        else:
+            print("[ERREUR] Aucun PDF trouve dans reports/. Specifiez --pdf.")
+            return 1
     report_date = extract_date_from_filename(pdf_path)
 
     # ── Extraction ──────────────────────────────────────────────────────
@@ -277,9 +304,16 @@ def main():
         print(f"[{i+1}/{len(trades)}] {sym:<14} {t['dir']:>4}  Entry={t['entry']:<10} ...", end=" ", flush=True)
 
         result = None
-        for tf_name, tf_const in [("M5", mt5.TIMEFRAME_M5), ("M15", mt5.TIMEFRAME_M15), ("H1", mt5.TIMEFRAME_H1)]:
+        # Granularité maximale : M1 d'abord (1 minute), puis M5, M15, H1 en fallback
+        # Pour M1, on récupère jusqu'à 10000 barres (~7 jours) pour couvrir tout l'historique
+        for tf_name, tf_const, n_bars in [
+            ("M1", mt5.TIMEFRAME_M1, 10000),
+            ("M5", mt5.TIMEFRAME_M5, 3000),
+            ("M15", mt5.TIMEFRAME_M15, 1000),
+            ("H1", mt5.TIMEFRAME_H1, 500),
+        ]:
             try:
-                rates = mt5.copy_rates_from_pos(sym, tf_const, 0, 500)
+                rates = mt5.copy_rates_from_pos(sym, tf_const, 0, n_bars)
                 if rates is not None and len(rates) > 0:
                     bars = bars_to_dicts(rates)
                     result = backtest_trade(t, bars)

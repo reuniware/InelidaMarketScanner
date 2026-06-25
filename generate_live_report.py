@@ -23,7 +23,8 @@ from src.sweep_detector import (
 
 UTC = timezone.utc
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-OUTPUT_PDF = os.path.join(PROJECT_DIR, f"inelida_report_{datetime.now(UTC).strftime('%Y-%m-%d_%H%M')}.pdf")
+REPORTS_DIR = os.path.join(PROJECT_DIR, "reports")
+OUTPUT_PDF = os.path.join(REPORTS_DIR, f"inelida_report_{datetime.now(UTC).strftime('%Y-%m-%d_%H%M')}.pdf")
 
 F = 'Helvetica'; FB = 'Helvetica'; FM = 'Courier'
 
@@ -155,6 +156,7 @@ def fetch_all_data():
             "direction": direction, "session": session,
             "ah": r.asian_high, "al": r.asian_low,
             "current": r.current_price,
+            "spread_pct": r.spread_pct,
             "rr": rr_val,
             "trade": r.trade_action,
             "plan": f"SL {_fmt(r.trade_sl)} -> TP1 {_fmt(r.trade_tp1)}" if r.trade_sl and r.trade_tp1 else "-",
@@ -175,6 +177,7 @@ def fetch_all_data():
             "entry": s["entry"], "sl": s["sl"], "tp1": s["tp1"],
             "tp2": None, "tp3": None,
             "rr": s["rr"] if s["rr"] else 0,
+            "spread_pct": s.get("spread_pct", 0),
         })
 
     conn.shutdown()
@@ -249,6 +252,7 @@ class InelidaReport(FPDF):
 
 
 def build_report(data):
+    os.makedirs(REPORTS_DIR, exist_ok=True)
     now_utc = datetime.now(UTC)
     session_date = now_utc.strftime("%Y-%m-%d")
     ts_utc = now_utc.strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -351,14 +355,16 @@ def build_report(data):
     if active_trades:
         pdf.sub_title("[ACTIF] TRADES ACTIFS (signaux ICT valides)")
         pdf.ln(1)
-        tw = [26, 14, 22, 22, 22, 22, 22, 22, 12, 22, 40]
-        pdf.table_header(["Symbole", "Action", "AH", "AL", "Entry", "SL", "TP1", "TP2", "RR", "Direction", "Fib"], tw)
+        tw = [24, 12, 20, 20, 20, 20, 20, 10, 10, 18, 34]
+        pdf.table_header(["Symbole", "Action", "AH", "AL", "Entry", "SL", "TP1", "RR", "Spread", "Direction", "Fib"], tw)
         for t in active_trades[:15]:
             color = (180, 30, 30) if t.get("trade_action") == "SELL" else (30, 130, 30)
+            sp_str = f"{t.get('spread_pct',0):.3f}%" if t.get('spread_pct', 0) > 0 else "?"
             pdf.table_row(
                 [t.get("symbol","?"), t.get("trade_action","-"), _fmt(t.get("asian_high")), _fmt(t.get("asian_low")),
                  _fmt(t.get("trade_entry")), _fmt(t.get("trade_sl")), _fmt(t.get("trade_tp1")),
-                 _fmt(t.get("trade_tp2")), f"{t.get('trade_rr1',0):.1f}x" if t.get("trade_rr1") else "-",
+                 f"{t.get('trade_rr1',0):.1f}x" if t.get("trade_rr1") else "-",
+                 sp_str,
                  _ascii_dir(t.get("direction_target_label","-")), t.get("fib_label","-")],
                 tw, colors=color,
             )
@@ -366,15 +372,17 @@ def build_report(data):
     pdf.ln(4)
     pdf.sub_title("[TOUS] Tous les résultats asiatiques (top 30)")
     pdf.ln(1)
-    aw = [26, 18, 18, 20, 20, 20, 20, 22, 20, 28]
-    pdf.table_header(["Symbole", "AH Swept", "AL Swept", "Direction", "AH", "AL", "Now", "Trade", "Statut", "Plan"], aw)
+    aw = [24, 16, 16, 18, 18, 18, 18, 18, 12, 18, 24]
+    pdf.table_header(["Symbole", "AH Swept", "AL Swept", "Direction", "AH", "AL", "Now", "Spread", "Trade", "Statut", "Plan"], aw)
     for r in data["asian_list"][:30]:
         ah_s = "SWEPT" if r.get("asian_high_swept") else "-"
         al_s = "SWEPT" if r.get("asian_low_swept") else "-"
         plan = f"SL {_fmt(r.get('trade_sl'))} -> TP1 {_fmt(r.get('trade_tp1'))}" if r.get("trade_sl") and r.get("trade_tp1") else "-"
+        sp_str = f"{r.get('spread_pct',0):.3f}%" if r.get('spread_pct', 0) > 0 else "?"
         pdf.table_row(
             [r.get("symbol","?"), ah_s, al_s, _ascii_dir(r.get("direction_target_label","-")),
              _fmt(r.get("asian_high")), _fmt(r.get("asian_low")), _fmt(r.get("current_price")),
+             sp_str,
              r.get("trade_action","-"), r.get("trade_status","-"), plan], aw)
 
     pdf.ln(4); pdf.set_font(FM, '', 7); pdf.set_text_color(100, 100, 100)
@@ -410,26 +418,29 @@ def build_report(data):
     if data["active_setups"]:
         pdf.sub_title("[ACTIF] TRADES ACTIFS (ordre d'entrée immédiat)")
         pdf.ln(1)
-        sw = [24, 14, 20, 28, 28, 28, 12, 12, 42]
-        pdf.table_header(["Symbole", "Action", "Direction", "Entry", "SL", "TP1", "RR", "Sweep", "Plan"], sw)
+        sw = [22, 12, 16, 22, 22, 22, 10, 12, 14, 36]
+        pdf.table_header(["Symbole", "Action", "Direction", "Entry", "SL", "TP1", "RR", "Spread", "Sweep", "Plan"], sw)
         for s in data["active_setups"][:15]:
             color = (180, 30, 30) if s["trade"] == "SELL" else (30, 130, 30)
+            sp_str = f"{s.get('spread_pct',0):.3f}%" if s.get('spread_pct', 0) > 0 else "?"
             pdf.table_row(
                 [s["symbol"], s["trade"], s["direction"],
                  _fmt(s["entry"]), _fmt(s["sl"]), _fmt(s["tp1"]),
-                 f"{s['rr']:.1f}x" if s["rr"] else "-", s["sweep"], s["plan"]],
+                 f"{s['rr']:.1f}x" if s["rr"] else "-",
+                 sp_str, s["sweep"], s["plan"]],
                 sw, colors=color)
 
     pdf.ln(3)
     pdf.sub_title("[TOUS] Tous les setups (actifs + en attente)")
     pdf.ln(1)
-    uw = [24, 14, 20, 26, 26, 26, 26, 10, 36]
-    pdf.table_header(["Symbole", "Sweep", "Direction", "Session", "AH", "AL", "Now", "RR", "Trade"], uw)
+    uw = [22, 12, 16, 22, 22, 22, 22, 10, 16, 10]
+    pdf.table_header(["Symbole", "Sweep", "Direction", "Session", "AH", "AL", "Now", "RR", "Spread", "Trade"], uw)
     for s in data["setups_data"][:30]:
         rr_str = f"{s['rr']:.1f}x" if s["rr"] else "-"
+        sp_str = f"{s.get('spread_pct',0):.3f}%" if s.get('spread_pct', 0) > 0 else "?"
         pdf.table_row(
             [s["symbol"], s["sweep"], s["direction"], s["session"],
-             _fmt(s["ah"]), _fmt(s["al"]), _fmt(s["current"]), rr_str, s["trade"]], uw)
+             _fmt(s["ah"]), _fmt(s["al"]), _fmt(s["current"]), rr_str, sp_str, s["trade"]], uw)
 
     # ═══ SECTION 5 : TRADE TRACKING ═══
     pdf.add_page()
@@ -446,13 +457,14 @@ def build_report(data):
     if data["tracking"]:
         pdf.sub_title(f"[TRACK] {len(data['tracking'])} trades à tracker")
         pdf.ln(1)
-        tw2 = [18, 22, 14, 24, 24, 24, 14, 24, 24]
-        pdf.table_header(["Source", "Symbole", "Action", "Entry", "SL", "TP1", "RR", "Résultat*", "Vérifié le"], tw2)
+        tw2 = [16, 20, 12, 22, 22, 22, 12, 14, 20, 20]
+        pdf.table_header(["Source", "Symbole", "Action", "Entry", "SL", "TP1", "RR", "Spread", "Résultat*", "Vérifié le"], tw2)
         for t in data["tracking"][:20]:
+            sp_str = f"{t.get('spread_pct',0):.3f}%" if t.get('spread_pct', 0) > 0 else "?"
             pdf.table_row(
                 [t["source"], t["symbol"], t["action"],
                  _fmt(t["entry"]), _fmt(t["sl"]), _fmt(t["tp1"]),
-                 f"{t['rr']:.1f}x" if t["rr"] else "-",
+                 f"{t['rr']:.1f}x" if t["rr"] else "-", sp_str,
                  "_________", "_________"], tw2)
     else:
         pdf.set_font(FM, '', 9)

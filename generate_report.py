@@ -15,7 +15,8 @@ from fpdf import FPDF
 
 # --- Chemins ----------------------------------------------------------------
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-OUTPUT_PDF = os.path.join(PROJECT_DIR, "inelida_report.pdf")
+REPORTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reports")
+OUTPUT_PDF = os.path.join(REPORTS_DIR, "inelida_report.pdf")
 
 # --- Fuseaux horaires -------------------------------------------------------
 UTC = timezone.utc
@@ -239,6 +240,7 @@ def _fmt(v):
 
 
 def build_report():
+    os.makedirs(os.path.dirname(OUTPUT_PDF), exist_ok=True)
     pdf = InelidaReport()
 
     # ===================================================================
@@ -576,4 +578,4 @@ if __name__ == "__main__":
     print(f"\n[OK] Rapport genere : {path}")
     print(f"   Taille : {size_kb:.1f} Ko")
     print(f"   {len(SWEEPS_DATA)} sweeps, {len(ASIAN_RESULTS)} sessions asiatiques, {len(LEVELS_DATA)} niveaux, {len(SETUPS_DATA)} setups")
-    print(f"\n[INFO] Pour verifier demain : demande 'lis le PDF inelida_report.pdf et dis-moi quels trades auraient ete gagnants'")
+    print(f"\n[INFO] Pour verifier demain : demande 'lis le PDF reports/inelida_report.pdf et dis-moi quels trades auraient ete gagnants'")

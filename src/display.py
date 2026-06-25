@@ -273,7 +273,7 @@ def render_asian_ranges(
     sym_w = max(10, max(len(r.symbol) for r in results))
     header = (
         f"{BOLD}{'Symbole':<{sym_w}}  {'AsianHigh':>11}  {'AsianLow':>11}  "
-        f"{'Now':>11}  {'AH Swp':>10}  {'AL Swp':>10}  "
+        f"{'Now':>11}  {'Spread':>8}  {'AH Swp':>10}  {'AL Swp':>10}  "
         f"{'Session':>20}  {'Target':>14}  {'Fib':>14}  {'Fib Swp':>22}  {'Bars':>5}"
         f"  {'Trade':>14}  {'Plan':>26}  {'RR':>8}{RESET}"
     )
@@ -353,10 +353,22 @@ def render_asian_ranges(
         else:
             fib_swept_col = f"{GRAY}\u2014{RESET}"
 
+        # Spread en % du prix bid
+        if r.spread_pct > 0:
+            if r.spread_pct <= 0.10:
+                spread_col = f"{GREEN}{r.spread_pct:.3f}%{RESET}"
+            elif r.spread_pct <= 0.30:
+                spread_col = f"{YELLOW}{r.spread_pct:.3f}%{RESET}"
+            else:
+                spread_col = f"{RED}{r.spread_pct:.3f}%{RESET}"
+        else:
+            spread_col = f"{GRAY}?{RESET}"
+
         lines.append(
             f"{MAGENTA}{r.symbol:<{sym_w}}{RESET}  "
             f"{_fmt_price(r.asian_high):>11}  {_fmt_price(r.asian_low):>11}  "
             f"{_fmt_price(r.current_price):>11}  "
+            f"{_pad_cell(spread_col, 8)}  "
             f"{_pad_cell(ah_status, 10)}  "
             f"{_pad_cell(al_status, 10)}  "
             f"{_pad_cell(session, 20)}  "
@@ -454,7 +466,8 @@ def render_asian_ranges_plain(results: List[AsianRangeResult]) -> None:
             trade_block = f" TRADE={r.trade_action}/{r.trade_status} (no SL/TP)"
         print(
             f"{r.symbol:<10} {ah} {al} AH={r.asian_high:.5f} AL={r.asian_low:.5f} "
-            f"now={r.current_price:.5f} AH@UTC={h_stamp} AL@UTC={l_stamp}"
+            f"now={r.current_price:.5f} spread={r.spread_pct:.3f}% "
+            f"AH@UTC={h_stamp} AL@UTC={l_stamp}"
             f"{session_info} TOWARD={r.direction_target_label} "
             f"FIB=({r.fib_plus_1618:.5f}/-{r.fib_minus_1618:.5f}) {r.fib_label}"
             f"{bull_fib_str}{bear_fib_str}"

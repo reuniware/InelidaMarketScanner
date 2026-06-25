@@ -659,6 +659,7 @@ class AsianRangeResult:
     trade_rr1: Optional[float]   # risk:reward to TP1
     trade_rr2: Optional[float]   # risk:reward to TP2
     trade_plan_label: str        # "BUY 1.34356" / "SELL 1.34250" / "-"
+    spread_pct: float = 0.0       # spread actuel en % du prix bid
 
 
 def _session_for_epoch(epoch: float) -> Tuple[str, str]:
@@ -832,9 +833,12 @@ def detect_asian_range_for_symbol(
             bear_fib_session_key, bear_fib_session_lbl_str = _session_for_epoch(t_at)
 
     tick = mt5.symbol_info_tick(symbol)
+    spread_pct = 0.0
     if tick:
         current_price = float(tick.bid)
         current_time = float(tick.time)
+        if tick.bid > 0 and tick.ask > 0:
+            spread_pct = (tick.ask - tick.bid) / tick.bid * 100.0
     else:
         current_price = bars[-1]["close"] if bars else 0.0
         current_time = time.time()
@@ -1060,6 +1064,7 @@ def detect_asian_range_for_symbol(
         trade_rr1=trade_rr1_v,
         trade_rr2=trade_rr2_v,
         trade_plan_label=trade_plan_label_v,
+        spread_pct=spread_pct,
     )
 
 
@@ -1182,5 +1187,6 @@ def asians_to_dicts(results: List[AsianRangeResult]) -> List[dict]:
             "trade_rr1": r.trade_rr1,
             "trade_rr2": r.trade_rr2,
             "trade_plan_label": r.trade_plan_label,
+            "spread_pct": r.spread_pct,
         })
     return out

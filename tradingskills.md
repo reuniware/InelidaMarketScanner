@@ -2,7 +2,7 @@
 
 > Document destiné à optimiser les futures analyses en centralisant les concepts,
 > formules, conventions et méthodologies utilisés dans InelidaMarketScan.
-> Dernière mise à jour : 24 juin 2026.
+> Dernière mise à jour : 25 juin 2026.
 
 ---
 
@@ -21,12 +21,15 @@ InelidaMarketScan/
 │   ├── ai_analyst.py       # Analyse AI des données
 │   ├── ai_client.py        # Client API AI (Gemini)
 │   └── trade_executor.py   # Exécution trades automatisée
+├── backtest_report_trades.py # Backtest trades depuis PDF (M1/M5/M15/H1)
 ├── generate_live_report.py # Générateur PDF rapport live
 ├── generate_user_guide_pdf.py # Générateur PDF guide utilisateur
+├── generate_report.py     # Générateur rapport template
 ├── app.py                  # Dashboard Streamlit
 ├── live_monitor.py         # Surveillance temps réel (sweeps fractals + daily)
 ├── live_alerts.py          # Moniteur continu signaux trades (entry, SL, TP, RR)
 ├── main.py                 # Point d'entrée CLI
+├── reports/                # Tous les PDFs générés (rapports, guide)
 ├── tradingskills.md        # ← Ce document
 └── .env                    # Variables d'environnement (clés API)
 ```
@@ -35,11 +38,13 @@ InelidaMarketScan/
 
 | Fichier | Rôle | Usage |
 |---------|------|-------|
-| `src/sweep_detector.py` | Détection sweeps, Asian range, Fibonacci, trades | Cœur de l'analyse |
+| `src/sweep_detector.py` | Détection sweeps, Asian range, Fibonacci, trades, **spread** | Cœur de l'analyse |
 | `src/config.py` | Watchlist, paramètres MT5/Sweep/DB | Personnalisation |
-| `generate_live_report.py` | PDF complet avec tous les scans | Rapport final |
+| `src/display.py` | Affichage console formaté (setups, asian, niveaux) | Tableaux couleur |
+| `generate_live_report.py` | PDF complet avec tous les scans + **spread** | Rapport final |
+| `backtest_report_trades.py` | Backtest M1/M5/M15/H1 depuis un PDF | Vérification a posteriori |
 | `live_monitor.py` | Sweeps fractals (BSL/SSL) + daily/weekly en temps réel | Surveillance - aucune exécution |
-| `live_alerts.py` | Signaux trades ICT (entry, SL, TP, RR) en continu | Moniteur 30s avec BEEP |
+| `live_alerts.py` | Signaux trades ICT (entry, SL, TP, RR) + filtre spread | Moniteur 30s avec BEEP |
 | `app.py` | Dashboard Streamlit | Visualisation live |
 
 ---
@@ -516,23 +521,61 @@ for i in range(len(d1_bars) - 1):
         print(f"{date_i} → {date_i+1}: Gap {gap:+.3f}")
 ```
 
-### 12.3 Filtre de spread dans live_alerts.py
+### 12.3 Filtre de spread global (intégré dans toutes les analyses)
 
-Le moniteur `live_alerts.py` filtre les trades dont le spread est trop large :
+Le spread est désormais calculé et affiché dans **toutes** les analyses :
 
 ```python
-MAX_SPREAD_PCT = 0.10  # spread max en % du prix
+# Calcul dans sweep_detector.py (AsianRangeResult.spread_pct)
+spread_pct = (tick.ask - tick.bid) / tick.bid * 100.0
 
-# Exemples avec ce seuil :
-# XAUUSD  (spread 48pts, prix 3999) → 0.012% ✅ Accepté
-# XAGUSD  (spread 44pts, prix 57.6) → 0.076% ✅ Accepté
-# XLMUSD  (spread 1pt,  prix 0.184) → 0.054% ✅ Accepté
-# UK100   (spread 65pts, prix 10494) → 0.006% ✅ Accepté
-# XPDUSD  (spread 833pts, prix 1185) → 0.700% 🔴 Rejeté
-# XPTUSD  (spread 745pts, prix 950)  → 0.784% 🔴 Rejeté
+# Seuil de filtrage dans cmd_setups (main.py)
+MAX_SPREAD_PCT = 0.10  # les trades avec spread > 0.10% sont automatiquement exclus
 ```
 
-### 12.4 Rappel : Les niveaux de gap incluent la bougie d'avant
+**Affichage dans tous les outils :**
+
+| Outil | Où voir le spread |
+|-------|-------------------|
+| `main.py setups --scan-all` | Colonne Spread dans le tableau (vert ≤0.10%, jaune ≤0.30%, rouge >0.30%) |
+| `main.py asian --scan-all` | Colonne Spread dans le tableau |
+| `generate_live_report.py` | Colonne Spread dans toutes les tables PDF (asian, setups, tracking) |
+| `live_alerts.py` | Filtre MAX_SPREAD_PCT = 0.10 (trades écartés) |
+
+**Exemples avec le seuil 0.10% :**
+
+```
+USDCHF  (spread 0.007%)  → 🟢 Accepté
+EURJPY  (spread 0.008%)  → 🟢 Accepté
+XLMUSD  (spread 0.054%)  → 🟢 Accepté
+XPDUSD  (spread 0.490%)  → 🔴 Rejeté
+HEATOIL (spread 1.08%)   → 🔴 Rejeté
+XPTUSD  (spread 0.784%)  → 🔴 Rejeté
+```
+
+### 12.4 Backtest avec granularité M1
+
+Le backtest (`backtest_report_trades.py`) utilise désormais **M1** comme timeframe primaire :
+
+```
+10 000 barres M1  (~7 jours) → vérifie le SL/TP minute par minute
+Puis fallback M5 (3000 barres) → M15 (1000) → H1 (500)
+
+Le SL est vérifié AVANT le TP dans chaque barre → worst-case conservateur
+```
+
+### 12.5 Tous les PDFs dans reports/
+
+Tous les scripts écrivent et lisent les PDFs depuis le dossier `reports/` :
+
+```
+reports/inelida_report_YYYY-MM-DD_HHMM.pdf    # Rapports live
+reports/inelida_report.pdf                     # Rapport template
+reports/Comment_trader_et_gagner_avec_Inelida_Market_Scanner.pdf
+reports/ict_analysis_*.pdf                     # Analyses ICT
+```
+
+### 12.6 Rappel : Les niveaux de gap incluent la bougie d'avant
 
 ```
 Pour vérifier un gap :
@@ -551,7 +594,11 @@ Mais le High 27/02 = 73.834 est aussi un niveau clé !
 ## 13. Commandes de Scan Rapides
 
 ```bash
-# Moniteur continu (signaux trades avec SL/TP)
+# Backtest des trades depuis un PDF (granularité M1 minimum)
+python backtest_report_trades.py                                    # auto-détection dernier PDF dans reports/
+python backtest_report_trades.py --pdf reports/inelida_report_2026-06-25_1315.pdf
+
+# Moniteur continu (signaux trades avec SL/TP, filtre spread intégré)
 python live_alerts.py                         # tous les symboles, intervalle 30s
 python live_alerts.py --interval 15           # toutes les 15s
 python live_alerts.py --symbols EURUSD,GBPUSD # symboles spécifiques

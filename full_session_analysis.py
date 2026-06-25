@@ -1057,8 +1057,9 @@ def main():
 
     # ── Génération PDF ─────────────────────────────────────────────────
     print("[4/5] Génération du rapport PDF...")
-    pdf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                            f"ict_analysis_{today_str}.pdf")
+    reports_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reports")
+    os.makedirs(reports_dir, exist_ok=True)
+    pdf_path = os.path.join(reports_dir, f"ict_analysis_{today_str}.pdf")
     try:
         generate_pdf(analyses, today_str, pdf_path)
         print(f"  PDF généré: {pdf_path}")
@@ -1068,8 +1069,7 @@ def main():
 
     # ── Génération DOCX ────────────────────────────────────────────────
     print("[5/5] Génération du rapport DOCX...")
-    docx_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                             f"ict_analysis_{today_str}.docx")
+    docx_path = os.path.join(reports_dir, f"ict_analysis_{today_str}.docx")
     try:
         generate_docx(analyses, today_str, docx_path)
         print(f"  DOCX généré: {docx_path}")
