@@ -54,7 +54,9 @@ DW_LOOKBACK = 48                   # bougies H1 a scanner
 
 UTC = timezone.utc
 PLATFORM_OFFSET = 2
-LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "live_sweeps.log")
+LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_FILE = os.path.join(LOG_DIR, "live_sweeps.log")
 
 # ─── ANSI ───────────────────────────────────────────────────────────────────
 _IS_TTY = sys.stdout.isatty()

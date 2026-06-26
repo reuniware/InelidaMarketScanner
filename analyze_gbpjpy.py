@@ -3,15 +3,16 @@ GBPJPY Session Analyzer — Anatomie ICT des sessions Asian / London / NY.
 Recupere les bougies H1 et M15 depuis MT5, partitionne par session UTC,
 et produit une analyse narrative complete.
 """
-import os, sys, time, json, logging
+import os, sys, time, json
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Optional, Tuple
 
 import MetaTrader5 as mt5
 
-logging.basicConfig(level=logging.WARNING, format="%(message)s")
-logger = logging.getLogger("gbpjpy_analyzer")
-logger.setLevel(logging.WARNING)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from src.logger_config import setup_logging
+
+logger = setup_logging("gbpjpy_analyzer", level="WARNING")
 
 SYMBOL = "GBPJPY"
 TIMEFRAMES = {

@@ -3,11 +3,13 @@ Inelida Market Scanner - Guide Utilisateur PDF
 Genere un guide complet expliquant comment utiliser l'outil pour trader.
 """
 
-import os, sys, time, logging
+import os, sys
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-logging.basicConfig(level=logging.WARNING)
+from src.logger_config import setup_logging
+
+logger = setup_logging("generate_user_guide", level="WARNING")
 
 from fpdf import FPDF
 

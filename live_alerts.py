@@ -31,7 +31,9 @@ from src.sweep_detector import detect_asian_range_for_symbol
 # ─── Constantes ─────────────────────────────────────────────────────────────
 UTC = timezone.utc
 DEFAULT_INTERVAL = 30          # secondes entre chaque scan
-ALERT_LOG = os.path.join(PROJECT, "live_alerts.log")
+ALERT_DIR = os.path.join(PROJECT, "logs")
+os.makedirs(ALERT_DIR, exist_ok=True)
+ALERT_LOG = os.path.join(ALERT_DIR, "live_alerts.log")
 MAX_SPREAD_PCT = 0.10          # spread max en % du prix (XPDUSD=0.7%, XAUUSD=0.012%, UK100=0.006%)
 
 # ─── ANSI ───────────────────────────────────────────────────────────────────

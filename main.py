@@ -53,11 +53,21 @@ from src.trade_executor import (
 
 
 def _setup_logging(verbose: bool):
+    from src.logger_config import LOGS_DIR
+
     level = logging.DEBUG if verbose else logging.INFO
+    os.makedirs(LOGS_DIR, exist_ok=True)
+    log_file = os.path.join(LOGS_DIR, f"main_{_dt.now():%Y-%m-%d}.log")
+
     logging.basicConfig(
         level=level,
-        format="%(asctime)s | %(levelname)-7s | %(name)s | %(message)s",
+        format="%(asctime)s | %(levelname)-7s | %(name)-18s | %(message)s",
         datefmt="%H:%M:%S",
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(log_file, encoding="utf-8"),
+        ],
+        force=True,
     )
     for name in ("MT5Connector", "MarketScanner", "SweepDetector"):
         logging.getLogger(name).setLevel(

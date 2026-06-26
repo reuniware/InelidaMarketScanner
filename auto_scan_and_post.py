@@ -20,14 +20,13 @@ import os
 import sys
 import time
 import json
-import logging
 import subprocess
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-logging.basicConfig(level=logging.WARNING, format="%(asctime)s | %(levelname)-7s | %(message)s")
-logger = logging.getLogger("auto_scan")
+from src.logger_config import setup_logging
+logger = setup_logging("auto_scan", level="INFO")
 
 UTC = timezone.utc
 
@@ -68,8 +67,14 @@ def _parse_backtest_output(output: str) -> dict:
 _BACKTEST_AVAILABLE = True  # subprocess toujours dispo
 
 
-def run_backtest_on_latest() -> dict:
-    """Lance backtest_report_trades.py en subprocess et parse les stats."""
+def run_backtest_on_previous() -> dict:
+    """Lance backtest_report_trades.py sur le rapport du scan PRECEDENT.
+
+    Le backtest s'execute AVANT de generer le nouveau PDF, donc
+    pdf_files[0] est naturellement le rapport du scan d'avant.
+    Utile : chaque scan backteste les trades du scan d'avant, qui ont eu
+    le temps d'evoluer -> donne un vrai winrate.
+    """
     try:
         pdf_files = sorted(
             [f for f in os.listdir(REPORTS_DIR)
@@ -77,21 +82,22 @@ def run_backtest_on_latest() -> dict:
             reverse=True,
         )
         if not pdf_files:
-            logger.warning("Aucun PDF trouve dans %s", REPORTS_DIR)
+            logger.info("Backtest precedent: aucun rapport existant")
             return {}
 
-        latest = os.path.join(REPORTS_DIR, pdf_files[0])
+        # pdf_files[0] = rapport du scan precedent (aucun nouveau PDF genere encore)
+        previous = os.path.join(REPORTS_DIR, pdf_files[0])
         script = os.path.join(os.path.dirname(__file__), "backtest_report_trades.py")
 
         result = subprocess.run(
-            [sys.executable, script, "--pdf", latest],
+            [sys.executable, script, "--pdf", previous],
             capture_output=True, text=True, timeout=180,
         )
         output = result.stdout + result.stderr
 
         stats = _parse_backtest_output(output)
         if stats:
-            stats["pdf"] = os.path.basename(latest)
+            stats["pdf"] = os.path.basename(previous)
         return stats
     except subprocess.TimeoutExpired:
         logger.error("Backtest timeout")
@@ -198,27 +204,27 @@ def main():
     print(f"  {scan_data['scanned']} symboles, {scan_data['setups']} setups, "
           f"{len(scan_data['trades'])} trades actifs, {scan_data['spread_skipped']} filtrés spread")
 
-    # ═══ 2. RAPPORT ═══
+    # ═══ 2. BACKTEST (rapport PRECEDENT, pas celui qu'on va generer) ═══
+    if not args.no_backtest:
+        print("  [2/4] Backtest M1 (rapport precedent)...")
+        bt = run_backtest_on_previous()
+        if bt:
+            scan_data["backtest"] = bt
+            print(f"  {bt.get('gagnes',0)}G/{bt.get('perdus',0)}P/{bt.get('ouverts',0)}O "
+                  f"({bt.get('winrate',0):.0f}% WR) - {bt.get('pdf','?')}")
+        else:
+            print("  Pas de backtest disponible (premier scan ou un seul rapport)")
+
+    # ═══ 3. RAPPORT ═══
     report_path = ""
     if not args.no_report:
-        print("  [2/4] Génération rapport PDF...")
+        print("  [3/4] Génération rapport PDF...")
         try:
             report_path = build_report(raw_data)
             scan_data["report_path"] = os.path.basename(report_path)
             print(f"  PDF: {report_path}")
         except Exception as e:
             print(f"  [WARN] Rapport échoué: {e}")
-
-    # ═══ 3. BACKTEST ═══
-    if not args.no_backtest:
-        print("  [3/4] Backtest M1...")
-        bt = run_backtest_on_latest()
-        if bt:
-            scan_data["backtest"] = bt
-            print(f"  {bt.get('gagnes',0)}G/{bt.get('perdus',0)}P/{bt.get('ouverts',0)}O "
-                  f"({bt.get('winrate',0):.0f}% WR)")
-        else:
-            print("  Pas de backtest disponible")
 
     # ═══ 4. DISCORD ═══
     if not args.no_discord:

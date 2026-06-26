@@ -3,11 +3,12 @@ InelidaMarketScanner - Générateur de rapport PDF LIVE horodaté.
 Se connecte à MT5, exécute tous les scans en direct, et produit
 un rapport au même format que generate_report.py.
 """
-import os, sys, time, logging
+import os, sys, time
 from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-logging.basicConfig(level=logging.WARNING)
+from src.logger_config import setup_logging
+logger = setup_logging("generate_live_report", level="WARNING")
 
 import MetaTrader5 as mt5
 from fpdf import FPDF

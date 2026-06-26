@@ -126,7 +126,7 @@ else:
 
 ### 2.6 Sweep + Fib = Trade ICT
 
-**Conditions pour un trade :**
+**Conditions pour un trade (modèle classique) :**
 
 ```
 BUY  = (AL sweepé + prix > AH) OU (AH+AL sweepés + prix > AH)
@@ -139,6 +139,37 @@ SELL = (AH sweepé + prix < AL) OU (AH+AL sweepés + prix < AL)
 BUY  SL = AL − 0.10 × range
 SELL SL = AH + 0.10 × range
 ```
+
+**Patterns supplémentaires (fakeout / continuation) — non implémentés :**
+
+Quand le prix continue dans la même direction que le sweep au lieu de traverser
+vers l'autre liquidité (à implémenter dans `sweep_detector.py`) :
+
+```
+AH sweepé + prix > AH → BUY continuation (fakeout baissier → bullish)
+AL sweepé + prix < AL → SELL continuation (fakeout haussier → bearish)
+```
+
+Exemple USDCHF 26/06/2026 :
+```
+AL = 0.80849 | Sweep London | Prix = 0.80819 (sous le AL)
+→ SELL continuation bearish (SSL pris, le prix continue de descendre)
+```
+
+### 2.7 Diagnostic « 0 trade »
+
+Quand un scan produit 0 trade malgré des setups détectés, vérifier :
+
+| Cause | Symptôme | Pattern | Implémenté |
+|-------|----------|---------|:----------:|
+| **Fakeout haussier** | AH sweepé, prix > AH | BSL pris → prix monte (pas de SELL valide) | ❌ |
+| **Fakeout baissier** | AL sweepé, prix < AL | SSL pris → prix descend (pas de BUY valide) | ❌ |
+| **Range trop serré** | Range < 0.05% du midpoint | Pas assez d'amplitude pour un trade | ✅ filtré |
+| **Session trop tôt** | Post-Asian < 2 barres H1 | Pas assez de données pour détecter les sweeps | ✅ implicite |
+| **Pas de sweep** | Breach sans rejet | Pas de sweep ICT complet | ✅ filtré |
+
+> ⚠️ Les patterns de fakeout (continuation après sweep) ne sont **pas encore implémentés**
+> dans `sweep_detector.py`. Ils sont documentés ici pour référence et ajout futur.
 
 ---
 
@@ -653,7 +684,107 @@ Exemple : `inelida_report_2026-06-24_1600.pdf`
 
 ---
 
-## 15. Mise à jour
+## 15. Conventions Discord
+
+### 15.1 Méthode de publication (IMPORTANT)
+
+**NE JAMAIS utiliser de script Python inline avec `urllib.request` pour poster sur Discord.**
+Les scripts inline échouent systématiquement avec HTTP 403 (Cloudflare/WAF bloque
+les requêtes sans User-Agent cohérent).
+
+**Toujours utiliser `discord_notifier.py` :**
+
+```bash
+# Écrire le JSON dans un fichier temporaire
+python -c "
+import json
+embeds = [{...}]
+with open('tmp_discord.json', 'w', encoding='utf-8') as f:
+    json.dump({'embeds': embeds}, f, ensure_ascii=False)
+"
+
+# Poster via discord_notifier.py
+python discord_notifier.py \
+    --webhook \"https://discord.com/api/webhooks/...\" \
+    --json tmp_discord.json
+
+# Nettoyer
+rm tmp_discord.json
+```
+
+**Pourquoi ça marche :** `discord_notifier.py` définit `User-Agent: InelidaMarketScanner/1.0`
+et `Content-Type: application/json; charset=utf-8` que les scripts inline oublient.
+
+### 15.2 Webhook URL
+
+L'URL du webhook est stockée dans `.env` et injectée via `DISCORD_WEBHOOK_URL`.
+Quand cette variable est définie, le flag `--webhook` est **optionnel** —
+`discord_notifier.py` la lit automatiquement.
+
+```bash
+# Avec variable d'environnement (recommandé)
+python discord_notifier.py --json tmp_discord.json
+
+# Avec flag explicite (fallback)
+python discord_notifier.py --webhook "<URL>" --json tmp_discord.json
+
+# Message texte simple (pas besoin de fichier JSON !)
+python discord_notifier.py --message "Alerte : EURCAD sweep détecté"
+```
+
+### 15.3 Structure d'un embed
+
+```json
+{
+  "embeds": [{
+    "title": "Titre (max 256 chars)",
+    "description": "Description sous le titre",
+    "color": 3447003,
+    "fields": [
+      {"name": "Nom du champ", "value": "Valeur", "inline": true},
+      {"name": "Champ 2", "value": "Valeur 2", "inline": true},
+      {"name": "Champ 3", "value": "Valeur 3", "inline": true}
+    ],
+    "footer": {"text": "Texte en bas"}
+  }]
+}
+```
+
+> ⚠️ Discord limite à **3 champs inline par ligne**. Au-delà, les champs
+> passent à la ligne suivante. Pour un affichage propre, grouper par 3.
+
+### 15.4 Couleurs Discord
+
+| Usage | Hex | Décimal |
+|-------|-----|---------|
+| Vert (gain, haussier) | `0x2ECC71` | 3066993 |
+| Rouge (perte, baissier) | `0xE74C3C` | 15158332 |
+| Bleu (info, neutre) | `0x1E90FF` | 3447003 |
+| Orange (alerte, attention) | `0xE67E22` | 15105570 |
+| Violet (setup, analyse) | `0x9B59B6` | 10181046 |
+| Jaune/Or (avertissement) | `0xF1C40F` | 15844367 |
+
+### 15.5 Format des prix dans les embeds
+
+```python
+def _fmt(v):
+    if v is None: return "?"
+    if isinstance(v, (int, float)):
+        if v >= 1000: return f"{v:.2f}"      # XAUUSD, BTCUSD, indices
+        if v >= 10:   return f"{v:.4f}"      # USDJPY, EURJPY
+        return f"{v:.5f}"                     # Forex 5-digit
+    return str(v)
+```
+
+### 15.6 Test de connexion
+
+```bash
+python discord_notifier.py --webhook "<URL>" --test
+```
+
+---
+
+## 16. Mise à jour
 
 Ce document est amené à évoluer. Pour le mettre à jour :
 
