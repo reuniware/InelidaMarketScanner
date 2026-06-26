@@ -140,10 +140,10 @@ BUY  SL = AL − 0.10 × range
 SELL SL = AH + 0.10 × range
 ```
 
-**Patterns supplémentaires (fakeout / continuation) — non implémentés :**
+**Patterns supplémentaires (fakeout / continuation) — implémentés (priorité 3) :**
 
 Quand le prix continue dans la même direction que le sweep au lieu de traverser
-vers l'autre liquidité (à implémenter dans `sweep_detector.py`) :
+vers l'autre liquidité :
 
 ```
 AH sweepé + prix > AH → BUY continuation (fakeout baissier → bullish)
@@ -162,14 +162,14 @@ Quand un scan produit 0 trade malgré des setups détectés, vérifier :
 
 | Cause | Symptôme | Pattern | Implémenté |
 |-------|----------|---------|:----------:|
-| **Fakeout haussier** | AH sweepé, prix > AH | BSL pris → prix monte (pas de SELL valide) | ❌ |
-| **Fakeout baissier** | AL sweepé, prix < AL | SSL pris → prix descend (pas de BUY valide) | ❌ |
+| **Fakeout haussier** | AH sweepé, prix > AH | BSL pris → prix monte → BUY continuation | ✅ |
+| **Fakeout baissier** | AL sweepé, prix < AL | SSL pris → prix descend → SELL continuation | ✅ |
 | **Range trop serré** | Range < 0.05% du midpoint | Pas assez d'amplitude pour un trade | ✅ filtré |
 | **Session trop tôt** | Post-Asian < 2 barres H1 | Pas assez de données pour détecter les sweeps | ✅ implicite |
 | **Pas de sweep** | Breach sans rejet | Pas de sweep ICT complet | ✅ filtré |
 
-> ⚠️ Les patterns de fakeout (continuation après sweep) ne sont **pas encore implémentés**
-> dans `sweep_detector.py`. Ils sont documentés ici pour référence et ajout futur.
+> ✅ Les patterns de fakeout sont **implémentés** dans `sweep_detector.py`
+> (priorité 3 dans la chaîne `if/elif` après le classique et le double sweep).
 
 ---
 

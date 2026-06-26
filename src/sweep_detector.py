@@ -896,15 +896,26 @@ def detect_asian_range_for_symbol(
         last = _FIB_LEVELS_BEAR[-1]
         return f"{last}_DONE", f"{last}"
 
+    # --- Priorite 1 : sweep + traverse vers l'autre liquidite (classique) ---
     if low_swept and current_price > asian_high:
+        # SSL sweep → prix traverse vers le haut → BUY classique
         fib_state_val, fib_label_val = _next_bull(current_price, asian_high, range_size)
     elif high_swept and current_price < asian_low:
+        # BSL sweep → prix traverse vers le bas → SELL classique
         fib_state_val, fib_label_val = _next_bear(current_price, asian_low, range_size)
+    # --- Priorite 2 : double sweep → vers la liquidite non testee ---
     elif high_swept and low_swept:
         if current_price > asian_high:
             fib_state_val, fib_label_val = _next_bull(current_price, asian_high, range_size)
         elif current_price < asian_low:
             fib_state_val, fib_label_val = _next_bear(current_price, asian_low, range_size)
+    # --- Priorite 3 : fakeout / continuation (sweep + prix meme cote) ---
+    elif high_swept and current_price > asian_high:
+        # BSL swept → prix continue de monter (fakeout baissier → bullish)
+        fib_state_val, fib_label_val = _next_bull(current_price, asian_high, range_size)
+    elif low_swept and current_price < asian_low:
+        # SSL swept → prix continue de descendre (fakeout haussier → bearish)
+        fib_state_val, fib_label_val = _next_bear(current_price, asian_low, range_size)
 
     # --- Trade idea generation (ICT model) ---
     # SL = 0.10*range past the opposite side (full setup invalidation wick + buffer).
