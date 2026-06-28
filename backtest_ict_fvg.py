@@ -1,15 +1,13 @@
 """
-backtest_ict_fvg.py -- Backtest ICT FVG Strategy on XAUUSD M3 data
-==================================================================
-Strategie ICT (Inner Circle Trader) :
-  1. Determine un Draw On Liquidity (DOL) -- PDH/PDL, Asian H/L
-  2. Attend un raid de LIQUIDITE OPPOSEE (pas du DOL lui-meme !)
-     - DOL haussier -> attendre SSL raid d'un SUPPORT
-     - DOL baissier -> attendre BSL raid d'une RESISTANCE
-  3. Entre sur le 1er FVG dans la direction du DOL, APRES retracement
-     dans la zone du FVG (pas d'entree immediate)
-  4. Hard SL au-dela de la bougie #1 du FVG
-  5. TP 50% a mi-chemin Entry-DOL, 50% juste avant le Terminus
+backtest_ict_fvg.py -- Backtest ICT FVG Strategy on XAUUSD M3 data (v2)
+==========================================================================
+Strategie ICT (Inner Circle Trader) 5 etapes, IMPLEMENTATION COMPLETE :
+  1. DOL : PDH/PDL, Asian H/L, NWOG
+  2. Raid oppose avec macros 10/50 ET kill zones (London Open, NY Open, London Close)
+     + equal highs/lows sweep detection
+  3. Entree : 1er FVG apres displacement OU IFVG sur la jambe de manipulation
+  4. Hard SL au-dela de C1 du FVG, breakeven apres TP1
+  5. TP 50% mi-chemin Entry-DOL, 50% juste avant le Terminus
 
 Totalement independant du reste du projet. Lit un fichier JSON M3.
 """
@@ -27,21 +25,49 @@ DATA_FILE = os.path.join(
     "reports", "xauusd_m3_2026_01_01_to_2026_06_26.json",
 )
 
+# DOL sources
 USE_PDH_PDL = True
 USE_ASIAN_HL = True
+USE_NWOG = True
 
-MACRO_START_UTC = 12
-MACRO_END_UTC = 16
-REQUIRE_MACRO = False
+# Macro / Kill zone filter (ETAPE 2)
+REQUIRE_MACRO = True          # Le raid doit etre sur :10 ou :50 ±2 min
+REQUIRE_KILL_ZONE = True      # Le raid doit etre dans une kill zone ICT
+MACRO_TOLERANCE_MIN = 5       # ± minutes autour de :10/:50 (fenetre de 10 min)
 
+# Equal highs/lows (ETAPE 2)
+REQUIRE_EQUAL_HL = False      # Le raid doit sweeper des equal highs/lows
+EQUAL_HL_TOLERANCE_PCT = 0.08  # Tolerance en % du prix pour "equal"
+EQUAL_HL_MIN_CLUSTER = 2       # Minimum de niveaux egaux dans le cluster
+EQUAL_HL_LOOKBACK_BARS = 96    # Barres M3 de lookback (~5h)
+
+# FVG / IFVG (ETAPE 3)
 FVG_MIN_SIZE_PCT = 0.02
-MAX_FVG_LOOKFORWARD = 240       # candles apres raid pour trouver FVG
-MAX_RETRACE_LOOKFORWARD = 120   # candles apres FVG pour retracement dans zone
-MAX_RAID_LOOKBACK = 480         # max bars (24h M3) pour chercher un raid
+MAX_FVG_LOOKFORWARD = 240
+MAX_RETRACE_LOOKFORWARD = 120
+USE_IFVG = True               # Chercher aussi les IFVGs
 
-MIN_DOL_DISTANCE_PCT = 0.15     # DOL minimum distance from entry
+# Risk management (ETAPE 4)
+BREAKEVEN_AFTER_TP1 = True    # Deplacer SL au breakeven apres TP1
+
+# General
+MAX_RAID_LOOKBACK = 480
+MIN_DOL_DISTANCE_PCT = 0.15
 
 UTC = timezone.utc
+
+# DST transition 2026: March 8 (2nd Sunday)
+DST_START_UTC = datetime(2026, 3, 8, 7, 0, 0, tzinfo=UTC)
+
+# Kill zones in ET hours (Eastern Time)
+# London Open:   2:00-5:00 AM ET   -> EST 7:00-10:00 UTC, EDT 6:00-9:00 UTC
+# NY Open:       8:30-11:00 AM ET  -> EST 13:30-16:00 UTC, EDT 12:30-15:00 UTC
+# London Close: 10:00 AM-12:00 PM ET -> EST 15:00-17:00 UTC, EDT 14:00-16:00 UTC
+KILL_ZONES_ET = [
+    ("London Open",   2,  0,  5,  0),
+    ("NY Open",       8, 30, 11,  0),
+    ("London Close", 10,  0, 12,  0),
+]
 
 
 # ==============================================================================
@@ -81,8 +107,166 @@ def is_weekend(day_str: str) -> bool:
     return dt.weekday() >= 5
 
 
+def _previous_trading_day(day_str: str, all_days: Dict) -> Optional[str]:
+    dt = datetime.strptime(day_str, "%Y-%m-%d").replace(tzinfo=UTC)
+    for _ in range(5):
+        dt = dt - timedelta(days=1)
+        candidate = dt.strftime("%Y-%m-%d")
+        if candidate in all_days and not is_weekend(candidate):
+            return candidate
+    return None
+
+
 # ==============================================================================
-# DOL + OPPOSING LEVELS
+# MACRO 10/50 & KILL ZONES (ETAPE 2)
+# ==============================================================================
+
+def et_to_utc(ts: float) -> int:
+    """Convertit un timestamp UTC en offset ET vers UTC.
+    Retourne l'offset a ADDITIONNER pour passer d'ET a UTC.
+    EST = +5, EDT = +4."""
+    dt = datetime.fromtimestamp(ts, tz=UTC)
+    return 4 if dt >= DST_START_UTC else 5
+
+
+def is_macro_time(ts: float) -> bool:
+    """Verifie si le timestamp est dans la fenetre macro :10 ou :50 ± tolerance."""
+    dt = datetime.fromtimestamp(ts, tz=UTC)
+    m = dt.minute
+    for target in (10, 50):
+        diff = abs(m - target)
+        if diff <= MACRO_TOLERANCE_MIN or 60 - diff <= MACRO_TOLERANCE_MIN:
+            return True
+    return False
+
+
+def is_in_kill_zone(ts: float) -> Tuple[bool, str]:
+    """Verifie si le timestamp UTC est dans une kill zone ICT (heure ET).
+
+    Retourne (True/False, nom_de_la_zone ou '').
+    """
+    offset = et_to_utc(ts)
+    dt = datetime.fromtimestamp(ts, tz=UTC)
+
+    for zone_name, start_h, start_m, end_h, end_m in KILL_ZONES_ET:
+        zone_start_utc_h = start_h + offset
+        zone_end_utc_h = end_h + offset
+        zone_start_minutes = zone_start_utc_h * 60 + start_m
+        zone_end_minutes = zone_end_utc_h * 60 + end_m
+        current_minutes = dt.hour * 60 + dt.minute
+
+        if zone_start_minutes <= current_minutes < zone_end_minutes:
+            return True, zone_name
+
+    return False, ""
+
+
+# ==============================================================================
+# EQUAL HIGHS / EQUAL LOWS DETECTION (ETAPE 2)
+# ==============================================================================
+
+def find_swing_points(bars: List[dict], idx: int, lookback: int) -> Tuple[List[float], List[float]]:
+    """Trouve les swing highs et swing lows dans les barres precedant idx.
+
+    Un swing high = barre dont le high est > high des barres adjacentes (±2 barres).
+    Retourne (liste_de_swing_highs, liste_de_swing_lows).
+    """
+    start = max(0, idx - lookback)
+    window = bars[start:idx]
+    if len(window) < 5:
+        return [], []
+
+    swing_highs = []
+    swing_lows = []
+
+    for i in range(2, len(window) - 2):
+        bar = window[i]
+        # Swing high
+        if all(bar["high"] >= window[j]["high"] for j in range(i-2, i+3) if j != i):
+            swing_highs.append(bar["high"])
+        # Swing low
+        if all(bar["low"] <= window[j]["low"] for j in range(i-2, i+3) if j != i):
+            swing_lows.append(bar["low"])
+
+    return swing_highs, swing_lows
+
+
+def has_equal_highs_cluster(bars: List[dict], idx: int, raid_level: float) -> bool:
+    """Verifie si un cluster d'equal highs existe autour du niveau raide (BSL).
+
+    Un equal high = au moins EQUAL_HL_MIN_CLUSTER swing highs dans
+    une tolerance de EQUAL_HL_TOLERANCE_PCT % du prix.
+    """
+    swing_highs, _ = find_swing_points(bars, idx, EQUAL_HL_LOOKBACK_BARS)
+    if len(swing_highs) < EQUAL_HL_MIN_CLUSTER:
+        return False
+
+    tolerance = raid_level * EQUAL_HL_TOLERANCE_PCT / 100
+    cluster = [h for h in swing_highs if abs(h - raid_level) < tolerance]
+    return len(cluster) >= EQUAL_HL_MIN_CLUSTER
+
+
+def has_equal_lows_cluster(bars: List[dict], idx: int, raid_level: float) -> bool:
+    """Verifie si un cluster d'equal lows existe autour du niveau raide (SSL)."""
+    _, swing_lows = find_swing_points(bars, idx, EQUAL_HL_LOOKBACK_BARS)
+    if len(swing_lows) < EQUAL_HL_MIN_CLUSTER:
+        return False
+
+    tolerance = raid_level * EQUAL_HL_TOLERANCE_PCT / 100
+    cluster = [l for l in swing_lows if abs(l - raid_level) < tolerance]
+    return len(cluster) >= EQUAL_HL_MIN_CLUSTER
+
+
+# ==============================================================================
+# NWOG (ETAPE 1)
+# ==============================================================================
+
+def compute_nwog(
+    day_str: str,
+    all_days: Dict[str, List[dict]],
+) -> Optional[dict]:
+    """Calcule le NWOG (New Week Opening Gap) si le jour est un lundi.
+
+    NWOG = ecart entre le close du vendredi precedent et l'open du lundi.
+    Retourne None si pas un lundi ou donnees manquantes.
+    """
+    dt = datetime.strptime(day_str, "%Y-%m-%d").replace(tzinfo=UTC)
+    if dt.weekday() != 0:  # Pas lundi
+        return None
+
+    # Trouver le vendredi precedent
+    prev_dt = dt
+    for _ in range(4):
+        prev_dt = prev_dt - timedelta(days=1)
+        candidate = prev_dt.strftime("%Y-%m-%d")
+        if candidate in all_days and not is_weekend(candidate):
+            break
+    else:
+        return None
+
+    friday_bars = all_days.get(candidate)
+    monday_bars = all_days.get(day_str)
+    if not friday_bars or not monday_bars:
+        return None
+
+    friday_close = friday_bars[-1]["close"]
+    monday_open = monday_bars[0]["open"]
+
+    gap_top = max(friday_close, monday_open)
+    gap_bottom = min(friday_close, monday_open)
+
+    return {
+        "friday_close": friday_close,
+        "monday_open": monday_open,
+        "gap_top": gap_top,
+        "gap_bottom": gap_bottom,
+        "gap_size": gap_top - gap_bottom,
+        "previous_friday": candidate,
+    }
+
+
+# ==============================================================================
+# DOL + OPPOSING LEVELS (ETAPE 1)
 # ==============================================================================
 
 def compute_dol_and_opposing(
@@ -96,9 +280,6 @@ def compute_dol_and_opposing(
         'dol_level', 'dol_label', 'dol_direction',
         'opposing_level', 'opposing_label', 'opposing_raid_type'
     }
-
-    - DOL haussier (bull) = target ABOVE -> opposing = SUPPORT (SSL raid)
-    - DOL baissier (bear) = target BELOW -> opposing = RESISTANCE (BSL raid)
     """
     pairs = []
 
@@ -112,14 +293,12 @@ def compute_dol_and_opposing(
     al = min(b["low"] for b in asian_bars) if len(asian_bars) >= 2 else None
 
     if USE_PDH_PDL and pdh is not None and pdl is not None:
-        # PDH as DOL (bullish) -> opposing = PDL (SSL raid)
         pairs.append({
             "dol_level": pdh, "dol_label": f"PDH({prev_day})",
             "dol_direction": "bull",
             "opposing_level": pdl, "opposing_label": f"PDL({prev_day})",
             "opposing_raid_type": "ssl",
         })
-        # PDL as DOL (bearish) -> opposing = PDH (BSL raid)
         pairs.append({
             "dol_level": pdl, "dol_label": f"PDL({prev_day})",
             "dol_direction": "bear",
@@ -128,14 +307,12 @@ def compute_dol_and_opposing(
         })
 
     if USE_ASIAN_HL and ah is not None and al is not None:
-        # AH as DOL (bullish) -> opposing = AL (SSL raid)
         pairs.append({
             "dol_level": ah, "dol_label": f"AH({day_str})",
             "dol_direction": "bull",
             "opposing_level": al, "opposing_label": f"AL({day_str})",
             "opposing_raid_type": "ssl",
         })
-        # AL as DOL (bearish) -> opposing = AH (BSL raid)
         pairs.append({
             "dol_level": al, "dol_label": f"AL({day_str})",
             "dol_direction": "bear",
@@ -143,30 +320,40 @@ def compute_dol_and_opposing(
             "opposing_raid_type": "bsl",
         })
 
+    if USE_NWOG:
+        nwog = compute_nwog(day_str, all_days)
+        if nwog is not None and nwog["gap_size"] > 0:
+            # NWOG top comme DOL haussier -> opposing = NWOG bottom
+            pairs.append({
+                "dol_level": nwog["gap_top"],
+                "dol_label": f"NWOG_top({nwog['previous_friday']})",
+                "dol_direction": "bull",
+                "opposing_level": nwog["gap_bottom"],
+                "opposing_label": f"NWOG_bot({nwog['previous_friday']})",
+                "opposing_raid_type": "ssl",
+            })
+            # NWOG bottom comme DOL baissier -> opposing = NWOG top
+            pairs.append({
+                "dol_level": nwog["gap_bottom"],
+                "dol_label": f"NWOG_bot({nwog['previous_friday']})",
+                "dol_direction": "bear",
+                "opposing_level": nwog["gap_top"],
+                "opposing_label": f"NWOG_top({nwog['previous_friday']})",
+                "opposing_raid_type": "bsl",
+            })
+
     return pairs
 
 
-def _previous_trading_day(day_str: str, all_days: Dict) -> Optional[str]:
-    dt = datetime.strptime(day_str, "%Y-%m-%d").replace(tzinfo=UTC)
-    for _ in range(5):
-        dt = dt - timedelta(days=1)
-        candidate = dt.strftime("%Y-%m-%d")
-        if candidate in all_days and not is_weekend(candidate):
-            return candidate
-    return None
-
-
 # ==============================================================================
-# RAID DETECTION (opposing liquidity)
+# RAID DETECTION (ETAPE 2)
 # ==============================================================================
 
 def is_ssl_raid(bar: dict, level: float) -> bool:
-    """SSL raid: prix passe SOUS le niveau + close rejette AU-DESSUS."""
     return bar["low"] < level and bar["close"] > level
 
 
 def is_bsl_raid(bar: dict, level: float) -> bool:
-    """BSL raid: prix passe AU-DESSUS du niveau + close rejette EN-DESSOUS."""
     return bar["high"] > level and bar["close"] < level
 
 
@@ -177,13 +364,7 @@ def find_raid_of_level(
     raid_type: str,
     max_lookback: int = MAX_RAID_LOOKBACK,
 ) -> Optional[Tuple[int, dict]]:
-    """Cherche un raid du niveau donne dans les barres precedant ref_idx.
-
-    raid_type = 'ssl' -> SSL raid (bar.low < level AND bar.close > level)
-    raid_type = 'bsl' -> BSL raid (bar.high > level AND bar.close < level)
-
-    Retourne (index_global, bar_du_raid) ou None.
-    """
+    """Cherche un raid du niveau donne dans les barres precedant ref_idx."""
     search_start = max(0, ref_idx - max_lookback)
     check_fn = is_ssl_raid if raid_type == "ssl" else is_bsl_raid
 
@@ -194,28 +375,51 @@ def find_raid_of_level(
     return None
 
 
-# ==============================================================================
-# FVG DETECTION
-# ==============================================================================
-
-def find_fvg_at(
+def validate_raid(
     bars: List[dict],
-    idx: int,
-    direction: str,
-) -> Optional[dict]:
-    """Verifie si un FVG existe a l'index idx (3e bougie du pattern).
+    raid_idx: int,
+    raid_bar: dict,
+    level: float,
+    raid_type: str,
+) -> Tuple[bool, str]:
+    """Valide un raid selon les criteres ICT :
+    - Macro 10/50 (si REQUIRE_MACRO)
+    - Kill zone (si REQUIRE_KILL_ZONE)
+    - Equal highs/lows (si REQUIRE_EQUAL_HL)
 
-    direction = 'bull' -> C[idx-2].high < C[idx].low
-    direction = 'bear' -> C[idx-2].low > C[idx].high
+    Retourne (est_valide, raison).
     """
+    raid_ts = raid_bar["time"]
+
+    if REQUIRE_MACRO and not is_macro_time(raid_ts):
+        return False, "hors_macro"
+
+    if REQUIRE_KILL_ZONE:
+        in_kz, kz_name = is_in_kill_zone(raid_ts)
+        if not in_kz:
+            return False, "hors_kill_zone"
+
+    if REQUIRE_EQUAL_HL:
+        if raid_type == "bsl":
+            if not has_equal_highs_cluster(bars, raid_idx, level):
+                return False, "pas_equal_highs"
+        else:
+            if not has_equal_lows_cluster(bars, raid_idx, level):
+                return False, "pas_equal_lows"
+
+    return True, "ok"
+
+
+# ==============================================================================
+# FVG DETECTION (ETAPE 3)
+# ==============================================================================
+
+def find_fvg_at(bars: List[dict], idx: int, direction: str) -> Optional[dict]:
+    """Verifie si un FVG existe a l'index idx (3e bougie du pattern)."""
     if idx < 2:
         return None
     c1 = bars[idx - 2]
-    c2 = bars[idx - 1]
     c3 = bars[idx]
-
-    gap_top = 0.0
-    gap_bottom = 0.0
 
     if direction == "bull":
         if c1["high"] >= c3["low"]:
@@ -229,7 +433,7 @@ def find_fvg_at(
         gap_bottom = c3["high"]
 
     gap_size = gap_top - gap_bottom
-    if gap_bottom <= 0:
+    if gap_bottom <= 0 or gap_size <= 0:
         return None
     gap_pct = gap_size / gap_bottom * 100
     if gap_pct < FVG_MIN_SIZE_PCT:
@@ -252,15 +456,75 @@ def scan_first_fvg_after(
     direction: str,
     max_look: int = MAX_FVG_LOOKFORWARD,
 ) -> Optional[Tuple[int, dict]]:
-    """Scanne les barres apres start_idx pour le 1er FVG dans la direction.
-
-    Retourne (index_du_FVG, infos_FVG) ou None.
-    """
+    """Scanne les barres apres start_idx pour le 1er FVG dans la direction."""
     end_idx = min(start_idx + max_look + 1, len(bars))
     for i in range(start_idx + 3, end_idx):
         fvg = find_fvg_at(bars, i, direction)
         if fvg is not None:
             return (i, fvg)
+    return None
+
+
+def find_ifvg(
+    bars: List[dict],
+    start_idx: int,
+    end_idx: int,
+    dol_direction: str,
+) -> Optional[Tuple[int, dict]]:
+    """Cherche un IFVG : FVG forme dans la direction OPPOSEE au DOL
+    (sur la jambe de manipulation), qui a ete traverse par le prix
+    (donc "inverse"), et dont le prix est revenu dans la zone APRES l'inversion.
+
+    Retourne (index_entree, infos_fvg) ou None.
+    """
+    opposite_dir = "bear" if dol_direction == "bull" else "bull"
+
+    # Scanner les barres entre start_idx et end_idx pour un FVG oppose
+    for i in range(start_idx + 3, end_idx):
+        fvg = find_fvg_at(bars, i, opposite_dir)
+        if fvg is None:
+            continue
+
+        zone_top = fvg["zone_top"]
+        zone_bottom = fvg["zone_bottom"]
+
+        # Chercher si le prix a casse la zone FVG dans la direction du DOL
+        # (une meche suffit pour l'inversion en ICT)
+        inverted = False
+        inv_bar_idx = None
+        for j in range(i + 1, end_idx):
+            if dol_direction == "bull":
+                if bars[j]["high"] > zone_top:
+                    inverted = True
+                    inv_bar_idx = j
+                    break
+            else:
+                if bars[j]["low"] < zone_bottom:
+                    inverted = True
+                    inv_bar_idx = j
+                    break
+
+        if not inverted:
+            continue
+
+        # Chercher retrace DANS la zone APRES l'inversion
+        for j in range(inv_bar_idx + 1, end_idx):
+            bar = bars[j]
+            if bar["low"] <= zone_top and bar["high"] >= zone_bottom:
+                # Prix dans la zone IFVG -> entree au midpoint
+                entry_price = (zone_top + zone_bottom) / 2
+                if bar["low"] <= entry_price <= bar["high"]:
+                    return (j, {
+                        "type": f"ifvg_{opposite_dir}",
+                        "zone_top": zone_top,
+                        "zone_bottom": zone_bottom,
+                        "c1_bar": fvg["c1_bar"],
+                        "c3_bar": fvg["c3_bar"],
+                        "gap_size": fvg["gap_size"],
+                        "gap_pct": fvg["gap_pct"],
+                        "is_ifvg": True,
+                    })
+
     return None
 
 
@@ -275,12 +539,7 @@ def wait_for_fvg_retrace(
     direction: str,
     max_look: int = MAX_RETRACE_LOOKFORWARD,
 ) -> Optional[Tuple[int, float]]:
-    """Attend que le prix retrace dans la zone FVG pour entrer.
-
-    Retourne (index_d_entree, prix_entree) ou None si pas de retracement.
-    Le prix_entree est le midpoint de la zone FVG.
-    On exige que le prix ait EFFECTIVEMENT touche le midpoint.
-    """
+    """Attend que le prix retrace dans la zone FVG pour entrer au midpoint."""
     zone_top = fvg["zone_top"]
     zone_bottom = fvg["zone_bottom"]
     entry_target = (zone_top + zone_bottom) / 2
@@ -288,7 +547,6 @@ def wait_for_fvg_retrace(
 
     for i in range(fvg_idx + 1, end_idx):
         bar = bars[i]
-        # Verifier que le midpoint est dans le range de la barre
         if bar["low"] <= entry_target <= bar["high"]:
             return (i, entry_target)
 
@@ -296,7 +554,7 @@ def wait_for_fvg_retrace(
 
 
 # ==============================================================================
-# TRADE SIMULATION
+# TRADE SIMULATION (ETAPE 4 & 5)
 # ==============================================================================
 
 def simulate_trade(
@@ -308,10 +566,7 @@ def simulate_trade(
     tp2_price: float,
     direction: str,
 ) -> dict:
-    """Simule un trade en forward-test.
-
-    Retourne dict avec status, pnl_r, etc.
-    """
+    """Simule un trade en forward-test avec breakeven optionnel apres TP1."""
     result = {
         "entry_price": entry_price,
         "sl_price": sl_price,
@@ -323,6 +578,7 @@ def simulate_trade(
         "tp1_hit": False,
         "tp2_hit": False,
         "sl_hit": False,
+        "breakeven_activated": False,
         "exit_time": None,
     }
 
@@ -331,17 +587,25 @@ def simulate_trade(
         result["status"] = "INVALID"
         return result
 
+    current_sl = sl_price
+
     for i in range(entry_idx + 1, len(bars)):
         bar = bars[i]
 
         if direction == "bull":
-            if bar["low"] <= sl_price:
+            # Verifier SL
+            if bar["low"] <= current_sl:
                 result.update(status="LOSS", sl_hit=True,
                               exit_time=bar["time"], pnl_r=-1.0)
                 break
+            # TP1
             if not result["tp1_hit"] and bar["high"] >= tp1_price:
                 result["tp1_hit"] = True
                 result["exit_time"] = bar["time"]
+                if BREAKEVEN_AFTER_TP1:
+                    current_sl = entry_price
+                    result["breakeven_activated"] = True
+            # TP2
             if result["tp1_hit"] and bar["high"] >= tp2_price:
                 r1 = (tp1_price - entry_price) / risk
                 r2 = (tp2_price - entry_price) / risk
@@ -349,13 +613,16 @@ def simulate_trade(
                               exit_time=bar["time"], pnl_r=0.5 * r1 + 0.5 * r2)
                 break
         else:
-            if bar["high"] >= sl_price:
+            if bar["high"] >= current_sl:
                 result.update(status="LOSS", sl_hit=True,
                               exit_time=bar["time"], pnl_r=-1.0)
                 break
             if not result["tp1_hit"] and bar["low"] <= tp1_price:
                 result["tp1_hit"] = True
                 result["exit_time"] = bar["time"]
+                if BREAKEVEN_AFTER_TP1:
+                    current_sl = entry_price
+                    result["breakeven_activated"] = True
             if result["tp1_hit"] and bar["low"] <= tp2_price:
                 r1 = (entry_price - tp1_price) / risk
                 r2 = (entry_price - tp2_price) / risk
@@ -363,12 +630,14 @@ def simulate_trade(
                               exit_time=bar["time"], pnl_r=0.5 * r1 + 0.5 * r2)
                 break
 
-    if result["tp1_hit"] and not result["tp2_hit"] and not result["sl_hit"]:
-        result["status"] = "WIN_PARTIAL"
-        if direction == "bull":
-            result["pnl_r"] = 0.5 * (tp1_price - entry_price) / risk
-        else:
-            result["pnl_r"] = 0.5 * (entry_price - tp1_price) / risk
+    # Si le trade est toujours ouvert en fin de donnees
+    if result["status"] == "OPEN":
+        if result["tp1_hit"] and not result["sl_hit"]:
+            result["status"] = "WIN_PARTIAL"
+            if direction == "bull":
+                result["pnl_r"] = 0.5 * (tp1_price - entry_price) / risk
+            else:
+                result["pnl_r"] = 0.5 * (entry_price - tp1_price) / risk
 
     return result
 
@@ -383,11 +652,12 @@ def run_backtest(bars: List[dict]) -> dict:
     print(f"Jours de trading : {len(trading_days)}")
 
     trades = []
-    raids_found = 0
-    fvgs_found = 0
-    retraces_found = 0
-    no_fvg = 0
-    no_retrace = 0
+    stats_counters = {
+        "raids_found": 0, "fvgs_found": 0, "ifvgs_found": 0,
+        "retraces_found": 0, "no_fvg": 0, "no_retrace": 0,
+        "raid_rejected_macro": 0, "raid_rejected_kz": 0,
+        "raid_rejected_eh": 0,
+    }
 
     for day_str in trading_days:
         day_bars = days[day_str]
@@ -409,18 +679,16 @@ def run_backtest(bars: List[dict]) -> dict:
             dol_level = pair["dol_level"]
             opposing_level = pair["opposing_level"]
             opposing_type = pair["opposing_raid_type"]
-
-            # Filtrer : pour les DOL derives de l'Asian, ne trader qu'apres 08:00 UTC
             is_asian_dol = "AH(" in pair["dol_label"] or "AL(" in pair["dol_label"]
 
-            # Chercher un raid du NIVEAU OPPOSE (pas du DOL !)
+            # Chercher un raid du NIVEAU OPPOSE
             raid = find_raid_of_level(
                 bars, day_end_idx, opposing_level, opposing_type)
             if raid is None:
                 continue
 
-            raids_found += 1
             raid_idx, raid_bar = raid
+            stats_counters["raids_found"] += 1
 
             # Filtrer trades Asian declenches avant 08:00 UTC
             if is_asian_dol:
@@ -428,33 +696,54 @@ def run_backtest(bars: List[dict]) -> dict:
                 if raid_hour < 8:
                     continue
 
-            # Verifier timing macro
-            if REQUIRE_MACRO:
-                raid_hour = datetime.fromtimestamp(raid_bar["time"], tz=UTC).hour
-                if not (MACRO_START_UTC <= raid_hour < MACRO_END_UTC):
-                    continue
+            # Valider le raid (macro, kill zone, equal highs/lows)
+            valid, reject_reason = validate_raid(
+                bars, raid_idx, raid_bar, opposing_level, opposing_type)
+            if not valid:
+                if reject_reason == "hors_macro":
+                    stats_counters["raid_rejected_macro"] += 1
+                elif reject_reason == "hors_kill_zone":
+                    stats_counters["raid_rejected_kz"] += 1
+                elif reject_reason.startswith("pas_equal"):
+                    stats_counters["raid_rejected_eh"] += 1
+                continue
 
             # Chercher le 1er FVG APRES le raid, vers le DOL
             fvg_result = scan_first_fvg_after(
                 bars, raid_idx, pair["dol_direction"])
             if fvg_result is None:
-                no_fvg += 1
+                stats_counters["no_fvg"] += 1
                 continue
 
-            fvgs_found += 1
             fvg_idx, fvg = fvg_result
+            stats_counters["fvgs_found"] += 1
 
-            # Attendre que le prix retrace DANS la zone FVG
+            # Option A : FVG standard avec retracement
             retrace = wait_for_fvg_retrace(
                 bars, fvg_idx, fvg, pair["dol_direction"])
-            if retrace is None:
-                no_retrace += 1
+            if retrace is not None:
+                entry_idx, entry_price = retrace
+                entry_type = "fvg"
+                entry_fvg = fvg
+            elif USE_IFVG:
+                # Option B : IFVG (alternative)
+                ifvg_result = find_ifvg(
+                    bars, raid_idx, day_end_idx, pair["dol_direction"])
+                if ifvg_result is not None:
+                    entry_idx, entry_fvg = ifvg_result
+                    entry_price = (entry_fvg["zone_top"] + entry_fvg["zone_bottom"]) / 2
+                    entry_type = "ifvg"
+                    stats_counters["ifvgs_found"] += 1
+                else:
+                    stats_counters["no_retrace"] += 1
+                    continue
+            else:
+                stats_counters["no_retrace"] += 1
                 continue
 
-            retraces_found += 1
-            entry_idx, entry_price = retrace
+            stats_counters["retraces_found"] += 1
 
-            # Verifier distance DOL suffisante (avec le prix d'entree reel)
+            # Verifier distance DOL suffisante
             if pair["dol_direction"] == "bull":
                 if dol_level <= entry_price:
                     continue
@@ -467,18 +756,21 @@ def run_backtest(bars: List[dict]) -> dict:
                     continue
 
             # Calculer SL et TPs
+            c1 = entry_fvg["c1_bar"]
+            gap_size = entry_fvg["gap_size"]
+
             if pair["dol_direction"] == "bull":
-                sl_price = fvg["c1_bar"]["low"] - fvg["gap_size"] * 0.2
+                sl_price = c1["low"] - gap_size * 0.2
                 if sl_price >= entry_price:
-                    continue  # SL invalide
+                    continue
                 tp1_price = entry_price + (dol_level - entry_price) * 0.5
-                tp2_price = dol_level - fvg["gap_size"]
+                tp2_price = dol_level - gap_size
             else:
-                sl_price = fvg["c1_bar"]["high"] + fvg["gap_size"] * 0.2
+                sl_price = c1["high"] + gap_size * 0.2
                 if sl_price <= entry_price:
-                    continue  # SL invalide
+                    continue
                 tp1_price = entry_price - (entry_price - dol_level) * 0.5
-                tp2_price = dol_level + fvg["gap_size"]
+                tp2_price = dol_level + gap_size
 
             # Simuler le trade
             result = simulate_trade(
@@ -496,8 +788,9 @@ def run_backtest(bars: List[dict]) -> dict:
                 "opposing_level": opposing_level,
                 "raid_time": raid_bar["time"],
                 "fvg_time": bars[fvg_idx]["time"] if fvg_idx < len(bars) else 0,
-                "fvg_type": fvg["type"],
-                "fvg_gap_pct": fvg["gap_pct"],
+                "fvg_type": entry_fvg.get("type", fvg.get("type", "?")),
+                "fvg_gap_pct": entry_fvg.get("gap_pct", 0),
+                "entry_type": entry_type,
                 "entry_price": entry_price,
                 "sl_price": sl_price,
                 "tp1_price": tp1_price,
@@ -505,12 +798,10 @@ def run_backtest(bars: List[dict]) -> dict:
                 **result,
             })
 
-    return _compute_stats(trades, raids_found, fvgs_found,
-                          retraces_found, no_fvg, no_retrace)
+    return _compute_stats(trades, stats_counters)
 
 
-def _compute_stats(trades, raids_found, fvgs_found,
-                   retraces_found, no_fvg, no_retrace):
+def _compute_stats(trades, counters):
     n = len(trades)
     wins = [t for t in trades if t["status"] in ("WIN_FULL", "WIN_PARTIAL")]
     losses = [t for t in trades if t["status"] == "LOSS"]
@@ -542,9 +833,15 @@ def _compute_stats(trades, raids_found, fvgs_found,
         "winrate_pct": winrate, "avg_r_per_trade": avg_r, "total_r": total_r,
         "bull_trades": len(bull), "bull_winrate_pct": bull_wr,
         "bear_trades": len(bear), "bear_winrate_pct": bear_wr,
-        "raids_found": raids_found, "fvgs_found": fvgs_found,
-        "retraces_found": retraces_found,
-        "no_fvg": no_fvg, "no_retrace": no_retrace,
+        "raids_found": counters["raids_found"],
+        "fvgs_found": counters["fvgs_found"],
+        "ifvgs_found": counters["ifvgs_found"],
+        "retraces_found": counters["retraces_found"],
+        "no_fvg": counters["no_fvg"],
+        "no_retrace": counters["no_retrace"],
+        "raid_rejected_macro": counters["raid_rejected_macro"],
+        "raid_rejected_kz": counters["raid_rejected_kz"],
+        "raid_rejected_eh": counters["raid_rejected_eh"],
         "trades": trades,
     }
 
@@ -556,14 +853,18 @@ def _compute_stats(trades, raids_found, fvgs_found,
 def display_results(stats: dict) -> None:
     print()
     print("=" * 72)
-    print("  BACKTEST ICT FVG STRATEGY -- RESULTS")
+    print("  BACKTEST ICT FVG STRATEGY (v2 - COMPLETE) -- RESULTS")
     print("=" * 72)
-    print(f"  Raids detectes     : {stats['raids_found']}")
-    print(f"  FVGs trouves       : {stats['fvgs_found']}")
-    print(f"  Retracements FVG   : {stats['retraces_found']}")
-    print(f"  Sans FVG           : {stats['no_fvg']}")
-    print(f"  Sans retracement   : {stats['no_retrace']}")
-    print(f"  Trades executes    : {stats['total_trades']}")
+    print(f"  Raids detectes          : {stats['raids_found']}")
+    print(f"    Rejetes (macro)       : {stats.get('raid_rejected_macro', 0)}")
+    print(f"    Rejetes (kill zone)   : {stats.get('raid_rejected_kz', 0)}")
+    print(f"    Rejetes (equal H/L)   : {stats.get('raid_rejected_eh', 0)}")
+    print(f"  FVGs trouves            : {stats['fvgs_found']}")
+    print(f"  IFVGs trouves           : {stats.get('ifvgs_found', 0)}")
+    print(f"  Retracements FVG/IFVG   : {stats['retraces_found']}")
+    print(f"  Sans FVG                : {stats['no_fvg']}")
+    print(f"  Sans retracement        : {stats['no_retrace']}")
+    print(f"  Trades executes         : {stats['total_trades']}")
     print()
     print(f"  -- PERFORMANCE --")
     print(f"  GAGNES   : {stats['wins']} "
@@ -591,11 +892,13 @@ def display_results(stats: dict) -> None:
             icon = icons.get(t["status"], t["status"])
             raid_dt = datetime.fromtimestamp(
                 t["raid_time"], tz=UTC).strftime("%m-%d %H:%M")
+            entry_t = t.get("entry_type", "fvg")
+            be = " [BE]" if t.get("breakeven_activated") else ""
             print(
                 f"  {icon:5} {t['day']} {t['dol_direction']:4} "
-                f"DOL={t['dol_label']:<20} "
-                f"Opp={t['opposing_label']:<15} "
+                f"DOL={t['dol_label']:<22} "
                 f"Raid@{raid_dt} "
+                f"{entry_t}{be} "
                 f"RR={t['pnl_r']:+.2f}R"
             )
 
@@ -615,7 +918,12 @@ def main():
     print(f"Data : {DATA_FILE}")
     print(f"Config: PDH/PDL={'ON' if USE_PDH_PDL else 'OFF'} "
           f"Asian={'ON' if USE_ASIAN_HL else 'OFF'} "
+          f"NWOG={'ON' if USE_NWOG else 'OFF'} "
           f"Macro={'ON' if REQUIRE_MACRO else 'OFF'} "
+          f"KillZone={'ON' if REQUIRE_KILL_ZONE else 'OFF'} "
+          f"EqualHL={'ON' if REQUIRE_EQUAL_HL else 'OFF'} "
+          f"IFVG={'ON' if USE_IFVG else 'OFF'} "
+          f"BE={'ON' if BREAKEVEN_AFTER_TP1 else 'OFF'} "
           f"FVG_min={FVG_MIN_SIZE_PCT}%")
 
     bars = load_bars(DATA_FILE)
