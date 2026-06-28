@@ -1,6 +1,6 @@
 # RAPPORT DE BACKTEST — STRATEGIE ICT FVG
 
-**Date de generation** : 2026-06-28 22:42 UTC
+**Date de generation** : 2026-06-28 22:44 UTC
 **Instrument** : XAUUSD (Or / Dollar US)
 **Timeframe** : M3 (bougies de 3 minutes)
 **Periode** : 2 janvier 2026 → 26 juin 2026
@@ -227,9 +227,10 @@ avec un WR estime de 25-35% et un PnL moyen de +1.5R a +2.0R par trade.
 
 ---
 
-# 12. Registre Complet des 214 Trades
+# 12. Registre Complet des 21 Trades
 
 > Legende : 🟢 = WIN_FULL, 🔴 = LOSS, 🟡 = WIN_PARTIAL
+
 | # |  | Date | Raid UTC | Dir | DOL | Opposing | FVG% | Entry | SL | TP1 | TP2 | PnL | Status |
 |---:|:---|:---|:---|:---|:---|:---|---:|---:|---:|---:|---:|---:|:---|
 | 1 | 🔴 | 2026-01-09 | 2026-01-09 14:06 | BEAR | PDL(2026-01-08) | PDH(2026-01-08) | 0.034% | 4472.39 | 4475.05 | 4440.02 | 4409.16 | -1.00R | LOSS |
@@ -296,5 +297,5 @@ avec un WR estime de 25-35% et un PnL moyen de +1.5R a +2.0R par trade.
 ---
 
 
-*Rapport genere le 2026-06-28 22:42:26 UTC*
+*Rapport genere le 2026-06-28 22:44:28 UTC*
 *Fichier source : C:\Users\TSTAC\RustProjects\InelidaMarketScan\reports\backtest_ict_fvg_results.json*

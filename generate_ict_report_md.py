@@ -484,9 +484,10 @@ hr()
 # ============================================================================
 # 12. REGISTRE COMPLET DES TRADES
 # ============================================================================
-h1("12. Registre Complet des 214 Trades")
+h1(f"12. Registre Complet des {stats['total_trades']} Trades")
 
 w("> Legende : 🟢 = WIN_FULL, 🔴 = LOSS, 🟡 = WIN_PARTIAL")
+w()
 
 rows = []
 for i, t in enumerate(trades):
