@@ -627,6 +627,42 @@ Le script utilise MT5 uniquement pour **lire** les données (barres M1/M15/H1/D1
 
 ---
 
+## 🔴 LIVE — ICT FVG Monitor (NOUVEAU)
+
+Nouvelle stratégie de trading basée sur les **Fair Value Gaps (FVG)** et le **Draw On Liquidity (DOL)**, distincte de la stratégie Asian/Sweep/Fibonacci.
+
+### Lancer le moniteur
+
+```bash
+python live_ict_monitor.py XAUUSD              # Démarre la surveillance
+python live_ict_monitor.py XAUUSD --interval 15  # Scan toutes les 15s
+python live_ict_monitor.py EURUSD --fvg-min 0.05 # Filtre FVG plus strict
+```
+
+**Ce qu'il fait :**
+- Se connecte à MT5 en lecture seule
+- Détecte les setups ICT FVG en 5 étapes (DOL → Raid → FVG → Retracement)
+- **Alerte visuelle** avec plan SL/TP complet
+- **Log JSONL** de tous les signaux
+
+**Résultats backtestés** (XAUUSD M3, 6 mois) : 214 trades, +105R, 2000€ → 4856€ (+143%)
+
+📖 **Guide utilisateur complet** : `new_analysis_02/guide_ict_fvg_live.md`  
+📖 **Algorithme détaillé** : `new_analysis_02/algo.md`
+
+### Tous les scripts ICT FVG
+
+| Script | Usage |
+|--------|-------|
+| `live_ict_monitor.py SYMBOLE` | Surveillance temps réel (alertes) |
+| `backtest_ict_universal.py SYMBOLE` | Backtest v1 sur n'importe quel symbole |
+| `backtest_ict_fvg_v1.py` | Backtest v1 XAUUSD uniquement |
+| `backtest_ict_fvg.py` | Backtest v2 avec filtres ICT complets |
+| `download_historical.py SYMBOLE` | Télécharger les données M3 depuis MT5 |
+| `analyze_winners_losers.py` | Analyse comparative gagnants vs perdants |
+
+---
+
 ## 📋 Rapport PDF horodaté & Backtest ICT
 
 Le projet inclut **deux scripts** de rapport :

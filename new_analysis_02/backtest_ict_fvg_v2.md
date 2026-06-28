@@ -145,3 +145,16 @@ python backtest_ict_fvg.py
 | Capital final | 4 856 € | 2 363 € |
 
 **Conclusion** : la v2 est plus conforme au framework ICT mais beaucoup moins rentable en absolu car elle filtre 93% des opportunités. La v1 est recommandée pour le trading réel.
+
+---
+
+## Scripts live associés
+
+| Script | Description |
+|--------|-------------|
+| **`live_ict_monitor.py XAUUSD`** | Surveillance live de la stratégie (v1 par défaut) |
+| `backtest_ict_universal.py XAUUSD` | Version universelle paramétrable |
+| `download_historical.py XAUUSD` | Données M3 depuis MT5 |
+
+> 📖 **Guide utilisateur complet** : `new_analysis_02/guide_ict_fvg_live.md`
+> 📖 **Algorithme détaillé** : `new_analysis_02/algo.md`

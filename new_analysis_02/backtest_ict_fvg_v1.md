@@ -111,3 +111,16 @@ Prérequis : le fichier `reports/xauusd_m3_2026_01_01_to_2026_06_26.json` doit e
 - **Maximise le R total** : +105R, soit ~5000€ avec 2000€ de capital
 - **Simple à comprendre et répliquer** : pas de logique complexe de timezone, DST, ou equal highs
 - **Idéal pour le live trading** : beaucoup d'opportunités, expectancy positive
+
+---
+
+## Scripts live associés
+
+| Script | Description |
+|--------|-------------|
+| **`live_ict_monitor.py XAUUSD`** | Surveillance temps réel de CETTE stratégie (alertes + log JSON) |
+| `backtest_ict_universal.py XAUUSD` | Même algorithme, paramétrable pour tout symbole |
+| `download_historical.py XAUUSD` | Télécharger les données M3 depuis MT5 |
+
+> 📖 **Guide utilisateur complet** : `new_analysis_02/guide_ict_fvg_live.md`
+> 📖 **Algorithme détaillé** : `new_analysis_02/algo.md`

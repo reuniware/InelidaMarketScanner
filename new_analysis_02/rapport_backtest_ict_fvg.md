@@ -535,3 +535,17 @@ avec un WR estime de 25-35% et un PnL moyen de +1.5R a +2.0R par trade.
 
 *Rapport genere le 2026-06-28 18:12:43 UTC*
 *Fichier source : C:\Users\TSTAC\RustProjects\InelidaMarketScan\reports\backtest_ict_fvg_results.json*
+
+---
+
+## 🔴 LIVE — Surveillance temps réel disponible
+
+La stratégie décrite dans ce rapport est désormais disponible en **surveillance temps réel** :
+
+```bash
+python live_ict_monitor.py XAUUSD
+```
+
+Le script détecte en direct les setups ICT FVG (DOL → Raid → FVG → Retracement) et alerte avec le plan SL/TP complet.
+
+📖 **Guide utilisateur** : `new_analysis_02/guide_ict_fvg_live.md`

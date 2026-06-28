@@ -493,15 +493,16 @@ FUNCTION run_backtest(bars):
 
 ## Résultats backtestés (XAUUSD M3, Jan–Juin 2026)
 
-### Version sans filtre (v1)
+### Version sans filtre (v1) — `backtest_ict_fvg_v1.py` / `backtest_ict_universal.py`
 | Métrique | Valeur |
 |----------|--------|
 | Trades | 214 |
 | Winrate | 17.8% |
 | R moyen | +0.49R |
 | R total | +105.08R |
+| Capital 2000€ → | **4 856 € (+143%)** |
 
-### Version avec filtres ICT complets (v2)
+### Version avec filtres ICT complets (v2) — `backtest_ict_fvg.py`
 | Métrique | Valeur |
 |----------|--------|
 | Trades | 21 |
@@ -509,6 +510,21 @@ FUNCTION run_backtest(bars):
 | R moyen | +0.89R |
 | R total | +18.66R |
 | Raids filtrés | 276/297 (93%) |
+
+### Version universelle (autres symboles) — `backtest_ict_universal.py`
+| Symbole | Trades | Winrate | R total | 2000€ → |
+|---------|:------:|:-------:|:-------:|---------|
+| XAUUSD | 214 | 17.8% | +105R | 4 856 € |
+| EURUSD | 164 | 14.0% | -20R | 1 547 € |
+
+### Surveillance live — `live_ict_monitor.py`
+| Métrique | Valeur |
+|----------|--------|
+| Mode | Alertes visuelles + log JSONL |
+| Intervalle | Configurable (défaut 30s) |
+| Symboles | Paramétrable (`--symbol`) |
+| Log | `new_analysis_02/live_ict_signals.jsonl` |
+
 
 ### Recommandation
 - **Production** : utiliser la v1 (sans filtres) pour maximiser le R total (+105R)
@@ -523,6 +539,7 @@ FUNCTION run_backtest(bars):
 - **Timezone** : UTC obligatoire pour les calculs de session et kill zones
 - **Calendrier** : Détection des week-ends (samedi/dimanche) et jours fériés
 - **Broker** : Pour l'exécution live, adapter la taille de position au contrat (lot size, tick value)
+- **Live monitor** : `live_ict_monitor.py` — exécution temps réel via MT5, alertes visuelles + log JSONL
 
 ---
 

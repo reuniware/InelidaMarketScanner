@@ -96,8 +96,29 @@ def _paris_hour() -> str:
     return f"{h:02d}:{n.minute:02d}"
 
 
-def _is_weekend(day_str: str) -> bool:
+def _is_weekend_date(day_str: str) -> bool:
+    """Vérifie si une date (string YYYY-MM-DD) est un samedi ou dimanche."""
     return datetime.strptime(day_str, "%Y-%m-%d").replace(tzinfo=UTC).weekday() >= 5
+
+
+def _is_market_closed() -> bool:
+    """Le marché forex est fermé du vendredi 22h UTC au dimanche 22h UTC.
+
+    Samedi (weekday=5) : toujours fermé.
+    Dimanche (weekday=6) : fermé avant 22h UTC, ouvert après.
+    Vendredi (weekday=4) : fermé après 22h UTC (pas critique pour le script).
+    """
+    now = datetime.now(UTC)
+    wd = now.weekday()
+    h = now.hour
+
+    if wd == 5:                          # Samedi — toujours fermé
+        return True
+    if wd == 6 and h < 22:               # Dimanche avant 22h UTC — fermé
+        return True
+    if wd == 4 and h >= 22:              # Vendredi après 22h UTC — fermé
+        return True
+    return False
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -145,7 +166,7 @@ def _previous_trading_day(day_str: str, all_days: Dict) -> Optional[str]:
     for _ in range(5):
         dt = dt - timedelta(days=1)
         candidate = dt.strftime("%Y-%m-%d")
-        if candidate in all_days and not _is_weekend(candidate):
+        if candidate in all_days and not _is_weekend_date(candidate):
             return candidate
     return None
 
@@ -473,9 +494,9 @@ def main():
                 current_day = today_str
                 alerted.clear()
 
-            # ── Skip weekend ─────────────────────────────────────────
-            if _is_weekend(today_str):
-                print(f"  {_now_str()} | Week-end — en attente...", end="\r")
+            # ── Skip marché fermé ──────────────────────────────────
+            if _is_market_closed():
+                print(f"  {_now_str()} | Marché fermé — en attente...", end="\r")
                 sys.stdout.flush()
                 time.sleep(60)
                 continue

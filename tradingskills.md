@@ -1329,3 +1329,54 @@ capital protégé.
 ---
 
 ## 18. Mise à jour
+
+Ce document est amené à évoluer. Pour le mettre à jour :
+
+1. Ajouter les nouveaux concepts ICT découverts
+2. Corriger les erreurs constatées dans les analyses
+3. Ajouter des exemples concrets de trades réels
+4. Ajuster les formules si le code change
+
+---
+
+## 19. Stratégie ICT FVG — Live Monitor (NOUVEAU)
+
+### 19.1 Présentation
+
+Le projet inclut désormais une **stratégie ICT FVG autonome** basée sur les
+Fair Value Gaps et le Draw On Liquidity, distincte de la stratégie
+Asian/Sweep/Fibonacci existante.
+
+| Script | Type | Description |
+|--------|------|-------------|
+| **`live_ict_monitor.py`** | **Live** | **Surveillance temps réel (alertes + log JSONL)** |
+| `backtest_ict_universal.py` | Backtest | Version v1 paramétrable (tout symbole) |
+| `backtest_ict_fvg_v1.py` | Backtest | Version v1 XAUUSD (214 trades, +105R) |
+| `backtest_ict_fvg.py` | Backtest | Version v2 avec filtres ICT complets |
+| `download_historical.py` | Données | Téléchargement M3 depuis MT5 |
+| `analyze_winners_losers.py` | Analyse | Analyse comparative gagnants vs perdants |
+
+### 19.2 Algorithme (5 étapes)
+
+1. **DOL** : PDH/PDL du jour précédent + Asian High/Low
+2. **Raid opposé** : Sweep SSL/BSL du niveau opposé au DOL
+3. **FVG + Retracement** : Premier Fair Value Gap → entrée au midpoint
+4. **SL** : Au-delà de la bougie #1 du FVG + buffer 20%
+5. **TP** : 50% au milieu Entry→DOL, 50% avant le DOL
+
+### 19.3 Résultats backtestés (XAUUSD M3, Jan–Juin 2026)
+
+| Version | Trades | Winrate | R total | 2000€ → |
+|---------|:------:|:-------:|:-------:|---------|
+| v1 (simple) | 214 | 17.8% | +105R | 4 856 € |
+| v2 (filtres ICT) | 21 | 19.0% | +19R | 2 363 € |
+
+### 19.4 Lancer le moniteur
+
+```bash
+python live_ict_monitor.py XAUUSD
+python live_ict_monitor.py XAUUSD --interval 15 --fvg-min 0.05
+```
+
+📖 **Guide complet** : `new_analysis_02/guide_ict_fvg_live.md`  
+📖 **Algorithme** : `new_analysis_02/algo.md`
