@@ -164,7 +164,7 @@ for h in sorted(hours):
     total = d["w"] + d["l"]
     bar = "██" * max(1, int(wr_val / 5))
     label = "✅" if wr_val >= 25 else ("⚠️" if wr_val >= 15 else "❌")
-    rows.append([f"{label} {h:02d}:00", str(d["w"]), str(d["l"]),
+    rows.append([label, f"{h:02d}:00", str(d["w"]), str(d["l"]),
                  f"{wr_val:.0f}%", str(total), bar])
 
 table(
