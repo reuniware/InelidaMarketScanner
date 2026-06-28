@@ -56,6 +56,48 @@ def extract_scan_timestamp_from_text(full_text: str):
     return None
 
 
+def extract_broker_from_pdf(pdf_path: str) -> dict:
+    """Extrait le broker et le serveur depuis la page de garde du PDF.
+
+    Cherche les lignes :
+        Broker : FTMO Global Markets MT5 Terminal
+        Compte : 541320891 @ FTMO-Server4
+
+    Returns:
+        dict with keys 'broker' and 'server' (strings, or None if not found).
+    """
+    try:
+        from PyPDF2 import PdfReader
+    except ImportError:
+        return {"broker": None, "server": None}
+
+    if not os.path.exists(pdf_path):
+        return {"broker": None, "server": None}
+
+    reader = PdfReader(pdf_path)
+    full_text = ""
+    # Lire seulement les 2 premieres pages (page de garde + debut)
+    for page in reader.pages[:2]:
+        t = page.extract_text()
+        if t:
+            full_text += t + "\n"
+
+    broker = None
+    server = None
+
+    for line in full_text.split("\n"):
+        # "Broker : FTMO Global Markets MT5 Terminal"
+        m = re.search(r'Broker\s*:\s*(.+)', line, re.IGNORECASE)
+        if m:
+            broker = m.group(1).strip()
+        # "Compte : 541320891 @ FTMO-Server4"
+        m = re.search(r'Compte\s*:.*@\s*(.+)', line, re.IGNORECASE)
+        if m:
+            server = m.group(1).strip()
+
+    return {"broker": broker, "server": server}
+
+
 def extract_trades_from_pdf(pdf_path: str) -> list:
     """Extrait les trades de la section TRADE TRACKING du PDF.
 
@@ -282,15 +324,46 @@ def main():
         print(f"    {t['symbol']:<14} {t['dir']:>4}  Entry={t['entry']:<10} SL={t['sl']:<10} TP={t['tp']:<10}")
     print()
 
-    # ── Connexion MT5 ───────────────────────────────────────────────────
-    print("[2/3] Connexion a MetaTrader 5...")
+    # ── Vérification broker PDF vs MT5 ─────────────────────────────────
+    print("[2/3] Verification du broker...")
+    pdf_info = extract_broker_from_pdf(pdf_path)
+
     if not mt5.initialize():
         print("[ERREUR] Connexion MT5 - verifie que MT5 est ouvert et connecte.")
         return 1
 
     ti = mt5.terminal_info()
+    ai = mt5.account_info()
+
     if ti:
-        print(f"  Terminal: {ti.name} (build {ti.build})")
+        print(f"  Terminal MT5 : {ti.name} (build {ti.build})")
+    if ai:
+        print(f"  Compte MT5   : {ai.login} @ {ai.server}")
+
+    # Afficher les infos du PDF
+    print()
+    if pdf_info["broker"] or pdf_info["server"]:
+        print(f"  Rapport PDF  :", end="")
+        if pdf_info["broker"]:
+            print(f" Broker={pdf_info['broker']}", end="")
+        if pdf_info["server"]:
+            print(f" Serveur={pdf_info['server']}", end="")
+        print()
+
+    # Comparaison serveur (ground truth, le nom du terminal peut rester identique
+    # meme si on change de compte dans le meme terminal binaire)
+    if pdf_info["server"] and ai:
+        if pdf_info["server"] != ai.server:
+            print()
+            print("  " + "=" * 74)
+            print("  /!\ BROKER MISMATCH DETECTE !")
+            print(f"  Rapport genere sur : {pdf_info['server']}")
+            print(f"  Compte actuel      : {ai.server}")
+            print("  => Les donnees de prix peuvent DIFFERER entre brokers !")
+            print("  => Le backtest peut etre NON FIABLE.")
+            print("  " + "=" * 74)
+        else:
+            print(f"  [OK] Broker identique : {pdf_info['server']}")
     print()
 
     # ── Backtest ─────────────────────────────────────────────────────────

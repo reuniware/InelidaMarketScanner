@@ -18,10 +18,30 @@ from typing import Dict, List, Optional, Tuple
 
 import MetaTrader5 as mt5
 
-from .config import SWEEP, DB
+from .config import SWEEP, DB, ASIAN, ELITE, ELITE_V1
 from .mt5_connector import MT5Connector
 
 logger = logging.getLogger("SweepDetector")
+
+
+def _classify_symbol(sym: str) -> str:
+    """Classifie un symbole par type d'instrument pour le filtre ELITE."""
+    sym_u = sym.upper()
+    if sym in ('XAUUSD', 'XAGUSD', 'XAUAUD', 'XAGAUD'):
+        return 'METAL'
+    if sym_u.endswith('USD') and sym not in ('XAUUSD', 'XAGUSD'):
+        return 'FOREX_USD'
+    if 'JPY' in sym_u:
+        return 'FOREX_JPY'
+    # Paires basees USD mais ne finissant pas par USD: USDCAD, USDCHF, USDNOK...
+    if sym_u.startswith('USD'):
+        return 'FOREX_USD'
+    if any(c in sym for c in ('EUR', 'GBP', 'CAD', 'AUD', 'NZD', 'CHF',
+                                'NOK', 'SEK', 'PLN', 'CZK', 'MXN', 'SGD', 'ZAR', 'HUF')):
+        return 'FOREX_CROSS'
+    if '.cash' in sym or sym in ('DXY.cash', 'GDAXI'):
+        return 'INDEX'
+    return 'OTHER'
 
 
 # Helper qui formate un prix selon l instrument (meme logique adaptative que
@@ -631,8 +651,8 @@ class AsianRangeResult:
     bars_checked: int
     direction_target: str            # "AH" / "AL" / "BOTH" / "-"
     direction_target_label: str      # "→ AH" / "→ AL" / "↔ Both" / "−" / "·"
-    fib_plus_1618: float             # asian_high + 1.618 * (AH - AL)
-    fib_minus_1618: float            # asian_low - 1.618 * (AH - AL)
+    fib_plus_1618: float             # bull_base + 1.618 * range
+    fib_minus_1618: float            # bear_base - 1.618 * range
     fib_state: str                   # "" / "+1.618" / "-1.618" / "+1.618_DONE" / "-1.618_DONE"
     fib_label: str                   # "→ +1.618" / "+1.618 ✓" / "→ -1.618" / "-1.618 ✓" / ""
     bull_fib_swept: bool
@@ -660,6 +680,11 @@ class AsianRangeResult:
     trade_rr2: Optional[float]   # risk:reward to TP2
     trade_plan_label: str        # "BUY 1.34356" / "SELL 1.34250" / "-"
     spread_pct: float = 0.0       # spread actuel en % du prix bid
+    symbol_type: str = ""         # classification (FOREX_USD, METAL, INDEX, ...)
+    is_elite: bool = False        # True si le trade passe le filtre ELITE v2
+    elite_reason: str = ""        # raison si rejeté (hors fenêtre, mauvais type, RR trop bas, spread)
+    is_elite_v1: bool = False      # True si le trade passe le filtre ELITE v1
+    elite_v1_reason: str = ""      # raison si rejeté du filtre v1
 
 
 def _session_for_epoch(epoch: float) -> Tuple[str, str]:
@@ -788,6 +813,15 @@ def detect_asian_range_for_symbol(
     # qui s est avere le plus loin de la range). Sweep = wick + rejet (meme
     # definition ICT que les sweeps Asian High/Low).
     range_size = asian_high - asian_low
+    # Base Fibonacci configurable : "AH" = extensions depuis le haut (ICT agressif),
+    # "AL" = extensions depuis le swing low (fib standard). Defaut = "AH" (prouve 74% WR).
+    _fib_base = getattr(ASIAN, 'fib_base', 'AH')
+    if _fib_base not in ("AH", "AL"):
+        raise ValueError(
+            f"ASIAN.fib_base must be 'AH' or 'AL', got {_fib_base!r}"
+        )
+    bull_base = asian_low if _fib_base == 'AL' else asian_high
+    bear_base = asian_high if _fib_base == 'AL' else asian_low
     bull_fib_swept = False
     bull_fib_swept_lbl: Optional[str] = None
     bull_fib_swept_at_v: Optional[float] = None
@@ -804,7 +838,7 @@ def detect_asian_range_for_symbol(
     if range_size > 0:
         bull_hits = []
         for n in _FIB_LEVELS_BULL:
-            lvl = asian_high + n * range_size
+            lvl = bull_base + n * range_size
             for b in post_bars:
                 if b["high"] > lvl and b["close"] < lvl:
                     bull_hits.append((n, b["time"], b["close"]))
@@ -819,7 +853,7 @@ def detect_asian_range_for_symbol(
 
         bear_hits = []
         for n in _FIB_LEVELS_BEAR:
-            lvl = asian_low + n * range_size   # n est negatif -> lvl < AL
+            lvl = bear_base + n * range_size   # n est negatif -> lvl < bear_base
             for b in post_bars:
                 if b["low"] < lvl and b["close"] > lvl:
                     bear_hits.append((n, b["time"], b["close"]))
@@ -875,22 +909,22 @@ def detect_asian_range_for_symbol(
             target_label = "·"
 
     # Fib expansion multi-niveaux (prochaine cible non atteinte dans la direction du mouvement)
-    fib_plus_1618 = asian_high + 1.618 * range_size
-    fib_minus_1618 = asian_low - 1.618 * range_size
+    fib_plus_1618 = bull_base + 1.618 * range_size
+    fib_minus_1618 = bear_base - 1.618 * range_size
     fib_state_val = ""
     fib_label_val = ""
 
-    def _next_bull(price: float, ah: float, rs: float) -> Tuple[str, str]:
+    def _next_bull(price: float, al: float, rs: float) -> Tuple[str, str]:
         for n in _FIB_LEVELS_BULL:
-            lvl = ah + n * rs
+            lvl = al + n * rs
             if price < lvl:
                 return f"+{n}", f"→ +{n}"
         last = _FIB_LEVELS_BULL[-1]
         return f"+{last}_DONE", f"+{last}"
 
-    def _next_bear(price: float, al: float, rs: float) -> Tuple[str, str]:
+    def _next_bear(price: float, ah: float, rs: float) -> Tuple[str, str]:
         for n in _FIB_LEVELS_BEAR:
-            lvl = al + n * rs   # n negatif -> lvl < al
+            lvl = ah + n * rs   # n negatif -> lvl < ah
             if price > lvl:
                 return f"{n}", f"→ {n}"
         last = _FIB_LEVELS_BEAR[-1]
@@ -899,23 +933,23 @@ def detect_asian_range_for_symbol(
     # --- Priorite 1 : sweep + traverse vers l'autre liquidite (classique) ---
     if low_swept and current_price > asian_high:
         # SSL sweep → prix traverse vers le haut → BUY classique
-        fib_state_val, fib_label_val = _next_bull(current_price, asian_high, range_size)
+        fib_state_val, fib_label_val = _next_bull(current_price, bull_base, range_size)
     elif high_swept and current_price < asian_low:
         # BSL sweep → prix traverse vers le bas → SELL classique
-        fib_state_val, fib_label_val = _next_bear(current_price, asian_low, range_size)
+        fib_state_val, fib_label_val = _next_bear(current_price, bear_base, range_size)
     # --- Priorite 2 : double sweep → vers la liquidite non testee ---
     elif high_swept and low_swept:
         if current_price > asian_high:
-            fib_state_val, fib_label_val = _next_bull(current_price, asian_high, range_size)
+            fib_state_val, fib_label_val = _next_bull(current_price, bull_base, range_size)
         elif current_price < asian_low:
-            fib_state_val, fib_label_val = _next_bear(current_price, asian_low, range_size)
-    # --- Priorite 3 : fakeout / continuation (sweep + prix meme cote) ---
+            fib_state_val, fib_label_val = _next_bear(current_price, bear_base, range_size)
+    # --- Priorité 3 : fakeout / continuation (sweep + prix meme cote) ---
     elif high_swept and current_price > asian_high:
         # BSL swept → prix continue de monter (fakeout baissier → bullish)
-        fib_state_val, fib_label_val = _next_bull(current_price, asian_high, range_size)
+        fib_state_val, fib_label_val = _next_bull(current_price, bull_base, range_size)
     elif low_swept and current_price < asian_low:
         # SSL swept → prix continue de descendre (fakeout haussier → bearish)
-        fib_state_val, fib_label_val = _next_bear(current_price, asian_low, range_size)
+        fib_state_val, fib_label_val = _next_bear(current_price, bear_base, range_size)
 
     # --- Trade idea generation (ICT model) ---
     # SL = 0.10*range past the opposite side (full setup invalidation wick + buffer).
@@ -962,16 +996,16 @@ def detect_asian_range_for_symbol(
                         if n >= fib_num - 0.001), 0)
             tp_candidates = _FIB_LEVELS_BULL[idx:idx + 3]
             if len(tp_candidates) >= 1:
-                trade_tp1_v = asian_high + tp_candidates[0] * range_size
+                trade_tp1_v = bull_base + tp_candidates[0] * range_size
             if len(tp_candidates) >= 2:
-                trade_tp2_v = asian_high + tp_candidates[1] * range_size
+                trade_tp2_v = bull_base + tp_candidates[1] * range_size
             if len(tp_candidates) >= 3:
-                trade_tp3_v = asian_high + tp_candidates[2] * range_size
+                trade_tp3_v = bull_base + tp_candidates[2] * range_size
             # Securite : si TP1 est en-dessous (ou egal) a l'entry, on skip au suivant
             if trade_tp1_v is not None and trade_tp1_v <= trade_entry_v:
                 if len(tp_candidates) >= 2:
-                    trade_tp1_v = asian_high + tp_candidates[1] * range_size
-                    trade_tp2_v = (asian_high + tp_candidates[2] * range_size
+                    trade_tp1_v = asian_low + tp_candidates[1] * range_size
+                    trade_tp2_v = (asian_low + tp_candidates[2] * range_size
                                    if len(tp_candidates) >= 3 else None)
                     trade_tp3_v = None
                 else:
@@ -1000,16 +1034,16 @@ def detect_asian_range_for_symbol(
                         if n <= -fib_num + 0.001), 0)
             tp_candidates = _FIB_LEVELS_BEAR[idx:idx + 3]
             if len(tp_candidates) >= 1:
-                trade_tp1_v = asian_low + tp_candidates[0] * range_size
+                trade_tp1_v = bear_base + tp_candidates[0] * range_size
             if len(tp_candidates) >= 2:
-                trade_tp2_v = asian_low + tp_candidates[1] * range_size
+                trade_tp2_v = bear_base + tp_candidates[1] * range_size
             if len(tp_candidates) >= 3:
-                trade_tp3_v = asian_low + tp_candidates[2] * range_size
+                trade_tp3_v = bear_base + tp_candidates[2] * range_size
             # Securite : si TP1 est au-dessus (ou egal) a l'entry, on skip au suivant
             if trade_tp1_v is not None and trade_tp1_v >= trade_entry_v:
                 if len(tp_candidates) >= 2:
-                    trade_tp1_v = asian_low + tp_candidates[1] * range_size
-                    trade_tp2_v = (asian_low + tp_candidates[2] * range_size
+                    trade_tp1_v = asian_high + tp_candidates[1] * range_size
+                    trade_tp2_v = (asian_high + tp_candidates[2] * range_size
                                    if len(tp_candidates) >= 3 else None)
                     trade_tp3_v = None
                 else:
@@ -1023,6 +1057,51 @@ def detect_asian_range_for_symbol(
                     trade_rr2_v = (trade_entry_v - trade_tp2_v) / risk
             trade_status_v = "Active"
             trade_plan_label_v = f"SELL {_fmt_price_adaptive(trade_entry_v)}"
+
+    # --- Filtre ELITE (v2) ---
+    sym_type = _classify_symbol(symbol)
+    is_elite = False
+    elite_reason = ""
+    if ELITE.enabled and trade_action != "-":
+        now = time.gmtime()
+        now_hour = now.tm_hour
+        now_min = now.tm_min
+        in_window = (
+            (now_hour > ELITE.start_hour_utc or (now_hour == ELITE.start_hour_utc and now_min >= ELITE.start_minute_utc))
+            and (now_hour < ELITE.end_hour_utc or (now_hour == ELITE.end_hour_utc and now_min <= ELITE.end_minute_utc))
+        )
+        if not in_window:
+            elite_reason = "hors fenetre"
+        elif sym_type not in ELITE.allowed_types:
+            elite_reason = f"type {sym_type} non ELITE"
+        elif (trade_rr1_v or 0) < ELITE.min_rr:
+            elite_reason = f"RR {trade_rr1_v or 0:.2f} < {ELITE.min_rr}"
+        elif spread_pct > ELITE.max_spread_pct:
+            elite_reason = f"spread {spread_pct:.3f}% > {ELITE.max_spread_pct}%"
+        else:
+            is_elite = True
+
+    # --- Filtre ELITE V1 (original) ---
+    is_elite_v1 = False
+    elite_v1_reason = ""
+    if ELITE_V1.enabled and trade_action != "-":
+        now = time.gmtime()
+        now_hour = now.tm_hour
+        now_min = now.tm_min
+        in_window_v1 = (
+            (now_hour > ELITE_V1.start_hour_utc or (now_hour == ELITE_V1.start_hour_utc and now_min >= ELITE_V1.start_minute_utc))
+            and (now_hour < ELITE_V1.end_hour_utc or (now_hour == ELITE_V1.end_hour_utc and now_min <= ELITE_V1.end_minute_utc))
+        )
+        if not in_window_v1:
+            elite_v1_reason = "hors fenetre v1"
+        elif sym_type not in ELITE_V1.allowed_types:
+            elite_v1_reason = f"type {sym_type} non ELITE v1"
+        elif (trade_rr1_v or 0) < ELITE_V1.min_rr:
+            elite_v1_reason = f"RR {trade_rr1_v or 0:.2f} < {ELITE_V1.min_rr}"
+        elif spread_pct > ELITE_V1.max_spread_pct:
+            elite_v1_reason = f"spread {spread_pct:.3f}% > {ELITE_V1.max_spread_pct}%"
+        else:
+            is_elite_v1 = True
 
     return AsianRangeResult(
         symbol=symbol,
@@ -1076,6 +1155,11 @@ def detect_asian_range_for_symbol(
         trade_rr2=trade_rr2_v,
         trade_plan_label=trade_plan_label_v,
         spread_pct=spread_pct,
+        symbol_type=sym_type,
+        is_elite=is_elite,
+        elite_reason=elite_reason,
+        is_elite_v1=is_elite_v1,
+        elite_v1_reason=elite_v1_reason,
     )
 
 
@@ -1199,5 +1283,10 @@ def asians_to_dicts(results: List[AsianRangeResult]) -> List[dict]:
             "trade_rr2": r.trade_rr2,
             "trade_plan_label": r.trade_plan_label,
             "spread_pct": r.spread_pct,
+            "symbol_type": r.symbol_type,
+            "is_elite": r.is_elite,
+            "elite_reason": r.elite_reason,
+            "is_elite_v1": r.is_elite_v1,
+            "elite_v1_reason": r.elite_v1_reason,
         })
     return out

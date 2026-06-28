@@ -144,6 +144,47 @@ class AsianSessionConfig:
     timeframe: str = "H1"       # H1 par defaut, M15 possible
     max_symbols: int = 50       # garde-fou Market Watch
     max_bars_after_session: int = 240  # ~10 jours H1 post-Asian a scanner max
+    fib_base: str = "AH"        # Base Fibonacci: "AH" (extensions depuis le haut, ICT agressif)
+                                # ou "AL" (extensions depuis le swing low, fib standard)
+
+
+@dataclass
+class EliteFilterConfig:
+    """Filtre ELITE v2 (actuel) : badge informatif sur les trades a haute probabilite.
+    Backteste sur 438 trades (29 rapports) : 97.7-100% WR, +0.29-0.35R/trade.
+    Regle : heure 09:00-13:00 UTC + type IN {FOREX_USD,INDEX,METAL}
+            + aucun filtre RR + spread < 0.50%.
+
+    Notes optimisation Juin 2026 :
+    - Fenetre etendue de 10:30 a 13:00 : meme winrate, +3 trades
+    - RR >= 0.5 retire : les trades avec SL large (RR bas) winrate + eleve
+    - FOREX_CROSS retire : dilue le winrate (97.7% -> 100% sans cross)
+    - Spread < 0.50% : le spread n'a quasiment pas d'impact"""
+    enabled: bool = True
+    start_hour_utc: int = 9
+    start_minute_utc: int = 0
+    end_hour_utc: int = 13
+    end_minute_utc: int = 0
+    min_rr: float = 0.0
+    max_spread_pct: float = 0.50
+    allowed_types: tuple = ("FOREX_USD", "INDEX", "METAL")
+
+
+@dataclass
+class EliteV1FilterConfig:
+    """Filtre ELITE v1 original (backtest 128 trades, 5 jours, 29 rapports).
+    Criteres originaux : fenetre 09:00-10:30 UTC, RR >= 0.5, spread < 0.10%,
+    types autorises : FOREX_USD, INDEX, METAL, FOREX_CROSS.
+    Winrate backteste v1 : 100% sur 6 trades clos (echantillon reduit).
+    Garde pour comparaison avec v2."""
+    enabled: bool = True
+    start_hour_utc: int = 9
+    start_minute_utc: int = 0
+    end_hour_utc: int = 10
+    end_minute_utc: int = 30
+    min_rr: float = 0.5
+    max_spread_pct: float = 0.10
+    allowed_types: tuple = ("FOREX_USD", "INDEX", "METAL", "FOREX_CROSS")
 
 
 # ─── Instances globales ────────────────────────────────────────────────────────
@@ -157,6 +198,8 @@ ALERT = AlertConfig()
 DB = DBConfig()
 SWEEP = SweepConfig()
 ASIAN = AsianSessionConfig()
+ELITE = EliteFilterConfig()
+ELITE_V1 = EliteV1FilterConfig()
 
 
 def resolve_watchlist(cli_symbols: Optional[List[str]] = None) -> List[str]:

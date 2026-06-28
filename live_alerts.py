@@ -18,7 +18,7 @@ import time
 import json
 import argparse
 from datetime import datetime, timezone
-from typing import Dict, Set, Optional, List
+from typing import Dict, Set, Optional, List, Tuple
 
 import MetaTrader5 as mt5
 
@@ -27,6 +27,7 @@ PROJECT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT)
 
 from src.sweep_detector import detect_asian_range_for_symbol
+from src.config import ELITE
 
 # ─── Constantes ─────────────────────────────────────────────────────────────
 UTC = timezone.utc
@@ -147,9 +148,24 @@ def _spread_too_high(symbol: str) -> bool:
     except Exception:
         return True
 
+def _in_window(config) -> Tuple[bool, str]:
+    """Verifie si l'heure actuelle est dans la fenetre ELITE (v2).
+    Retourne (True/False, message statut)."""
+    if not config.enabled:
+        return True, "OFF"
+    now = datetime.now(UTC)
+    in_window = (
+        (now.hour > config.start_hour_utc or (now.hour == config.start_hour_utc and now.minute >= config.start_minute_utc))
+        and (now.hour < config.end_hour_utc or (now.hour == config.end_hour_utc and now.minute <= config.end_minute_utc))
+    )
+    if in_window:
+        return True, f"{GREEN}OUVERTE{RESET} (jusqu'a {config.end_hour_utc:02d}:{config.end_minute_utc:02d})"
+    return False, f"{YELLOW}FERMEE{RESET} (ouverture a {config.start_hour_utc:02d}:{config.start_minute_utc:02d})"
+
 
 def _is_valid_trade(r) -> bool:
-    """Un trade est valide si action, entry, SL, TP1 et RR > 0, et spread acceptable."""
+    """Un trade est valide si action, entry, SL, TP1 et RR > 0, spread acceptable.
+    NB: le filtre ELITE est informatif (badge + compteurs), il NE bloque JAMAIS."""
     if not r.trade_action or r.trade_action == "-":
         return False
     if r.trade_entry is None or r.trade_sl is None or r.trade_tp1 is None:
@@ -160,6 +176,8 @@ def _is_valid_trade(r) -> bool:
         return False
     if _spread_too_high(r.symbol):
         return False
+    # Note: le filtre ELITE est informatif uniquement (badge + compteurs),
+    # il ne bloque JAMAIS une alerte. Tous les trades valides s'affichent.
     return True
 
 def _spread_str(symbol: str) -> str:
@@ -207,9 +225,19 @@ def _print_alert(r, no_sound: bool = False):
     action_color = RED if r.trade_action == "SELL" else GREEN
     action_bg = BG_RED if r.trade_action == "SELL" else BG_GREEN
 
+    # Badges ELITE V1 / V2 si applicables
+    badges = []
+    if getattr(r, 'is_elite_v1', False):
+        badges.append(f"{BG_YELLOW}{WHITE}{BOLD} ELITE V1 {RESET}")
+    if getattr(r, 'is_elite_v2', False):
+        badges.append(f"{BG_CYAN}{WHITE}{BOLD} ELITE V2 {RESET}")
+    elite_str = " ".join(badges)
+    if elite_str:
+        elite_str = "  " + elite_str
+
     # ── En-tête ─────────────────────────────────────────────
     print(f"\n{action_bg}{WHITE}{BOLD}{bar}{RESET}")
-    print(f"{action_bg}{WHITE}{BOLD}  !!! NOUVEAU SIGNAL {r.trade_action} !!!  {_now_str()}  |  {_session()}{RESET}")
+    print(f"{action_bg}{WHITE}{BOLD}  !!! NOUVEAU SIGNAL {r.trade_action} !!!  {_now_str()}  |  {_session()}{elite_str}{RESET}")
     print(f"{action_bg}{WHITE}{BOLD}  {r.symbol}{RESET}")
     print(f"{action_bg}{WHITE}{BOLD}{bar}{RESET}")
 
@@ -358,18 +386,32 @@ def main():
                 alerted.clear()
 
             # ── Scan de tous les symboles ────────────────────
+            n_detected = 0
+            n_elite_v1 = 0
+            n_elite_v2 = 0
             for sym in symbols:
                 try:
                     r = detect_asian_range_for_symbol(
                         sym, "H1", session_date=today_str
                     )
-                except Exception as e:
+                except Exception:
                     continue
 
                 if r is None:
                     continue
 
-                # ── Trade valide ? ───────────────────────────
+                # Compteurs pour la ligne de statut
+                if r.trade_action and r.trade_action != "-":
+                    n_detected += 1
+                    # Les flags ELITE V1 et V2 sont pre-calcules dans sweep_detector.py
+                    is_v1 = getattr(r, 'is_elite_v1', False)
+                    is_v2 = getattr(r, 'is_elite', False)
+                    if is_v1:
+                        n_elite_v1 += 1
+                    if is_v2:
+                        n_elite_v2 += 1
+
+                # ── Trade valide ? (inclut filtre ELITE) ─────
                 if not _is_valid_trade(r):
                     continue
 
@@ -384,8 +426,12 @@ def main():
 
             # ── Ligne de statut ──────────────────────────────
             n_active = len(alerted)
+            _, elite_v2_status = _in_window(ELITE)
             print(f"  {_now_str()} | {_session()} | Paris {_paris_hour()} | "
-                  f"Check #{check_num} | Signaux: {n_active} | "
+                  f"Check #{check_num} | Setups: {n_detected} | "
+                  f"V1: {n_elite_v1} | V2: {n_elite_v2} | "
+                  f"Fenetre: {elite_v2_status} | "
+                  f"Signaux: {n_active} | "
                   f"{DIM}Ctrl+C pour quitter{RESET}  ", end="\r")
             sys.stdout.flush()
 

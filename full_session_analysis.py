@@ -9,7 +9,6 @@ Asian/London/New York, et produit une synthèse ICT/SMC pour chacun.
 import sys
 import os
 import time
-import logging
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Optional, Tuple
 from collections import defaultdict
@@ -23,8 +22,8 @@ except Exception:
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(message)s")
-logger = logging.getLogger("FullSessionAnalysis")
+from src.logger_config import setup_logging
+logger = setup_logging("full_session_analysis", level="INFO")
 
 import MetaTrader5 as mt5
 

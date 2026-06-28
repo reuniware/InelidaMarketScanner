@@ -1,0 +1,1914 @@
+{
+  "single_analysis": {
+    "best_windows": [
+      {
+        "window": "09:00-11:30",
+        "winrate": 100.0,
+        "n_closed": 35,
+        "avg_pnl": 0.31
+      },
+      {
+        "window": "09:00-12:00",
+        "winrate": 100.0,
+        "n_closed": 35,
+        "avg_pnl": 0.31
+      },
+      {
+        "window": "09:00-10:30",
+        "winrate": 100.0,
+        "n_closed": 32,
+        "avg_pnl": 0.305
+      },
+      {
+        "window": "09:00-11:00",
+        "winrate": 100.0,
+        "n_closed": 32,
+        "avg_pnl": 0.305
+      },
+      {
+        "window": "09:00-09:30",
+        "winrate": 100.0,
+        "n_closed": 23,
+        "avg_pnl": 0.302
+      },
+      {
+        "window": "09:00-10:00",
+        "winrate": 100.0,
+        "n_closed": 23,
+        "avg_pnl": 0.302
+      },
+      {
+        "window": "10:00-11:30",
+        "winrate": 100.0,
+        "n_closed": 12,
+        "avg_pnl": 0.325
+      },
+      {
+        "window": "10:00-12:00",
+        "winrate": 100.0,
+        "n_closed": 12,
+        "avg_pnl": 0.325
+      },
+      {
+        "window": "10:00-10:30",
+        "winrate": 100.0,
+        "n_closed": 9,
+        "avg_pnl": 0.315
+      },
+      {
+        "window": "10:00-11:00",
+        "winrate": 100.0,
+        "n_closed": 9,
+        "avg_pnl": 0.315
+      },
+      {
+        "window": "11:00-11:30",
+        "winrate": 100.0,
+        "n_closed": 3,
+        "avg_pnl": 0.358
+      },
+      {
+        "window": "11:00-12:00",
+        "winrate": 100.0,
+        "n_closed": 3,
+        "avg_pnl": 0.358
+      },
+      {
+        "window": "08:00-10:30",
+        "winrate": 94.1,
+        "n_closed": 34,
+        "avg_pnl": 0.229
+      },
+      {
+        "window": "08:00-11:00",
+        "winrate": 94.1,
+        "n_closed": 34,
+        "avg_pnl": 0.229
+      },
+      {
+        "window": "07:00-09:30",
+        "winrate": 92.0,
+        "n_closed": 25,
+        "avg_pnl": 0.198
+      }
+    ],
+    "rr_analysis": [
+      {
+        "min_rr": 0.0,
+        "n_closed": 369,
+        "winrate": 75.1,
+        "avg_pnl": 0.01
+      },
+      {
+        "min_rr": 0.1,
+        "n_closed": 319,
+        "winrate": 72.1,
+        "avg_pnl": 0.007
+      },
+      {
+        "min_rr": 0.2,
+        "n_closed": 236,
+        "winrate": 64.0,
+        "avg_pnl": -0.007
+      },
+      {
+        "min_rr": 0.3,
+        "n_closed": 204,
+        "winrate": 58.3,
+        "avg_pnl": -0.038
+      },
+      {
+        "min_rr": 0.4,
+        "n_closed": 173,
+        "winrate": 53.2,
+        "avg_pnl": -0.069
+      },
+      {
+        "min_rr": 0.5,
+        "n_closed": 149,
+        "winrate": 49.7,
+        "avg_pnl": -0.088
+      },
+      {
+        "min_rr": 0.6,
+        "n_closed": 129,
+        "winrate": 46.5,
+        "avg_pnl": -0.11
+      },
+      {
+        "min_rr": 0.7,
+        "n_closed": 112,
+        "winrate": 46.4,
+        "avg_pnl": -0.089
+      },
+      {
+        "min_rr": 0.8,
+        "n_closed": 98,
+        "winrate": 41.8,
+        "avg_pnl": -0.15
+      },
+      {
+        "min_rr": 0.9,
+        "n_closed": 81,
+        "winrate": 37.0,
+        "avg_pnl": -0.216
+      },
+      {
+        "min_rr": 1.0,
+        "n_closed": 69,
+        "winrate": 33.3,
+        "avg_pnl": -0.273
+      },
+      {
+        "min_rr": 1.1,
+        "n_closed": 53,
+        "winrate": 34.0,
+        "avg_pnl": -0.242
+      },
+      {
+        "min_rr": 1.2,
+        "n_closed": 38,
+        "winrate": 34.2,
+        "avg_pnl": -0.216
+      },
+      {
+        "min_rr": 1.3,
+        "n_closed": 24,
+        "winrate": 33.3,
+        "avg_pnl": -0.221
+      },
+      {
+        "min_rr": 1.4,
+        "n_closed": 13,
+        "winrate": 15.4,
+        "avg_pnl": -0.625
+      },
+      {
+        "min_rr": 1.5,
+        "n_closed": 2,
+        "winrate": 0.0,
+        "avg_pnl": -1.0
+      },
+      {
+        "min_rr": 1.6,
+        "n_closed": 0,
+        "winrate": 0,
+        "avg_pnl": 0
+      },
+      {
+        "min_rr": 1.7,
+        "n_closed": 0,
+        "winrate": 0,
+        "avg_pnl": 0
+      },
+      {
+        "min_rr": 1.8,
+        "n_closed": 0,
+        "winrate": 0,
+        "avg_pnl": 0
+      },
+      {
+        "min_rr": 1.9,
+        "n_closed": 0,
+        "winrate": 0,
+        "avg_pnl": 0
+      },
+      {
+        "min_rr": 2.0,
+        "n_closed": 0,
+        "winrate": 0,
+        "avg_pnl": 0
+      },
+      {
+        "min_rr": 2.1,
+        "n_closed": 0,
+        "winrate": 0,
+        "avg_pnl": 0
+      },
+      {
+        "min_rr": 2.2,
+        "n_closed": 0,
+        "winrate": 0,
+        "avg_pnl": 0
+      },
+      {
+        "min_rr": 2.3,
+        "n_closed": 0,
+        "winrate": 0,
+        "avg_pnl": 0
+      },
+      {
+        "min_rr": 2.4,
+        "n_closed": 0,
+        "winrate": 0,
+        "avg_pnl": 0
+      },
+      {
+        "min_rr": 2.5,
+        "n_closed": 0,
+        "winrate": 0,
+        "avg_pnl": 0
+      },
+      {
+        "min_rr": 2.6,
+        "n_closed": 0,
+        "winrate": 0,
+        "avg_pnl": 0
+      },
+      {
+        "min_rr": 2.7,
+        "n_closed": 0,
+        "winrate": 0,
+        "avg_pnl": 0
+      },
+      {
+        "min_rr": 2.8,
+        "n_closed": 0,
+        "winrate": 0,
+        "avg_pnl": 0
+      },
+      {
+        "min_rr": 2.9,
+        "n_closed": 0,
+        "winrate": 0,
+        "avg_pnl": 0
+      },
+      {
+        "min_rr": 3.0,
+        "n_closed": 0,
+        "winrate": 0,
+        "avg_pnl": 0
+      }
+    ],
+    "spread_analysis": [
+      {
+        "max_spread": 0.01,
+        "n_trades": 314,
+        "n_closed": 291,
+        "winrate": 74.2,
+        "avg_pnl": -0.001
+      },
+      {
+        "max_spread": 0.02,
+        "n_trades": 352,
+        "n_closed": 308,
+        "winrate": 75.0,
+        "avg_pnl": 0.016
+      },
+      {
+        "max_spread": 0.03,
+        "n_trades": 356,
+        "n_closed": 311,
+        "winrate": 75.2,
+        "avg_pnl": 0.019
+      },
+      {
+        "max_spread": 0.04,
+        "n_trades": 363,
+        "n_closed": 315,
+        "winrate": 75.6,
+        "avg_pnl": 0.022
+      },
+      {
+        "max_spread": 0.05,
+        "n_trades": 371,
+        "n_closed": 319,
+        "winrate": 75.5,
+        "avg_pnl": 0.024
+      },
+      {
+        "max_spread": 0.06,
+        "n_trades": 380,
+        "n_closed": 325,
+        "winrate": 75.7,
+        "avg_pnl": 0.025
+      },
+      {
+        "max_spread": 0.07,
+        "n_trades": 385,
+        "n_closed": 326,
+        "winrate": 75.8,
+        "avg_pnl": 0.027
+      },
+      {
+        "max_spread": 0.08,
+        "n_trades": 388,
+        "n_closed": 327,
+        "winrate": 75.8,
+        "avg_pnl": 0.028
+      },
+      {
+        "max_spread": 0.09,
+        "n_trades": 390,
+        "n_closed": 329,
+        "winrate": 76.0,
+        "avg_pnl": 0.029
+      },
+      {
+        "max_spread": 0.1,
+        "n_trades": 392,
+        "n_closed": 331,
+        "winrate": 75.8,
+        "avg_pnl": 0.026
+      },
+      {
+        "max_spread": 0.11,
+        "n_trades": 393,
+        "n_closed": 331,
+        "winrate": 75.8,
+        "avg_pnl": 0.026
+      },
+      {
+        "max_spread": 0.12,
+        "n_trades": 400,
+        "n_closed": 337,
+        "winrate": 75.7,
+        "avg_pnl": 0.02
+      },
+      {
+        "max_spread": 0.13,
+        "n_trades": 406,
+        "n_closed": 341,
+        "winrate": 76.0,
+        "avg_pnl": 0.029
+      },
+      {
+        "max_spread": 0.14,
+        "n_trades": 406,
+        "n_closed": 341,
+        "winrate": 76.0,
+        "avg_pnl": 0.029
+      },
+      {
+        "max_spread": 0.15,
+        "n_trades": 406,
+        "n_closed": 341,
+        "winrate": 76.0,
+        "avg_pnl": 0.029
+      },
+      {
+        "max_spread": 0.16,
+        "n_trades": 408,
+        "n_closed": 343,
+        "winrate": 76.1,
+        "avg_pnl": 0.03
+      },
+      {
+        "max_spread": 0.17,
+        "n_trades": 408,
+        "n_closed": 343,
+        "winrate": 76.1,
+        "avg_pnl": 0.03
+      },
+      {
+        "max_spread": 0.18,
+        "n_trades": 408,
+        "n_closed": 343,
+        "winrate": 76.1,
+        "avg_pnl": 0.03
+      },
+      {
+        "max_spread": 0.19,
+        "n_trades": 408,
+        "n_closed": 343,
+        "winrate": 76.1,
+        "avg_pnl": 0.03
+      },
+      {
+        "max_spread": 0.2,
+        "n_trades": 409,
+        "n_closed": 344,
+        "winrate": 75.9,
+        "avg_pnl": 0.027
+      },
+      {
+        "max_spread": 0.21,
+        "n_trades": 411,
+        "n_closed": 346,
+        "winrate": 75.4,
+        "avg_pnl": 0.021
+      },
+      {
+        "max_spread": 0.22,
+        "n_trades": 412,
+        "n_closed": 347,
+        "winrate": 75.2,
+        "avg_pnl": 0.018
+      },
+      {
+        "max_spread": 0.23,
+        "n_trades": 412,
+        "n_closed": 347,
+        "winrate": 75.2,
+        "avg_pnl": 0.018
+      },
+      {
+        "max_spread": 0.24,
+        "n_trades": 412,
+        "n_closed": 347,
+        "winrate": 75.2,
+        "avg_pnl": 0.018
+      },
+      {
+        "max_spread": 0.25,
+        "n_trades": 412,
+        "n_closed": 347,
+        "winrate": 75.2,
+        "avg_pnl": 0.018
+      },
+      {
+        "max_spread": 0.26,
+        "n_trades": 412,
+        "n_closed": 347,
+        "winrate": 75.2,
+        "avg_pnl": 0.018
+      },
+      {
+        "max_spread": 0.27,
+        "n_trades": 413,
+        "n_closed": 348,
+        "winrate": 75.3,
+        "avg_pnl": 0.018
+      },
+      {
+        "max_spread": 0.28,
+        "n_trades": 413,
+        "n_closed": 348,
+        "winrate": 75.3,
+        "avg_pnl": 0.018
+      },
+      {
+        "max_spread": 0.29,
+        "n_trades": 413,
+        "n_closed": 348,
+        "winrate": 75.3,
+        "avg_pnl": 0.018
+      },
+      {
+        "max_spread": 0.3,
+        "n_trades": 413,
+        "n_closed": 348,
+        "winrate": 75.3,
+        "avg_pnl": 0.018
+      },
+      {
+        "max_spread": 0.31,
+        "n_trades": 415,
+        "n_closed": 349,
+        "winrate": 75.4,
+        "avg_pnl": 0.019
+      },
+      {
+        "max_spread": 0.32,
+        "n_trades": 415,
+        "n_closed": 349,
+        "winrate": 75.4,
+        "avg_pnl": 0.019
+      },
+      {
+        "max_spread": 0.33,
+        "n_trades": 416,
+        "n_closed": 350,
+        "winrate": 75.4,
+        "avg_pnl": 0.019
+      },
+      {
+        "max_spread": 0.34,
+        "n_trades": 417,
+        "n_closed": 351,
+        "winrate": 75.2,
+        "avg_pnl": 0.017
+      },
+      {
+        "max_spread": 0.35,
+        "n_trades": 418,
+        "n_closed": 352,
+        "winrate": 75.0,
+        "avg_pnl": 0.014
+      },
+      {
+        "max_spread": 0.36,
+        "n_trades": 422,
+        "n_closed": 356,
+        "winrate": 75.3,
+        "avg_pnl": 0.015
+      },
+      {
+        "max_spread": 0.37,
+        "n_trades": 423,
+        "n_closed": 356,
+        "winrate": 75.3,
+        "avg_pnl": 0.015
+      },
+      {
+        "max_spread": 0.38,
+        "n_trades": 425,
+        "n_closed": 358,
+        "winrate": 74.9,
+        "avg_pnl": 0.009
+      },
+      {
+        "max_spread": 0.39,
+        "n_trades": 425,
+        "n_closed": 358,
+        "winrate": 74.9,
+        "avg_pnl": 0.009
+      },
+      {
+        "max_spread": 0.4,
+        "n_trades": 425,
+        "n_closed": 358,
+        "winrate": 74.9,
+        "avg_pnl": 0.009
+      },
+      {
+        "max_spread": 0.41,
+        "n_trades": 425,
+        "n_closed": 358,
+        "winrate": 74.9,
+        "avg_pnl": 0.009
+      },
+      {
+        "max_spread": 0.42,
+        "n_trades": 425,
+        "n_closed": 358,
+        "winrate": 74.9,
+        "avg_pnl": 0.009
+      },
+      {
+        "max_spread": 0.43,
+        "n_trades": 425,
+        "n_closed": 358,
+        "winrate": 74.9,
+        "avg_pnl": 0.009
+      },
+      {
+        "max_spread": 0.44,
+        "n_trades": 429,
+        "n_closed": 362,
+        "winrate": 74.9,
+        "avg_pnl": 0.011
+      },
+      {
+        "max_spread": 0.45,
+        "n_trades": 429,
+        "n_closed": 362,
+        "winrate": 74.9,
+        "avg_pnl": 0.011
+      },
+      {
+        "max_spread": 0.46,
+        "n_trades": 429,
+        "n_closed": 362,
+        "winrate": 74.9,
+        "avg_pnl": 0.011
+      },
+      {
+        "max_spread": 0.47,
+        "n_trades": 429,
+        "n_closed": 362,
+        "winrate": 74.9,
+        "avg_pnl": 0.011
+      },
+      {
+        "max_spread": 0.48,
+        "n_trades": 429,
+        "n_closed": 362,
+        "winrate": 74.9,
+        "avg_pnl": 0.011
+      },
+      {
+        "max_spread": 0.49,
+        "n_trades": 429,
+        "n_closed": 362,
+        "winrate": 74.9,
+        "avg_pnl": 0.011
+      },
+      {
+        "max_spread": 0.5,
+        "n_trades": 429,
+        "n_closed": 362,
+        "winrate": 74.9,
+        "avg_pnl": 0.011
+      }
+    ]
+  },
+  "optimal_combinations": [
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.5,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 94,
+        "n_closed": 43,
+        "n_won": 42,
+        "n_lost": 1,
+        "winrate": 97.7,
+        "total_pnl": 12.54,
+        "avg_pnl": 0.292,
+        "score": 721.4
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": null,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 94,
+        "n_closed": 43,
+        "n_won": 42,
+        "n_lost": 1,
+        "winrate": 97.7,
+        "total_pnl": 12.54,
+        "avg_pnl": 0.292,
+        "score": 721.4
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.5,
+        "allowed_types": [
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 71,
+        "n_closed": 35,
+        "n_won": 35,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 12.26,
+        "avg_pnl": 0.35,
+        "score": 717.9
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": null,
+        "allowed_types": [
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 71,
+        "n_closed": 35,
+        "n_won": 35,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 12.26,
+        "avg_pnl": 0.35,
+        "score": 717.9
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.1,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 87,
+        "n_closed": 42,
+        "n_won": 41,
+        "n_lost": 1,
+        "winrate": 97.6,
+        "total_pnl": 12.0,
+        "avg_pnl": 0.286,
+        "score": 705.1
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.15,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 91,
+        "n_closed": 42,
+        "n_won": 41,
+        "n_lost": 1,
+        "winrate": 97.6,
+        "total_pnl": 12.0,
+        "avg_pnl": 0.286,
+        "score": 705.1
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.2,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 91,
+        "n_closed": 42,
+        "n_won": 41,
+        "n_lost": 1,
+        "winrate": 97.6,
+        "total_pnl": 12.0,
+        "avg_pnl": 0.286,
+        "score": 705.1
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.3,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 91,
+        "n_closed": 42,
+        "n_won": 41,
+        "n_lost": 1,
+        "winrate": 97.6,
+        "total_pnl": 12.0,
+        "avg_pnl": 0.286,
+        "score": 705.1
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.5,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 102,
+        "n_closed": 46,
+        "n_won": 44,
+        "n_lost": 2,
+        "winrate": 95.7,
+        "total_pnl": 12.5,
+        "avg_pnl": 0.272,
+        "score": 702.3
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": null,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 102,
+        "n_closed": 46,
+        "n_won": 44,
+        "n_lost": 2,
+        "winrate": 95.7,
+        "total_pnl": 12.5,
+        "avg_pnl": 0.272,
+        "score": 702.3
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.1,
+        "allowed_types": [
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 64,
+        "n_closed": 34,
+        "n_won": 34,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 11.72,
+        "avg_pnl": 0.345,
+        "score": 700.8
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.15,
+        "allowed_types": [
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 68,
+        "n_closed": 34,
+        "n_won": 34,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 11.72,
+        "avg_pnl": 0.345,
+        "score": 700.8
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.2,
+        "allowed_types": [
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 68,
+        "n_closed": 34,
+        "n_won": 34,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 11.72,
+        "avg_pnl": 0.345,
+        "score": 700.8
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.3,
+        "allowed_types": [
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 68,
+        "n_closed": 34,
+        "n_won": 34,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 11.72,
+        "avg_pnl": 0.345,
+        "score": 700.8
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.1,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL",
+          "OTHER"
+        ]
+      },
+      "metrics": {
+        "n_trades": 96,
+        "n_closed": 46,
+        "n_won": 44,
+        "n_lost": 2,
+        "winrate": 95.7,
+        "total_pnl": 12.15,
+        "avg_pnl": 0.264,
+        "score": 695.3
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.15,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL",
+          "OTHER"
+        ]
+      },
+      "metrics": {
+        "n_trades": 100,
+        "n_closed": 46,
+        "n_won": 44,
+        "n_lost": 2,
+        "winrate": 95.7,
+        "total_pnl": 12.15,
+        "avg_pnl": 0.264,
+        "score": 695.3
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.1,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 95,
+        "n_closed": 45,
+        "n_won": 43,
+        "n_lost": 2,
+        "winrate": 95.6,
+        "total_pnl": 11.96,
+        "avg_pnl": 0.266,
+        "score": 686.3
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.15,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 99,
+        "n_closed": 45,
+        "n_won": 43,
+        "n_lost": 2,
+        "winrate": 95.6,
+        "total_pnl": 11.96,
+        "avg_pnl": 0.266,
+        "score": 686.3
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.2,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 99,
+        "n_closed": 45,
+        "n_won": 43,
+        "n_lost": 2,
+        "winrate": 95.6,
+        "total_pnl": 11.96,
+        "avg_pnl": 0.266,
+        "score": 686.3
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.3,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 99,
+        "n_closed": 45,
+        "n_won": 43,
+        "n_lost": 2,
+        "winrate": 95.6,
+        "total_pnl": 11.96,
+        "avg_pnl": 0.266,
+        "score": 686.3
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-11:30 UTC",
+        "window_start": 9,
+        "window_end": 11.5,
+        "min_rr": 0.0,
+        "max_spread_pct": null,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL",
+          "OTHER"
+        ]
+      },
+      "metrics": {
+        "n_trades": 77,
+        "n_closed": 35,
+        "n_won": 35,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 10.85,
+        "avg_pnl": 0.31,
+        "score": 683.7
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-12:00 UTC",
+        "window_start": 9,
+        "window_end": 12.0,
+        "min_rr": 0.0,
+        "max_spread_pct": null,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL",
+          "OTHER"
+        ]
+      },
+      "metrics": {
+        "n_trades": 77,
+        "n_closed": 35,
+        "n_won": 35,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 10.85,
+        "avg_pnl": 0.31,
+        "score": 683.7
+      }
+    },
+    {
+      "params": {
+        "window": "10:00-14:00 UTC",
+        "window_start": 10,
+        "window_end": 14.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.1,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 113,
+        "n_closed": 77,
+        "n_won": 66,
+        "n_lost": 11,
+        "winrate": 85.7,
+        "total_pnl": 14.21,
+        "avg_pnl": 0.185,
+        "score": 681.4
+      }
+    },
+    {
+      "params": {
+        "window": "10:00-14:00 UTC",
+        "window_start": 10,
+        "window_end": 14.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.15,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 115,
+        "n_closed": 77,
+        "n_won": 66,
+        "n_lost": 11,
+        "winrate": 85.7,
+        "total_pnl": 14.21,
+        "avg_pnl": 0.185,
+        "score": 681.4
+      }
+    },
+    {
+      "params": {
+        "window": "10:00-14:00 UTC",
+        "window_start": 10,
+        "window_end": 14.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.2,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 115,
+        "n_closed": 77,
+        "n_won": 66,
+        "n_lost": 11,
+        "winrate": 85.7,
+        "total_pnl": 14.21,
+        "avg_pnl": 0.185,
+        "score": 681.4
+      }
+    },
+    {
+      "params": {
+        "window": "10:00-14:00 UTC",
+        "window_start": 10,
+        "window_end": 14.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.3,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 115,
+        "n_closed": 77,
+        "n_won": 66,
+        "n_lost": 11,
+        "winrate": 85.7,
+        "total_pnl": 14.21,
+        "avg_pnl": 0.185,
+        "score": 681.4
+      }
+    },
+    {
+      "params": {
+        "window": "10:00-14:00 UTC",
+        "window_start": 10,
+        "window_end": 14.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.5,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 115,
+        "n_closed": 77,
+        "n_won": 66,
+        "n_lost": 11,
+        "winrate": 85.7,
+        "total_pnl": 14.21,
+        "avg_pnl": 0.185,
+        "score": 681.4
+      }
+    },
+    {
+      "params": {
+        "window": "10:00-14:00 UTC",
+        "window_start": 10,
+        "window_end": 14.0,
+        "min_rr": 0.0,
+        "max_spread_pct": null,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 115,
+        "n_closed": 77,
+        "n_won": 66,
+        "n_lost": 11,
+        "winrate": 85.7,
+        "total_pnl": 14.21,
+        "avg_pnl": 0.185,
+        "score": 681.4
+      }
+    },
+    {
+      "params": {
+        "window": "10:00-14:00 UTC",
+        "window_start": 10,
+        "window_end": 14.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.1,
+        "allowed_types": [
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 91,
+        "n_closed": 67,
+        "n_won": 58,
+        "n_lost": 9,
+        "winrate": 86.6,
+        "total_pnl": 15.25,
+        "avg_pnl": 0.228,
+        "score": 679.5
+      }
+    },
+    {
+      "params": {
+        "window": "10:00-14:00 UTC",
+        "window_start": 10,
+        "window_end": 14.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.15,
+        "allowed_types": [
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 93,
+        "n_closed": 67,
+        "n_won": 58,
+        "n_lost": 9,
+        "winrate": 86.6,
+        "total_pnl": 15.25,
+        "avg_pnl": 0.228,
+        "score": 679.5
+      }
+    },
+    {
+      "params": {
+        "window": "10:00-14:00 UTC",
+        "window_start": 10,
+        "window_end": 14.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.2,
+        "allowed_types": [
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 93,
+        "n_closed": 67,
+        "n_won": 58,
+        "n_lost": 9,
+        "winrate": 86.6,
+        "total_pnl": 15.25,
+        "avg_pnl": 0.228,
+        "score": 679.5
+      }
+    },
+    {
+      "params": {
+        "window": "10:00-14:00 UTC",
+        "window_start": 10,
+        "window_end": 14.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.3,
+        "allowed_types": [
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 93,
+        "n_closed": 67,
+        "n_won": 58,
+        "n_lost": 9,
+        "winrate": 86.6,
+        "total_pnl": 15.25,
+        "avg_pnl": 0.228,
+        "score": 679.5
+      }
+    },
+    {
+      "params": {
+        "window": "10:00-14:00 UTC",
+        "window_start": 10,
+        "window_end": 14.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.5,
+        "allowed_types": [
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 93,
+        "n_closed": 67,
+        "n_won": 58,
+        "n_lost": 9,
+        "winrate": 86.6,
+        "total_pnl": 15.25,
+        "avg_pnl": 0.228,
+        "score": 679.5
+      }
+    },
+    {
+      "params": {
+        "window": "10:00-14:00 UTC",
+        "window_start": 10,
+        "window_end": 14.0,
+        "min_rr": 0.0,
+        "max_spread_pct": null,
+        "allowed_types": [
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 93,
+        "n_closed": 67,
+        "n_won": 58,
+        "n_lost": 9,
+        "winrate": 86.6,
+        "total_pnl": 15.25,
+        "avg_pnl": 0.228,
+        "score": 679.5
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.5,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL",
+          "OTHER"
+        ]
+      },
+      "metrics": {
+        "n_trades": 106,
+        "n_closed": 50,
+        "n_won": 47,
+        "n_lost": 3,
+        "winrate": 94.0,
+        "total_pnl": 11.72,
+        "avg_pnl": 0.234,
+        "score": 678.5
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": null,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL",
+          "OTHER"
+        ]
+      },
+      "metrics": {
+        "n_trades": 111,
+        "n_closed": 55,
+        "n_won": 51,
+        "n_lost": 4,
+        "winrate": 92.7,
+        "total_pnl": 11.29,
+        "avg_pnl": 0.205,
+        "score": 671.5
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-11:30 UTC",
+        "window_start": 9,
+        "window_end": 11.5,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.5,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL",
+          "OTHER"
+        ]
+      },
+      "metrics": {
+        "n_trades": 74,
+        "n_closed": 32,
+        "n_won": 32,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 10.49,
+        "avg_pnl": 0.328,
+        "score": 662.2
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-12:00 UTC",
+        "window_start": 9,
+        "window_end": 12.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.5,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL",
+          "OTHER"
+        ]
+      },
+      "metrics": {
+        "n_trades": 74,
+        "n_closed": 32,
+        "n_won": 32,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 10.49,
+        "avg_pnl": 0.328,
+        "score": 662.2
+      }
+    },
+    {
+      "params": {
+        "window": "10:00-14:00 UTC",
+        "window_start": 10,
+        "window_end": 14.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.05,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 107,
+        "n_closed": 75,
+        "n_won": 64,
+        "n_lost": 11,
+        "winrate": 85.3,
+        "total_pnl": 13.55,
+        "avg_pnl": 0.181,
+        "score": 661.1
+      }
+    },
+    {
+      "params": {
+        "window": "10:00-14:00 UTC",
+        "window_start": 10,
+        "window_end": 14.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.05,
+        "allowed_types": [
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 86,
+        "n_closed": 65,
+        "n_won": 56,
+        "n_lost": 9,
+        "winrate": 86.2,
+        "total_pnl": 14.59,
+        "avg_pnl": 0.224,
+        "score": 658.1
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.3,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL",
+          "OTHER"
+        ]
+      },
+      "metrics": {
+        "n_trades": 102,
+        "n_closed": 48,
+        "n_won": 45,
+        "n_lost": 3,
+        "winrate": 93.8,
+        "total_pnl": 11.16,
+        "avg_pnl": 0.232,
+        "score": 656.8
+      }
+    },
+    {
+      "params": {
+        "window": "08:00-12:00 UTC",
+        "window_start": 8,
+        "window_end": 12.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.5,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 72,
+        "n_closed": 30,
+        "n_won": 30,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 10.46,
+        "avg_pnl": 0.349,
+        "score": 653.1
+      }
+    },
+    {
+      "params": {
+        "window": "08:00-12:00 UTC",
+        "window_start": 8,
+        "window_end": 12.0,
+        "min_rr": 0.0,
+        "max_spread_pct": null,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 72,
+        "n_closed": 30,
+        "n_won": 30,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 10.46,
+        "avg_pnl": 0.349,
+        "score": 653.1
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-11:30 UTC",
+        "window_start": 9,
+        "window_end": 11.5,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.5,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 72,
+        "n_closed": 30,
+        "n_won": 30,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 10.46,
+        "avg_pnl": 0.349,
+        "score": 653.1
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-11:30 UTC",
+        "window_start": 9,
+        "window_end": 11.5,
+        "min_rr": 0.0,
+        "max_spread_pct": null,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 72,
+        "n_closed": 30,
+        "n_won": 30,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 10.46,
+        "avg_pnl": 0.349,
+        "score": 653.1
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-12:00 UTC",
+        "window_start": 9,
+        "window_end": 12.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.5,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 72,
+        "n_closed": 30,
+        "n_won": 30,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 10.46,
+        "avg_pnl": 0.349,
+        "score": 653.1
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-12:00 UTC",
+        "window_start": 9,
+        "window_end": 12.0,
+        "min_rr": 0.0,
+        "max_spread_pct": null,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL"
+        ]
+      },
+      "metrics": {
+        "n_trades": 72,
+        "n_closed": 30,
+        "n_won": 30,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 10.46,
+        "avg_pnl": 0.349,
+        "score": 653.1
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-13:00 UTC",
+        "window_start": 9,
+        "window_end": 13.0,
+        "min_rr": 0.0,
+        "max_spread_pct": 0.2,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL",
+          "OTHER"
+        ]
+      },
+      "metrics": {
+        "n_trades": 101,
+        "n_closed": 47,
+        "n_won": 44,
+        "n_lost": 3,
+        "winrate": 93.6,
+        "total_pnl": 11.15,
+        "avg_pnl": 0.237,
+        "score": 650.9
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-10:30 UTC",
+        "window_start": 9,
+        "window_end": 10.5,
+        "min_rr": 0.0,
+        "max_spread_pct": null,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL",
+          "OTHER"
+        ]
+      },
+      "metrics": {
+        "n_trades": 62,
+        "n_closed": 32,
+        "n_won": 32,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 9.77,
+        "avg_pnl": 0.305,
+        "score": 644.4
+      }
+    },
+    {
+      "params": {
+        "window": "09:00-11:00 UTC",
+        "window_start": 9,
+        "window_end": 11.0,
+        "min_rr": 0.0,
+        "max_spread_pct": null,
+        "allowed_types": [
+          "FOREX_CROSS",
+          "FOREX_JPY",
+          "FOREX_USD",
+          "INDEX",
+          "METAL",
+          "OTHER"
+        ]
+      },
+      "metrics": {
+        "n_trades": 62,
+        "n_closed": 32,
+        "n_won": 32,
+        "n_lost": 0,
+        "winrate": 100.0,
+        "total_pnl": 9.77,
+        "avg_pnl": 0.305,
+        "score": 644.4
+      }
+    }
+  ],
+  "timestamp": "2026-06-26 21:24:08 UTC",
+  "total_trades": 438,
+  "global_winrate": 75.1
+}
