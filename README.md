@@ -644,10 +644,13 @@ python live_ict_monitor.py XAUUSD --interval 15  # Scan toutes les 15s
 python live_ict_monitor.py EURUSD --fvg-min 0.05 # Filtre FVG plus strict
 
 # Moniteur MULTI-ACTIFS (global)
-python live_ict_monitor_global.py                             # Market Watch, 50 symboles max
-python live_ict_monitor_global.py --scan-all --max-symbols 0  # Tous les actifs du broker
+python live_ict_monitor_global.py                                            # Market Watch, 50 symboles max
+python live_ict_monitor_global.py --scan-all --max-symbols 0             # Tous les actifs du broker
 python live_ict_monitor_global.py --symbols EURUSD XAUUSD BTCUSD
 python live_ict_monitor_global.py --filter-type FOREX,METAL --interval 30
+python live_ict_monitor_global.py --require-macro                        # Filtre ICT: raid sur :10/:50 ±5min
+python live_ict_monitor_global.py --require-killzone                     # Filtre ICT: raid en London/NY Open/Close
+python live_ict_monitor_global.py --require-macro --require-killzone     # Les deux filtres ICT
 ```
 
 **Ce qu'il fait :**
@@ -666,7 +669,7 @@ python live_ict_monitor_global.py --filter-type FOREX,METAL --interval 30
 | Script | Usage |
 |--------|-------|
 | `live_ict_monitor.py SYMBOLE` | Surveillance temps réel — 1 symbole (alertes) |
-| `live_ict_monitor_global.py` | Surveillance temps réel — **tous les actifs** (alertes) |
+| `live_ict_monitor_global.py` | Surveillance temps réel — **tous les actifs** (alertes + filtres ICT optionnels) |
 | `backtest_ict_universal.py SYMBOLE` | Backtest v1 sur n'importe quel symbole |
 | `backtest_ict_fvg_v1.py` | Backtest v1 XAUUSD uniquement |
 | `backtest_ict_fvg.py` | Backtest v2 avec filtres ICT complets |

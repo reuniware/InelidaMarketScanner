@@ -57,6 +57,21 @@ SUMMARY_DEFAULT_INTERVAL = 5   # afficher un résumé tous les N scans
 FVG_MIN_SIZE_PCT = 0.02        # taille minimum du FVG en %
 MIN_DOL_DISTANCE_PCT = 0.15    # distance minimum Entry→DOL en %
 
+# Filtres ICT (desactivés par défaut, activables via --require-macro --require-killzone)
+REQUIRE_MACRO = False
+REQUIRE_KILLZONE = False
+MACRO_TOLERANCE_MIN = 5
+
+# DST transition 2026
+DST_START_UTC = datetime(2026, 3, 8, 7, 0, 0, tzinfo=UTC)
+
+# Kill zones in ET hours (Eastern Time)
+KILL_ZONES_ET = [
+    ("London Open",   2,  0,  5,  0),
+    ("NY Open",       8, 30, 11,  0),
+    ("London Close", 10,  0, 12,  0),
+]
+
 # ─── ANSI ───────────────────────────────────────────────────────────────────
 _IS_TTY = sys.stdout.isatty()
 
@@ -151,6 +166,47 @@ def _classify_symbol(sym: str) -> str:
                                                            'HK50', 'EU50'):
         return 'FOREX'
     return 'STOCK'
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  FILTRES ICT (Macro 10/50 + Kill Zones)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def et_to_utc_offset(ts: float) -> int:
+    """Convertit un timestamp UTC en offset ET vers UTC.
+    EST = +5, EDT = +4."""
+    dt = datetime.fromtimestamp(ts, tz=UTC)
+    return 4 if dt >= DST_START_UTC else 5
+
+
+def is_macro_time(ts: float) -> bool:
+    """Verifie si le timestamp est dans la fenetre macro :10 ou :50 ± tolerance."""
+    dt = datetime.fromtimestamp(ts, tz=UTC)
+    m = dt.minute
+    for target in (10, 50):
+        diff = abs(m - target)
+        if diff <= MACRO_TOLERANCE_MIN or 60 - diff <= MACRO_TOLERANCE_MIN:
+            return True
+    return False
+
+
+def is_in_kill_zone(ts: float) -> tuple:
+    """Verifie si le timestamp UTC est dans une kill zone ICT (heure ET).
+    Retourne (True/False, nom_de_la_zone ou '')."""
+    offset = et_to_utc_offset(ts)
+    dt = datetime.fromtimestamp(ts, tz=UTC)
+
+    for zone_name, start_h, start_m, end_h, end_m in KILL_ZONES_ET:
+        zone_start_utc_h = start_h + offset
+        zone_end_utc_h = end_h + offset
+        zone_start_minutes = zone_start_utc_h * 60 + start_m
+        zone_end_minutes = zone_end_utc_h * 60 + end_m
+        current_minutes = dt.hour * 60 + dt.minute
+
+        if zone_start_minutes <= current_minutes < zone_end_minutes:
+            return True, zone_name
+
+    return False, ""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -414,8 +470,9 @@ def log_signal(signal: dict):
     try:
         with open(SIGNAL_LOG, "a", encoding="utf-8") as f:
             f.write(json.dumps(signal, ensure_ascii=False, default=str) + "\n")
-    except Exception:
-        pass
+            f.flush()
+    except Exception as e:
+        print(f"  {YELLOW}[!] Erreur log JSONL: {e}{RESET}", end="\n")
 
 
 def print_alert(signal: dict, no_sound: bool = False):
@@ -492,20 +549,102 @@ def build_signal(symbol: str, pair: dict, raid_idx: int, raid_bar: dict,
     }
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+#  FOLLOW-UP — Suivi des signaux précédents (TP1 / SL)
+# ═══════════════════════════════════════════════════════════════════════════
+
+def load_today_signals(today_str: str) -> List[dict]:
+    """Charge les signaux du jour depuis le fichier JSONL."""
+    signals: List[dict] = []
+    try:
+        with open(SIGNAL_LOG, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    sig = json.loads(line)
+                    sig_ts = sig.get("ts_utc", "")
+                    if today_str in sig_ts:
+                        signals.append(sig)
+                except json.JSONDecodeError:
+                    continue
+    except FileNotFoundError:
+        pass
+    return signals
+
+
+def check_signal_outcome(signal: dict, bid: float, ask: float) -> Optional[str]:
+    """Vérifie si un signal a touché TP1 ou SL.
+
+    Retourne 'tp1', 'sl', ou None si toujours actif.
+    """
+    plan = signal.get("trade_plan", {})
+    tp1 = plan.get("tp1")
+    sl = plan.get("sl")
+    if tp1 is None or sl is None:
+        return None
+
+    direction = signal.get("direction", "bull")
+
+    if direction == "bull":
+        if ask >= tp1:
+            return "tp1"
+        if bid <= sl:
+            return "sl"
+    else:
+        if bid <= tp1:
+            return "tp1"
+        if ask >= sl:
+            return "sl"
+
+    return None
+
+
+def print_followup_alert(signal: dict, outcome: str, current_price: float):
+    """Affiche une alerte de suivi (TP1 atteint ou SL touché)."""
+    bar = "=" * 74
+    symbol = signal.get("symbol", "?")
+    plan = signal.get("trade_plan", {})
+
+    if outcome == "tp1":
+        color = GREEN
+        bg_color = BG_GREEN
+        label = f"TP1 ATTEINT ! +{plan.get('rr1', 0):.2f}R"
+        tp_entry = plan.get("tp1", 0)
+    else:
+        color = RED
+        bg_color = BG_RED
+        label = "SL TOUCHÉ ! -1.00R"
+        tp_entry = plan.get("sl", 0)
+
+    print(f"\n{bg_color}{WHITE}{BOLD}{bar}{RESET}")
+    print(f"{bg_color}{WHITE}{BOLD}  {label}  {_now_str()}{RESET}")
+    print(f"{bg_color}{WHITE}{BOLD}  {symbol} | {signal.get('action', '?')} | "
+          f"{signal.get('dol_label', '?')}{RESET}")
+    print(f"{bg_color}{WHITE}{BOLD}{bar}{RESET}")
+    print(f"  {'Résultat':18}: {color}{BOLD}{label}{RESET}")
+    print(f"  {'Entry':18}: {_fmt(signal.get('entry'))}")
+    print(f"  {'Niveau touché':18}: {color}{_fmt(tp_entry)}{RESET}")
+    print(f"  {'Prix actuel':18}: {_fmt(current_price)}")
+    print(f"{bg_color}{WHITE}{BOLD}{bar}{RESET}\n")
+    sys.stdout.flush()
+
+
 def print_summary_table(setups: List[dict], scan_num: int):
     """Affiche un tableau résumé de tous les setups détectés (pas seulement les alertes)."""
     if not setups:
         return
 
-    bar = "─" * 80
-    print(f"\n{CYAN}{BOLD}{'═' * 80}{RESET}")
+    bar = "─" * 90
+    print(f"\n{CYAN}{BOLD}{'═' * 90}{RESET}")
     print(f"{CYAN}{BOLD}  📊 RÉSUMÉ — Scan #{scan_num}  |  {len(setups)} setup(s) actif(s)  |  {_now_str()}{RESET}")
-    print(f"{CYAN}{BOLD}{'═' * 80}{RESET}")
+    print(f"{CYAN}{BOLD}{'═' * 90}{RESET}")
 
     header = (
         f"  {BOLD}{'Symbole':<12} {'Type':>7} {'Action':>6}  "
         f"{'Entry':>12}  {'SL':>12}  {'TP1':>12}  {'RR1':>6}  "
-        f"{'DOL':>12}  {'FVG%':>7}{RESET}"
+        f"{'DOL':>12}  {'FVG%':>7}  {'Status'}{RESET}"
     )
     print(header)
     print(f"  {GRAY}{bar}{RESET}")
@@ -518,6 +657,13 @@ def print_summary_table(setups: List[dict], scan_num: int):
         action = s["action"]
         sym_type = s.get("symbol_type", "?")
         act_color = GREEN if action == "BUY" else RED
+        outcome = s.get("_outcome", "")
+        if outcome == "tp1":
+            status_str = f" {GREEN}TP1✅{RESET}"
+        elif outcome == "sl":
+            status_str = f" {RED}SL❌{RESET}"
+        else:
+            status_str = f" {DIM}ACTIF{RESET}"
 
         print(
             f"  {MAGENTA}{s['symbol']:<12}{RESET} "
@@ -529,6 +675,7 @@ def print_summary_table(setups: List[dict], scan_num: int):
             f"{YELLOW}{plan['rr1']:>5.2f}x{RESET}  "
             f"{_fmt(s['dol_level']):>12}  "
             f"{plan.get('dol_distance_pct', 0):>6.2f}%"
+            f"{status_str}"
         )
 
     print(f"  {GRAY}{bar}{RESET}")
@@ -567,11 +714,16 @@ def scan_symbol(
     alerted: Set[str],
     fvg_min_pct: float,
     dol_min_pct: float,
+    require_macro: bool = False,
+    require_killzone: bool = False,
 ) -> Tuple[List[dict], int, int, int]:
     """Scanne un symbole pour détecter les setups ICT FVG.
 
     Retourne (signaux, n_pairs, n_raids, n_fvgs).
     Plusieurs setups peuvent être détectés sur le même symbole (ex: PDH-bull + AH-bull).
+    
+    Si require_macro=True, seuls les raids sur :10 ou :50 ±5min sont valides.
+    Si require_killzone=True, seuls les raids dans London/NY Open/Close sont valides.
     """
     today_bars = days.get(today_str, [])
     if not today_bars:
@@ -609,6 +761,16 @@ def scan_symbol(
             continue
         raid_idx, raid_bar = raid
         n_raids += 1
+
+        # Filtre Macro 10/50 (ICT: raid sur :10 ou :50 ±5min)
+        if require_macro and not is_macro_time(raid_bar["time"]):
+            continue
+
+        # Filtre Kill Zone (ICT: raid dans London Open, NY Open, ou London Close)
+        if require_killzone:
+            in_kz, _ = is_in_kill_zone(raid_bar["time"])
+            if not in_kz:
+                continue
 
         # ÉTAPE 3a : FVG
         fvg_res = scan_first_fvg(bars, raid_idx, pair["dir"])
@@ -684,6 +846,11 @@ def main():
     parser.add_argument("--summary-interval", type=int, default=SUMMARY_DEFAULT_INTERVAL,
                         help=f"Afficher un tableau résumé tous les N scans (défaut: {SUMMARY_DEFAULT_INTERVAL}). "
                              f"Mettre 0 pour désactiver.")
+    parser.add_argument("--require-macro", action="store_true",
+                        help="Filtre ICT: le raid doit etre sur :10 ou :50 ±5min (desactive par defaut).")
+    parser.add_argument("--require-killzone", action="store_true",
+                        help="Filtre ICT: le raid doit etre dans London Open, NY Open, ou London Close "
+                             "(desactive par defaut).")
     parser.add_argument("--no-sound", action="store_true",
                         help="Désactiver le beep sonore.")
 
@@ -693,6 +860,8 @@ def main():
     mod = sys.modules[__name__]
     mod.FVG_MIN_SIZE_PCT = args.fvg_min
     mod.MIN_DOL_DISTANCE_PCT = args.dol_min
+    mod.REQUIRE_MACRO = args.require_macro
+    mod.REQUIRE_KILLZONE = args.require_killzone
 
     interval = max(args.interval, 5)
     no_sound = args.no_sound
@@ -757,12 +926,15 @@ def main():
     print(f"  FVG min             : {FVG_MIN_SIZE_PCT}%")
     print(f"  DOL min             : {MIN_DOL_DISTANCE_PCT}%")
     print(f"  Résumé tous les     : {args.summary_interval} scan(s)" if args.summary_interval > 0 else "  Résumé           : désactivé")
+    print(f"  Macro 10/50         : {'ACTIF' if REQUIRE_MACRO else 'INACTIF'}")
+    print(f"  Kill Zone           : {'ACTIF' if REQUIRE_KILLZONE else 'INACTIF'}")
     print(f"  Log signaux         : {SIGNAL_LOG}")
     print(f"\n  {YELLOW}Surveillance en cours... (Ctrl+C pour quitter){RESET}\n")
 
     # ── État ─────────────────────────────────────────────────────────────
     alerted: Set[str] = set()
     last_signals: Dict[str, dict] = {}   # setup_key -> dernier signal connu (pour le résumé)
+    followed_today: Set[str] = set()       # sig_keys déjà vérifiés aujourd'hui (évite re-alertes)
     current_day = datetime.now(UTC).strftime("%Y-%m-%d")
     check_num = 0
 
@@ -778,6 +950,7 @@ def main():
                 current_day = today_str
                 alerted.clear()
                 last_signals.clear()
+                followed_today.clear()
 
             # Skip marché fermé
             if _is_market_closed():
@@ -806,6 +979,8 @@ def main():
                     sym_signals, n_pairs, n_raids, n_fvgs = scan_symbol(
                         sym, bars, today_str, days, alerted,
                         FVG_MIN_SIZE_PCT, MIN_DOL_DISTANCE_PCT,
+                        require_macro=REQUIRE_MACRO,
+                        require_killzone=REQUIRE_KILLZONE,
                     )
                     n_raids_total += n_raids
                     n_fvgs_total += n_fvgs
@@ -830,9 +1005,38 @@ def main():
                 sig_key = f"{signal['symbol']}_{signal['direction']}_{signal['dol_label']}"
                 last_signals[sig_key] = signal
 
-            # ── Afficher les nouvelles alertes ──────────────────────────
+            # ── Afficher et logger les nouvelles alertes ───────────────
             for signal in new_signals:
                 print_alert(signal, no_sound)
+                log_signal(signal)
+
+            # ── Suivi des signaux précédents (TP1 / SL) ────────────────
+            # Vérifie si les signaux détectés aujourd'hui ont touché TP1 ou SL
+            today_signals = load_today_signals(today_str)
+            for sig in today_signals:
+                sig_key = (f"{sig.get('symbol', '')}_{sig.get('direction', '')}"
+                           f"_{sig.get('dol_label', '')}_{sig.get('entry', '')}")
+                if sig_key in followed_today:
+                    continue
+
+                sym = sig.get("symbol", "")
+                if not sym:
+                    continue
+
+                # Récupérer le tick actuel
+                tick = mt5.symbol_info_tick(sym)
+                if not tick or tick.bid == 0:
+                    continue
+
+                outcome = check_signal_outcome(sig, tick.bid, tick.ask)
+                if outcome:
+                    followed_today.add(sig_key)
+                    # Mettre à jour le statut dans last_signals pour le résumé
+                    setup_key = f"{sig.get('symbol', '')}_{sig.get('direction', '')}_{sig.get('dol_label', '')}"
+                    if setup_key in last_signals:
+                        last_signals[setup_key]["_outcome"] = outcome
+                    current_price = tick.bid if sig.get("direction") == "bear" else tick.ask
+                    print_followup_alert(sig, outcome, current_price)
 
             # ── Tableau résumé périodique ───────────────────────────────
             if args.summary_interval > 0 and check_num % args.summary_interval == 0:

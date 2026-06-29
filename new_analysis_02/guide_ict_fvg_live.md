@@ -415,6 +415,15 @@ python live_ict_monitor_global.py --filter-type FOREX,METAL --interval 30
 
 # Résumé périodique tous les 5 scans
 python live_ict_monitor_global.py --summary-interval 5
+
+# Filtres ICT (Macro 10/50 — raid sur :10 ou :50 ±5min)
+python live_ict_monitor_global.py --require-macro
+
+# Filtres ICT (Kill Zone — raid dans London/NY Open/Close)
+python live_ict_monitor_global.py --require-killzone
+
+# Les deux filtres ICT combinés
+python live_ict_monitor_global.py --require-macro --require-killzone
 ```
 
 ### Options spécifiques au moniteur global
@@ -426,6 +435,8 @@ python live_ict_monitor_global.py --summary-interval 5
 | `--max-symbols` | `50` | Nombre max de symboles (0 = illimité) |
 | `--filter-type` | — | Filtrer par type: `FOREX,METAL,INDEX,CRYPTO,STOCK,COMMODITY` |
 | `--summary-interval` | `5` | Tableau résumé tous les N scans (0 = désactivé) |
+| `--require-macro` | — | **Filtre ICT** : le raid doit être sur :10 ou :50 ±5min |
+| `--require-killzone` | — | **Filtre ICT** : le raid doit être dans London Open, NY Open, ou London Close |
 
 ### Différences avec la version mono-symbole
 

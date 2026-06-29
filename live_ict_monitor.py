@@ -332,8 +332,9 @@ def log_signal(signal: dict):
     try:
         with open(SIGNAL_LOG, "a", encoding="utf-8") as f:
             f.write(json.dumps(signal, ensure_ascii=False, default=str) + "\n")
-    except Exception:
-        pass
+            f.flush()
+    except Exception as e:
+        print(f"  {YELLOW}[!] Erreur log JSONL: {e}{RESET}", end="\n")
 
 
 def print_alert(signal: dict, no_sound: bool = False):
@@ -378,6 +379,84 @@ def print_alert(signal: dict, no_sound: bool = False):
 # ═══════════════════════════════════════════════════════════════════════════════
 #  BOUCLE PRINCIPALE
 # ═══════════════════════════════════════════════════════════════════════════════
+
+def load_today_signals(today_str: str) -> List[dict]:
+    """Charge les signaux du jour depuis le fichier JSONL."""
+    signals: List[dict] = []
+    try:
+        with open(SIGNAL_LOG, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    sig = json.loads(line)
+                    sig_ts = sig.get("ts_utc", "")
+                    if today_str in sig_ts:
+                        signals.append(sig)
+                except json.JSONDecodeError:
+                    continue
+    except FileNotFoundError:
+        pass
+    return signals
+
+
+def check_signal_outcome(signal: dict, bid: float, ask: float) -> Optional[str]:
+    """Vérifie si un signal a touché TP1 ou SL.
+
+    Retourne 'tp1', 'sl', ou None si toujours actif.
+    """
+    plan = signal.get("trade_plan", {})
+    tp1 = plan.get("tp1")
+    sl = plan.get("sl")
+    if tp1 is None or sl is None:
+        return None
+
+    direction = signal.get("direction", "bull")
+
+    if direction == "bull":
+        if ask >= tp1:
+            return "tp1"
+        if bid <= sl:
+            return "sl"
+    else:
+        if bid <= tp1:
+            return "tp1"
+        if ask >= sl:
+            return "sl"
+
+    return None
+
+
+def print_followup_alert(signal: dict, outcome: str, current_price: float):
+    """Affiche une alerte de suivi (TP1 atteint ou SL touché)."""
+    bar = "=" * 74
+    symbol = signal.get("symbol", "?")
+    plan = signal.get("trade_plan", {})
+
+    if outcome == "tp1":
+        color = GREEN
+        bg_color = BG_GREEN
+        label = f"TP1 ATTEINT ! +{plan.get('rr1', 0):.2f}R"
+        tp_entry = plan.get("tp1", 0)
+    else:
+        color = RED
+        bg_color = BG_RED
+        label = "SL TOUCHÉ ! -1.00R"
+        tp_entry = plan.get("sl", 0)
+
+    print(f"\n{bg_color}{WHITE}{BOLD}{bar}{RESET}")
+    print(f"{bg_color}{WHITE}{BOLD}  {label}  {_now_str()}{RESET}")
+    print(f"{bg_color}{WHITE}{BOLD}  {symbol} | {signal.get('action', '?')} | "
+          f"{signal.get('dol_label', '?')}{RESET}")
+    print(f"{bg_color}{WHITE}{BOLD}{bar}{RESET}")
+    print(f"  {'Résultat':18}: {color}{BOLD}{label}{RESET}")
+    print(f"  {'Entry':18}: {_fmt(signal.get('entry'))}")
+    print(f"  {'Niveau touché':18}: {color}{_fmt(tp_entry)}{RESET}")
+    print(f"  {'Prix actuel':18}: {_fmt(current_price)}")
+    print(f"{bg_color}{WHITE}{BOLD}{bar}{RESET}\n")
+    sys.stdout.flush()
+
 
 def build_signal(symbol: str, pair: dict, raid_idx: int, raid_bar: dict,
                  fvg_idx: int, fvg: dict, bid: float, ask: float,
@@ -483,6 +562,7 @@ def main():
 
     # ── État ─────────────────────────────────────────────────────────────
     alerted: Set[str] = set()          # clés des signaux déjà alertés
+    followed_today: Set[str] = set()       # sig_keys déjà vérifiés aujourd'hui (évite re-alertes)
     current_day = datetime.now(UTC).strftime("%Y-%m-%d")
     check_num = 0
 
@@ -494,9 +574,10 @@ def main():
 
             # ── Nouveau jour → reset ──────────────────────────────────
             if today_str != current_day:
-                print(f"\n  {CYAN}[NOUVEAU JOUR] {today_str} — reset{ RESET}")
+                print(f"\n  {CYAN}[NOUVEAU JOUR] {today_str} — reset{RESET}")
                 current_day = today_str
                 alerted.clear()
+                followed_today.clear()
 
             # ── Skip marché fermé ──────────────────────────────────
             if _is_market_closed():
@@ -598,6 +679,28 @@ def main():
             # ── Ligne de statut ──────────────────────────────────────────
             update_status_line(symbol, check_num, len(alerted),
                                n_pairs, n_raids, n_fvgs)
+
+            # ── Suivi des signaux précédents (TP1 / SL) ────────────────
+            today_signals = load_today_signals(today_str)
+            for sig in today_signals:
+                sig_key = (f"{sig.get('symbol', '')}_{sig.get('direction', '')}"
+                           f"_{sig.get('dol_label', '')}_{sig.get('entry', '')}")
+                if sig_key in followed_today:
+                    continue
+
+                sig_sym = sig.get("symbol", "")
+                if sig_sym != symbol:
+                    continue  # mono-symbole : ignorer les autres symboles du JSONL
+
+                tick2 = mt5.symbol_info_tick(sig_sym)
+                if not tick2 or tick2.bid == 0:
+                    continue
+
+                outcome = check_signal_outcome(sig, tick2.bid, tick2.ask)
+                if outcome:
+                    followed_today.add(sig_key)
+                    current_price = tick2.bid if sig.get("direction") == "bear" else tick2.ask
+                    print_followup_alert(sig, outcome, current_price)
 
             time.sleep(interval)
 

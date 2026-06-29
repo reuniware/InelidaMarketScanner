@@ -1386,11 +1386,14 @@ python live_ict_monitor.py XAUUSD
 python live_ict_monitor.py XAUUSD --interval 15 --fvg-min 0.05
 
 # Multi-actifs (global)
-python live_ict_monitor_global.py                             # Market Watch, 50 symboles max
-python live_ict_monitor_global.py --scan-all --max-symbols 0  # Tous les actifs du broker
+python live_ict_monitor_global.py                                              # Market Watch, 50 symboles max
+python live_ict_monitor_global.py --scan-all --max-symbols 0               # Tous les actifs du broker
 python live_ict_monitor_global.py --symbols EURUSD XAUUSD BTCUSD
 python live_ict_monitor_global.py --filter-type FOREX,METAL --interval 30
-python live_ict_monitor_global.py --summary-interval 5        # Résumé tous les 5 scans
+python live_ict_monitor_global.py --summary-interval 5                    # Résumé tous les 5 scans
+python live_ict_monitor_global.py --require-macro                         # Filtre ICT: raid sur :10/:50 ±5min
+python live_ict_monitor_global.py --require-killzone                      # Filtre ICT: raid en London/NY Open/Close
+python live_ict_monitor_global.py --require-macro --require-killzone      # Les deux filtres ICT
 ```
 
 **Options du moniteur global :**
@@ -1406,6 +1409,8 @@ python live_ict_monitor_global.py --summary-interval 5        # Résumé tous le
 | `--fvg-min` | `0.02` | Taille minimum FVG en % |
 | `--dol-min` | `0.15` | Distance minimum Entry→DOL en % |
 | `--summary-interval` | `5` | Afficher un tableau résumé tous les N scans (0 = désactivé) |
+| `--require-macro` | — | **Filtre ICT** : le raid doit être sur :10 ou :50 ±5min |
+| `--require-killzone` | — | **Filtre ICT** : le raid doit être dans London Open, NY Open, ou London Close |
 | `--no-sound` | — | Désactiver le beep sonore |
 
 📖 **Guide complet** : `new_analysis_02/guide_ict_fvg_live.md`  
