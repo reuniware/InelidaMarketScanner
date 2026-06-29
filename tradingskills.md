@@ -27,6 +27,8 @@ InelidaMarketScan/
 ├── generate_report.py     # Générateur rapport template
 ├── app.py                  # Dashboard Streamlit
 ├── live_monitor.py         # Surveillance temps réel (sweeps fractals + daily)
+├── live_ict_monitor.py      # Surveillance live ICT FVG (1 symbole) - alertes + log JSONL
+├── live_ict_monitor_global.py  # Surveillance live ICT FVG MULTI-ACTIFS - alertes + log JSONL
 ├── live_alerts.py          # Moniteur continu signaux trades (entry, SL, TP, RR)
 ├── auto_scan_and_post.py   # Pipeline complet : scan + rapport + backtest + Discord
 ├── score_patterns.py       # Scorer de qualité des patterns ICT (score /10)
@@ -50,6 +52,8 @@ InelidaMarketScan/
 | `generate_live_report.py` | PDF complet avec tous les scans + **spread** | Rapport final |
 | `backtest_report_trades.py` | Backtest M1/M5/M15/H1 depuis un PDF | Vérification a posteriori |
 | `live_monitor.py` | Sweeps fractals (BSL/SSL) + daily/weekly en temps réel | Surveillance - aucune exécution |
+| `live_ict_monitor.py` | Surveillance ICT FVG temps réel (1 symbole) | Alertes + log JSONL |
+| `live_ict_monitor_global.py` | Surveillance ICT FVG temps réel MULTI-ACTIFS | Alertes + log JSONL + résumé périodique |
 | `live_alerts.py` | Signaux trades ICT (entry, SL, TP, RR) + filtre spread | Moniteur 30s avec BEEP |
 | `app.py` | Dashboard Streamlit | Visualisation live |
 
@@ -1347,9 +1351,12 @@ Le projet inclut désormais une **stratégie ICT FVG autonome** basée sur les
 Fair Value Gaps et le Draw On Liquidity, distincte de la stratégie
 Asian/Sweep/Fibonacci existante.
 
+Deux moniteurs live sont disponibles :
+
 | Script | Type | Description |
 |--------|------|-------------|
-| **`live_ict_monitor.py`** | **Live** | **Surveillance temps réel (alertes + log JSONL)** |
+| **`live_ict_monitor.py`** | **Live (1 symbole)** | **Surveillance temps réel d'un seul symbole (alertes + log JSONL)** |
+| **`live_ict_monitor_global.py`** | **Live (multi-actifs)** | **Surveillance temps réel de TOUS les actifs — Market Watch, scan-all, ou liste explicite** |
 | `backtest_ict_universal.py` | Backtest | Version v1 paramétrable (tout symbole) |
 | `backtest_ict_fvg_v1.py` | Backtest | Version v1 XAUUSD (214 trades, +105R) |
 | `backtest_ict_fvg.py` | Backtest | Version v2 avec filtres ICT complets |
@@ -1374,9 +1381,32 @@ Asian/Sweep/Fibonacci existante.
 ### 19.4 Lancer le moniteur
 
 ```bash
+# Mono-symbole
 python live_ict_monitor.py XAUUSD
 python live_ict_monitor.py XAUUSD --interval 15 --fvg-min 0.05
+
+# Multi-actifs (global)
+python live_ict_monitor_global.py                             # Market Watch, 50 symboles max
+python live_ict_monitor_global.py --scan-all --max-symbols 0  # Tous les actifs du broker
+python live_ict_monitor_global.py --symbols EURUSD XAUUSD BTCUSD
+python live_ict_monitor_global.py --filter-type FOREX,METAL --interval 30
+python live_ict_monitor_global.py --summary-interval 5        # Résumé tous les 5 scans
 ```
+
+**Options du moniteur global :**
+
+| Option | Défaut | Description |
+|--------|:------:|-------------|
+| `--symbols` | Market Watch | Liste de symboles explicites (surcharge la découverte auto) |
+| `--scan-all` | — | Scanner TOUS les symboles disponibles chez le broker |
+| `--market-watch` | ✅ | Scanner uniquement les symboles visibles dans Market Watch (défaut) |
+| `--max-symbols` | `50` | Nombre maximum de symboles (0 = illimité avec `--scan-all`) |
+| `--filter-type` | — | Filtrer par type: `FOREX,METAL,INDEX,CRYPTO,STOCK,COMMODITY` |
+| `--interval` | `60` | Secondes entre chaque scan |
+| `--fvg-min` | `0.02` | Taille minimum FVG en % |
+| `--dol-min` | `0.15` | Distance minimum Entry→DOL en % |
+| `--summary-interval` | `5` | Afficher un tableau résumé tous les N scans (0 = désactivé) |
+| `--no-sound` | — | Désactiver le beep sonore |
 
 📖 **Guide complet** : `new_analysis_02/guide_ict_fvg_live.md`  
 📖 **Algorithme** : `new_analysis_02/algo.md`

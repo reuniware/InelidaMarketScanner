@@ -381,12 +381,81 @@ python live_ict_monitor.py GER40.cash --interval 60
 
 | Script | Usage |
 |--------|-------|
-| `live_ict_monitor.py` | **Surveillance live** (ce guide) |
+| `live_ict_monitor.py` | **Surveillance live mono-symbole** (ce guide) |
+| `live_ict_monitor_global.py` | **Surveillance live MULTI-ACTIFS** (tous les symboles) |
 | `backtest_ict_universal.py` | Backtest v1 sur n'importe quel symbole |
 | `backtest_ict_fvg_v1.py` | Backtest v1 XAUUSD uniquement |
 | `backtest_ict_fvg.py` | Backtest v2 avec filtres ICT complets |
 | `download_historical.py` | Télécharger les données M3 depuis MT5 |
 | `analyze_winners_losers.py` | Analyse comparative gagnants vs perdants |
+
+---
+
+---
+
+## 11. Version multi-actifs — `live_ict_monitor_global.py`
+
+Le projet inclut également une **version globalisée** du moniteur ICT FVG qui
+scanne **tous les actifs disponibles** chez le broker simultanément.
+
+### Utilisation
+
+```bash
+# Market Watch par défaut (50 symboles max)
+python live_ict_monitor_global.py
+
+# Tous les actifs du broker (illimité)
+python live_ict_monitor_global.py --scan-all --max-symbols 0
+
+# Liste explicite de symboles
+python live_ict_monitor_global.py --symbols EURUSD XAUUSD BTCUSD
+
+# Filtrer par type d'instrument
+python live_ict_monitor_global.py --filter-type FOREX,METAL --interval 30
+
+# Résumé périodique tous les 5 scans
+python live_ict_monitor_global.py --summary-interval 5
+```
+
+### Options spécifiques au moniteur global
+
+| Option | Défaut | Description |
+|--------|:------:|-------------|
+| `--symbols` | Market Watch | Liste de symboles explicites |
+| `--scan-all` | — | Scanner tous les symboles disponibles chez le broker |
+| `--max-symbols` | `50` | Nombre max de symboles (0 = illimité) |
+| `--filter-type` | — | Filtrer par type: `FOREX,METAL,INDEX,CRYPTO,STOCK,COMMODITY` |
+| `--summary-interval` | `5` | Tableau résumé tous les N scans (0 = désactivé) |
+
+### Différences avec la version mono-symbole
+
+| Caractéristique | `live_ict_monitor.py` | `live_ict_monitor_global.py` |
+|-----------------|:---------------------:|:----------------------------:|
+| Symboles | 1 seul | Tous (Market Watch / scan-all / explicite) |
+| Intervalle par défaut | 30s | 60s (plus long car multi-actifs) |
+| Tableau résumé | — | ✅ Périodique (tous les N scans) |
+| Filtre par type | — | ✅ `--filter-type` |
+| Throttle entre symboles | — | ✅ 50ms (évite de saturer MT5) |
+| Log JSONL | `live_ict_signals.jsonl` | `live_ict_signals_global.jsonl` |
+| Détection multi-setups | 1 par symbole | Plusieurs par symbole (PDH + AH simultanés) |
+
+### Tableau résumé
+
+Le moniteur global affiche périodiquement un **tableau résumé** de tous les
+setups actifs, triés par RR décroissant :
+
+```
+══════════════════════════════════════════════════════════════════════════════
+  📊 RÉSUMÉ — Scan #5  |  3 setup(s) actif(s)  |  2026-06-29 10:53:04 UTC
+══════════════════════════════════════════════════════════════════════════════
+  Symbole      Type  Action       Entry           SL          TP1    RR1          DOL    FVG%
+  ────────────────────────────────────────────────────────────────────────────────
+  XAUUSD      METAL    BUY     4352.50      4345.20     4366.25   1.88x     4380.00   0.63%
+  EURUSD      FOREX   SELL     1.09200      1.09350     1.08950   1.67x     1.08800   0.41%
+  BTCUSD     CRYPTO    BUY    60234.00    59800.00    61000.00   1.45x    62000.00   0.82%
+  ────────────────────────────────────────────────────────────────────────────────
+  Tri par RR décroissant  |  Log: new_analysis_02/live_ict_signals_global.jsonl
+```
 
 ---
 

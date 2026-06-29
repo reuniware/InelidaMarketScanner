@@ -42,6 +42,8 @@ InelidaMarketScanner/
 ├── main.py                  # Entrée CLI (argparse)
 ├── app.py                   # Dashboard Streamlit
 ├── live_monitor.py          # Détecteur live de sweeps (Asian + Fractal + Daily/Weekly) - NO TRADE
+├── live_ict_monitor.py      # Détecteur live ICT FVG (1 symbole) - alertes + log JSONL
+├── live_ict_monitor_global.py  # Détecteur live ICT FVG MULTI-ACTIFS - alertes + log JSONL
 ├── start_scan.bat           # Lanceur Windows pour le mode watch
 ├── start_dashboard.bat      # Lanceur Windows pour le dashboard Streamlit
 ├── requirements.txt
@@ -117,7 +119,9 @@ MT5 = MT5Config(
 | `setups`    | Filtre les setups directionnels (sweep + mouvement vers l'autre liquidité).|
 | `trade`     | Liste ou exécute les Trade Ideas sur MT5.                |
 | `db`        | Interagit avec la base de données SQLite (stats, list, path).|
-| `live`      | **NOUVEAU** — Détecteur live de sweeps ICT (écran + log, pas de trade). |
+| `live`      | Détecteur live de sweeps ICT (écran + log, pas de trade). |
+| `live_ict`   | Détecteur live ICT FVG mono-symbole (alertes + log JSONL). |
+| `live_ict_global` | **NOUVEAU** — Détecteur live ICT FVG multi-actifs (tous les symboles du broker). |
 
 Exemples :
 
@@ -634,9 +638,16 @@ Nouvelle stratégie de trading basée sur les **Fair Value Gaps (FVG)** et le **
 ### Lancer le moniteur
 
 ```bash
+# Moniteur mono-symbole
 python live_ict_monitor.py XAUUSD              # Démarre la surveillance
 python live_ict_monitor.py XAUUSD --interval 15  # Scan toutes les 15s
 python live_ict_monitor.py EURUSD --fvg-min 0.05 # Filtre FVG plus strict
+
+# Moniteur MULTI-ACTIFS (global)
+python live_ict_monitor_global.py                             # Market Watch, 50 symboles max
+python live_ict_monitor_global.py --scan-all --max-symbols 0  # Tous les actifs du broker
+python live_ict_monitor_global.py --symbols EURUSD XAUUSD BTCUSD
+python live_ict_monitor_global.py --filter-type FOREX,METAL --interval 30
 ```
 
 **Ce qu'il fait :**
@@ -654,7 +665,8 @@ python live_ict_monitor.py EURUSD --fvg-min 0.05 # Filtre FVG plus strict
 
 | Script | Usage |
 |--------|-------|
-| `live_ict_monitor.py SYMBOLE` | Surveillance temps réel (alertes) |
+| `live_ict_monitor.py SYMBOLE` | Surveillance temps réel — 1 symbole (alertes) |
+| `live_ict_monitor_global.py` | Surveillance temps réel — **tous les actifs** (alertes) |
 | `backtest_ict_universal.py SYMBOLE` | Backtest v1 sur n'importe quel symbole |
 | `backtest_ict_fvg_v1.py` | Backtest v1 XAUUSD uniquement |
 | `backtest_ict_fvg.py` | Backtest v2 avec filtres ICT complets |
