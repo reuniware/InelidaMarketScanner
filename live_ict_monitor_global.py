@@ -639,6 +639,14 @@ def scan_symbol(
         if pair["dir"] == "bear" and plan["sl"] <= entry:
             continue
 
+        # Vérifier validité TP (direction correcte — évite les RR négatifs
+        # quand le spread large fait passer le check DOL mais l'entry est déjà
+        # au-delà du DOL)
+        if pair["dir"] == "bull" and plan["tp1"] <= entry:
+            continue
+        if pair["dir"] == "bear" and plan["tp1"] >= entry:
+            continue
+
         # SIGNAL !
         alerted.add(setup_key)
         signal = build_signal(symbol, pair, raid_idx, raid_bar,
