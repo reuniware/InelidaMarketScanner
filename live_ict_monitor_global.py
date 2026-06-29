@@ -47,7 +47,7 @@ SIGNAL_LOG = os.path.join(OUTPUT_DIR, "live_ict_signals_global.jsonl")
 # ─── Constantes ─────────────────────────────────────────────────────────────
 UTC = timezone.utc
 DEFAULT_INTERVAL = 60          # secondes entre chaque scan (plus long car multi-actifs)
-HOURS_BACK = 48                # heures de barres M3 à garder en mémoire
+HOURS_BACK = 120               # heures de barres M3 à garder en mémoire (assez pour couvrir le weekend)
 LOOKBACK_RAID_BARS = 480       # barres max pour chercher un raid (48h en M3)
 LOOKFORWARD_FVG_BARS = 240     # barres max après raid pour trouver un FVG
 DEFAULT_MAX_SYMBOLS = 50       # limite par défaut (Market Watch)
@@ -212,11 +212,15 @@ def select_symbols(symbols: List[str]) -> Tuple[List[str], int]:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def fetch_bars(symbol: str, hours_back: int = HOURS_BACK) -> List[dict]:
-    """Récupère les barres M3 récentes depuis MT5."""
-    now = datetime.now(UTC)
-    start = now.timestamp() - hours_back * 3600
+    """Récupère les barres M3 récentes depuis MT5.
 
-    rates = mt5.copy_rates_from(symbol, mt5.TIMEFRAME_M3, start, 10000)
+    Utilise copy_rates_from_pos (les N dernières barres) plutôt que
+    copy_rates_from (par timestamp) pour éviter le bug du weekend :
+    un timestamp dans le samedi/dimanche ne retourne pas les barres du lundi.
+    """
+    # ~20 barres/heure en M3 → 120h = 2400 barres + buffer 200
+    max_bars = hours_back * 20 + 200
+    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M3, 0, max_bars)
     if rates is None or len(rates) == 0:
         return []
 
