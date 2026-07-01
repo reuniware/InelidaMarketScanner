@@ -21,7 +21,7 @@ from typing import List, Dict, Optional, Tuple
 
 DATA_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
-    "reports", "xauusd_m3_2026_01_01_to_2026_06_26.json",
+    "reports", "xauusd_m3_20260101_to_20260627.json",
 )
 
 USE_PDH_PDL = True

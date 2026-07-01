@@ -17,92 +17,92 @@
       "INDEX",
       "METAL"
     ],
-    "generated_at": "2026-06-28 00:24:01 UTC"
+    "generated_at": "2026-07-01 22:05:20 UTC"
   },
   "summary": {
     "total_trades": 2803,
-    "gagnes": 1538,
-    "perdus": 1242,
-    "ouverts": 23,
+    "gagnes": 1545,
+    "perdus": 1253,
+    "ouverts": 5,
     "no_data": 0,
-    "winrate_global": 55.3,
-    "pnl_total_r": 79.6,
+    "winrate_global": 55.2,
+    "pnl_total_r": 70.74,
     "pnl_avg_r": 0.03
   },
   "by_hour": {
     "09:00": {
       "trades": 218,
-      "gagnes": 119,
-      "perdus": 99,
+      "gagnes": 114,
+      "perdus": 104,
       "ouverts": 0,
-      "winrate": 54.6,
-      "pnl_r": 22.01,
-      "pnl_avg_r": 0.1
+      "winrate": 52.3,
+      "pnl_r": 10.14,
+      "pnl_avg_r": 0.05
     },
     "10:00": {
       "trades": 439,
-      "gagnes": 238,
-      "perdus": 199,
-      "ouverts": 2,
-      "winrate": 54.5,
-      "pnl_r": 20.9,
-      "pnl_avg_r": 0.05
+      "gagnes": 237,
+      "perdus": 202,
+      "ouverts": 0,
+      "winrate": 54.0,
+      "pnl_r": 18.13,
+      "pnl_avg_r": 0.04
     },
     "11:00": {
       "trades": 594,
-      "gagnes": 322,
-      "perdus": 268,
-      "ouverts": 4,
-      "winrate": 54.6,
-      "pnl_r": 2.2,
-      "pnl_avg_r": 0.0
+      "gagnes": 330,
+      "perdus": 264,
+      "ouverts": 0,
+      "winrate": 55.6,
+      "pnl_r": 14.43,
+      "pnl_avg_r": 0.02
     },
     "12:00": {
       "trades": 734,
-      "gagnes": 411,
-      "perdus": 315,
-      "ouverts": 8,
-      "winrate": 56.6,
-      "pnl_r": 41.69,
-      "pnl_avg_r": 0.06
+      "gagnes": 413,
+      "perdus": 319,
+      "ouverts": 2,
+      "winrate": 56.4,
+      "pnl_r": 37.37,
+      "pnl_avg_r": 0.05
     },
     "13:00": {
       "trades": 818,
-      "gagnes": 448,
-      "perdus": 361,
-      "ouverts": 9,
-      "winrate": 55.4,
-      "pnl_r": -7.21,
+      "gagnes": 451,
+      "perdus": 364,
+      "ouverts": 3,
+      "winrate": 55.3,
+      "pnl_r": -9.33,
       "pnl_avg_r": -0.01
     }
   },
   "monthly": {
     "2026-01": {
       "trades": 473,
-      "gagnes": 266,
-      "perdus": 207,
+      "gagnes": 242,
+      "perdus": 231,
       "ouverts": 0,
-      "winrate": 56.2,
-      "pnl_r": 44.29,
-      "pnl_avg_r": 0.09
+      "winrate": 51.2,
+      "pnl_r": -5.72,
+      "pnl_avg_r": -0.01
     },
     "2026-02": {
       "trades": 351,
-      "gagnes": 162,
-      "perdus": 189,
+      "gagnes": 168,
+      "perdus": 183,
       "ouverts": 0,
-      "winrate": 46.2,
-      "pnl_r": -31.24,
-      "pnl_avg_r": -0.09
+      "winrate": 47.9,
+      "pnl_r": -20.55,
+      "pnl_avg_r": -0.06
     },
     "2026-03": {
       "trades": 554,
-      "gagnes": 361,
-      "perdus": 193,
+      "gagnes": 378,
+      "perdus": 176,
       "ouverts": 0,
-      "winrate": 65.2,
-      "pnl_r": 86.47,
-      "pnl_avg_r": 0.16
+      "winrate": 68.2,
+      "pnl_r": 119.61,
+      "pnl_avg_r": 0.22
     },
     "2026-04": {
       "trades": 496,
@@ -124,52 +124,52 @@
     },
     "2026-06": {
       "trades": 455,
-      "gagnes": 251,
-      "perdus": 181,
-      "ouverts": 23,
-      "winrate": 58.1,
-      "pnl_r": 12.33,
-      "pnl_avg_r": 0.03
+      "gagnes": 259,
+      "perdus": 191,
+      "ouverts": 5,
+      "winrate": 57.6,
+      "pnl_r": 9.65,
+      "pnl_avg_r": 0.02
     }
   },
   "by_type": {
     "FOREX_USD": {
       "trades": 2234,
-      "gagnes": 1246,
-      "perdus": 973,
-      "ouverts": 15,
-      "winrate": 56.2,
-      "pnl_r": 42.45,
-      "pnl_avg_r": 0.02
+      "gagnes": 1279,
+      "perdus": 955,
+      "ouverts": 0,
+      "winrate": 57.3,
+      "pnl_r": 90.05,
+      "pnl_avg_r": 0.04
     },
     "METAL": {
       "trades": 569,
-      "gagnes": 292,
-      "perdus": 269,
-      "ouverts": 8,
-      "winrate": 52.0,
-      "pnl_r": 37.16,
-      "pnl_avg_r": 0.07
+      "gagnes": 266,
+      "perdus": 298,
+      "ouverts": 5,
+      "winrate": 47.2,
+      "pnl_r": -19.31,
+      "pnl_avg_r": -0.03
     }
   },
   "by_direction": {
     "BUY": {
       "trades": 1658,
-      "gagnes": 950,
-      "perdus": 694,
-      "ouverts": 14,
-      "winrate": 57.8,
-      "pnl_r": 112.78,
-      "pnl_avg_r": 0.07
+      "gagnes": 966,
+      "perdus": 687,
+      "ouverts": 5,
+      "winrate": 58.4,
+      "pnl_r": 129.41,
+      "pnl_avg_r": 0.08
     },
     "SELL": {
       "trades": 1145,
-      "gagnes": 588,
-      "perdus": 548,
-      "ouverts": 9,
-      "winrate": 51.8,
-      "pnl_r": -33.18,
-      "pnl_avg_r": -0.03
+      "gagnes": 579,
+      "perdus": 566,
+      "ouverts": 0,
+      "winrate": 50.6,
+      "pnl_r": -58.66,
+      "pnl_avg_r": -0.05
     }
   },
   "best_days": [
@@ -206,12 +206,12 @@
       "pnl_r": 30.48
     },
     {
-      "date": "2026-03-11",
-      "trades": 16,
-      "gagnes": 16,
+      "date": "2026-03-05",
+      "trades": 31,
+      "gagnes": 31,
       "perdus": 0,
       "winrate": 100.0,
-      "pnl_r": 17.6
+      "pnl_r": 34.76
     },
     {
       "date": "2026-03-20",
@@ -238,23 +238,31 @@
       "pnl_r": 16.27
     },
     {
-      "date": "2026-06-26",
-      "trades": 32,
-      "gagnes": 10,
-      "perdus": 0,
-      "winrate": 100.0,
-      "pnl_r": 3.83
-    },
-    {
       "date": "2026-06-23",
       "trades": 55,
-      "gagnes": 53,
+      "gagnes": 54,
       "perdus": 1,
-      "winrate": 98.1,
-      "pnl_r": 47.34
+      "winrate": 98.2,
+      "pnl_r": 48.64
+    },
+    {
+      "date": "2026-05-05",
+      "trades": 34,
+      "gagnes": 33,
+      "perdus": 1,
+      "winrate": 97.1,
+      "pnl_r": 33.09
     }
   ],
   "worst_days": [
+    {
+      "date": "2026-02-09",
+      "trades": 4,
+      "gagnes": 0,
+      "perdus": 4,
+      "winrate": 0.0,
+      "pnl_r": -4.0
+    },
     {
       "date": "2026-03-09",
       "trades": 11,
@@ -262,14 +270,6 @@
       "perdus": 11,
       "winrate": 0.0,
       "pnl_r": -11.0
-    },
-    {
-      "date": "2026-03-23",
-      "trades": 24,
-      "gagnes": 0,
-      "perdus": 24,
-      "winrate": 0.0,
-      "pnl_r": -24.0
     },
     {
       "date": "2026-03-31",
@@ -357,11 +357,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767344400,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 114.93391600000001,
+      "outcome": "PERDU",
+      "hit_price": 107.4268,
       "tf_used": "M5",
       "scan_hour_utc": 9,
-      "pnl_r": 1.405201845444062
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAGUSD",
@@ -383,11 +383,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767344400,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 77.371564,
+      "outcome": "PERDU",
+      "hit_price": 71.6692,
       "tf_used": "M5",
       "scan_hour_utc": 9,
-      "pnl_r": 1.4236501190071396
+      "pnl_r": -1.0
     },
     {
       "symbol": "GBPUSD",
@@ -461,11 +461,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767348000,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 114.93391600000001,
+      "outcome": "PERDU",
+      "hit_price": 107.4268,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": 1.0886750876412021
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAGUSD",
@@ -487,11 +487,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767348000,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 77.371564,
+      "outcome": "PERDU",
+      "hit_price": 71.6692,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": 1.077515301661326
+      "pnl_r": -1.0
     },
     {
       "symbol": "GBPUSD",
@@ -565,11 +565,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767351600,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 114.93391600000001,
+      "outcome": "PERDU",
+      "hit_price": 107.4268,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": 1.0771169276741788
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAGUSD",
@@ -591,11 +591,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767351600,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 77.371564,
+      "outcome": "PERDU",
+      "hit_price": 71.6692,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": 1.0989266784452367
+      "pnl_r": -1.0
     },
     {
       "symbol": "XPTUSD",
@@ -799,11 +799,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767355200,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 114.93391600000001,
+      "outcome": "PERDU",
+      "hit_price": 107.4268,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": 0.9895886780451619
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAGUSD",
@@ -825,11 +825,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767355200,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 77.371564,
+      "outcome": "PERDU",
+      "hit_price": 71.6692,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": 1.029455477258172
+      "pnl_r": -1.0
     },
     {
       "symbol": "XPDUSD",
@@ -929,11 +929,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1767358800,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.3702480000000001,
+      "outcome": "GAGNE",
+      "hit_price": 1.3751947599999998,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": -1.0
+      "pnl_r": 1.0854806070826708
     },
     {
       "symbol": "USDHKD",
@@ -1033,11 +1033,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767358800,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 114.93391600000001,
+      "outcome": "PERDU",
+      "hit_price": 107.4268,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 1.1658057815475187
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAGUSD",
@@ -1059,11 +1059,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767358800,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 77.371564,
+      "outcome": "PERDU",
+      "hit_price": 71.6692,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 1.2558604319962041
+      "pnl_r": -1.0
     },
     {
       "symbol": "XPDUSD",
@@ -1137,11 +1137,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767603600,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 6806.092600000002,
+      "outcome": "PERDU",
+      "hit_price": 6491.62,
       "tf_used": "M5",
       "scan_hour_utc": 9,
-      "pnl_r": 1.3992721446555472
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAUUSD",
@@ -1189,11 +1189,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767607200,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 6806.092600000002,
+      "outcome": "PERDU",
+      "hit_price": 6491.62,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": 1.189920612813378
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAUUSD",
@@ -1241,11 +1241,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767610800,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 0.790153,
+      "outcome": "GAGNE",
+      "hit_price": 0.8023024600000002,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": -1.0
+      "pnl_r": 0.9573803769937556
     },
     {
       "symbol": "XAUAUD",
@@ -1267,11 +1267,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767610800,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 6806.092600000002,
+      "outcome": "PERDU",
+      "hit_price": 6491.62,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": 1.0721705324196193
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAUUSD",
@@ -1345,11 +1345,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767614400,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 6806.092600000002,
+      "outcome": "PERDU",
+      "hit_price": 6491.62,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": 1.174926343453915
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAUUSD",
@@ -1813,11 +1813,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1767704400,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 0.79046,
+      "outcome": "GAGNE",
+      "hit_price": 0.795896,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": -1.0
+      "pnl_r": 0.9767272727273295
     },
     {
       "symbol": "USDHKD",
@@ -2151,11 +2151,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767783600,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.2791089999999998,
+      "outcome": "GAGNE",
+      "hit_price": 1.28538758,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": -1.0
+      "pnl_r": 1.359481397970565
     },
     {
       "symbol": "USDZAR",
@@ -2203,11 +2203,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767787200,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 1.37784378,
+      "outcome": "PERDU",
+      "hit_price": 1.382709,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": 1.232776502983041
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDCHF",
@@ -2333,11 +2333,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767790800,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 1.37784378,
+      "outcome": "PERDU",
+      "hit_price": 1.382709,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 1.3289707994255027
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDCHF",
@@ -3399,11 +3399,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1767877200,
       "symbol_type": "METAL",
-      "outcome": "PERDU",
-      "hit_price": 67.95150000000001,
+      "outcome": "GAGNE",
+      "hit_price": 59.83827000000001,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": -1.0
+      "pnl_r": 1.3574691268342263
     },
     {
       "symbol": "XAGUSD",
@@ -3425,11 +3425,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1767877200,
       "symbol_type": "METAL",
-      "outcome": "PERDU",
-      "hit_price": 79.35079999999999,
+      "outcome": "GAGNE",
+      "hit_price": 69.951956,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": -1.0
+      "pnl_r": 1.3398834893447575
     },
     {
       "symbol": "XPDUSD",
@@ -3945,11 +3945,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767956400,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 69.35111800000001,
+      "outcome": "PERDU",
+      "hit_price": 64.5919,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": 1.0029535793948074
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAGUSD",
@@ -3971,11 +3971,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767956400,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 80.775686,
+      "outcome": "PERDU",
+      "hit_price": 75.2663,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": 1.0392293740977856
+      "pnl_r": -1.0
     },
     {
       "symbol": "XPTUSD",
@@ -4153,11 +4153,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767960000,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 69.35111800000001,
+      "outcome": "PERDU",
+      "hit_price": 64.5919,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": 0.9392926123629831
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAGUSD",
@@ -4179,11 +4179,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767960000,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 80.775686,
+      "outcome": "PERDU",
+      "hit_price": 75.2663,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": 0.9525059361377914
+      "pnl_r": -1.0
     },
     {
       "symbol": "XPTUSD",
@@ -4387,11 +4387,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767963600,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 69.35111800000001,
+      "outcome": "PERDU",
+      "hit_price": 64.5919,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 1.0173871391632496
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAGUSD",
@@ -4413,11 +4413,11 @@
       "al_swept_session": null,
       "scan_epoch": 1767963600,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 80.775686,
+      "outcome": "PERDU",
+      "hit_price": 75.2663,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 1.034710640026586
+      "pnl_r": -1.0
     },
     {
       "symbol": "XPTUSD",
@@ -6311,11 +6311,11 @@
       "al_swept_session": null,
       "scan_epoch": 1768392000,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 7029.8029799999995,
+      "outcome": "PERDU",
+      "hit_price": 6859.629000000001,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": 1.4052519399019145
+      "pnl_r": -1.0
     },
     {
       "symbol": "XPDUSD",
@@ -6415,11 +6415,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1768395600,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 17.832692,
+      "outcome": "GAGNE",
+      "hit_price": 17.76740564,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": -1.0
+      "pnl_r": 1.3764691322071387
     },
     {
       "symbol": "USDPLN",
@@ -6519,11 +6519,11 @@
       "al_swept_session": null,
       "scan_epoch": 1768395600,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 7029.8029799999995,
+      "outcome": "PERDU",
+      "hit_price": 6859.629000000001,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 1.432412058146686
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDCHF",
@@ -8417,11 +8417,11 @@
       "al_swept_session": null,
       "scan_epoch": 1768903200,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 7097.75448,
+      "outcome": "PERDU",
+      "hit_price": 6936.414000000001,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": 0.8953137701759776
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAUUSD",
@@ -8443,11 +8443,11 @@
       "al_swept_session": null,
       "scan_epoch": 1768903200,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 4808.980160000002,
+      "outcome": "PERDU",
+      "hit_price": 4653.727999999999,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": 1.0532740834788221
+      "pnl_r": -1.0
     },
     {
       "symbol": "XPTUSD",
@@ -8547,11 +8547,11 @@
       "al_swept_session": null,
       "scan_epoch": 1768906800,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 7097.75448,
+      "outcome": "PERDU",
+      "hit_price": 6936.414000000001,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": 0.6592669381710544
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAUUSD",
@@ -8573,11 +8573,11 @@
       "al_swept_session": null,
       "scan_epoch": 1768906800,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 4808.980160000002,
+      "outcome": "PERDU",
+      "hit_price": 4653.727999999999,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": 0.9741634241245299
+      "pnl_r": -1.0
     },
     {
       "symbol": "XPTUSD",
@@ -8677,11 +8677,11 @@
       "al_swept_session": null,
       "scan_epoch": 1768910400,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 7097.75448,
+      "outcome": "PERDU",
+      "hit_price": 6936.414000000001,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": 0.9101233632467502
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAUUSD",
@@ -8703,11 +8703,11 @@
       "al_swept_session": null,
       "scan_epoch": 1768910400,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 4808.980160000002,
+      "outcome": "PERDU",
+      "hit_price": 4653.727999999999,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": 1.133112033195027
+      "pnl_r": -1.0
     },
     {
       "symbol": "XPTUSD",
@@ -8833,11 +8833,11 @@
       "al_swept_session": null,
       "scan_epoch": 1768914000,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 7097.75448,
+      "outcome": "PERDU",
+      "hit_price": 6936.414000000001,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 0.7787189381077362
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAUUSD",
@@ -8859,11 +8859,11 @@
       "al_swept_session": null,
       "scan_epoch": 1768914000,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 4808.980160000002,
+      "outcome": "PERDU",
+      "hit_price": 4653.727999999999,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 0.9594628432956508
+      "pnl_r": -1.0
     },
     {
       "symbol": "XPTUSD",
@@ -9119,11 +9119,11 @@
       "al_swept_session": null,
       "scan_epoch": 1768993200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 0.788068,
+      "outcome": "GAGNE",
+      "hit_price": 0.7970917599999999,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": -1.0
+      "pnl_r": 0.8989393939393892
     },
     {
       "symbol": "USDCZK",
@@ -9353,11 +9353,11 @@
       "al_swept_session": null,
       "scan_epoch": 1768996800,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 0.788068,
+      "outcome": "GAGNE",
+      "hit_price": 0.7970917599999999,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": -1.0
+      "pnl_r": 1.1733526011560307
     },
     {
       "symbol": "USDCZK",
@@ -10367,11 +10367,11 @@
       "al_swept_session": null,
       "scan_epoch": 1769166000,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 0.788481,
+      "outcome": "GAGNE",
+      "hit_price": 0.7936180200000001,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": -1.0
+      "pnl_r": 1.0312455516014833
     },
     {
       "symbol": "USDILS",
@@ -10679,11 +10679,11 @@
       "al_swept_session": null,
       "scan_epoch": 1769173200,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 1.3758238999999997,
+      "outcome": "PERDU",
+      "hit_price": 1.3797650000000001,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 1.1714049586778015
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDILS",
@@ -11459,11 +11459,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1769518800,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 0.69641578,
+      "outcome": "PERDU",
+      "hit_price": 0.6904089999999999,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 1.1994800439399542
+      "pnl_r": -1.0
     },
     {
       "symbol": "GBPUSD",
@@ -13773,11 +13773,11 @@
       "al_swept_session": null,
       "scan_epoch": 1770202800,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 9.599789000000001,
+      "outcome": "GAGNE",
+      "hit_price": 9.689238379999999,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": -1.0
+      "pnl_r": 0.799388063004174
     },
     {
       "symbol": "USDSEK",
@@ -13929,11 +13929,11 @@
       "al_swept_session": null,
       "scan_epoch": 1770206400,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 9.599789000000001,
+      "outcome": "GAGNE",
+      "hit_price": 9.689238379999999,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": -1.0
+      "pnl_r": 0.5887707145521147
     },
     {
       "symbol": "USDPLN",
@@ -14111,11 +14111,11 @@
       "al_swept_session": null,
       "scan_epoch": 1770210000,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 9.599789000000001,
+      "outcome": "GAGNE",
+      "hit_price": 9.689238379999999,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": -1.0
+      "pnl_r": 0.677563811631442
     },
     {
       "symbol": "USDPLN",
@@ -14241,11 +14241,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1770285600,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 3.085638,
+      "outcome": "GAGNE",
+      "hit_price": 3.134072760000001,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": -1.0
+      "pnl_r": 1.0070760815514872
     },
     {
       "symbol": "EURUSD",
@@ -14319,11 +14319,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1770289200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 3.085638,
+      "outcome": "GAGNE",
+      "hit_price": 3.134072760000001,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": -1.0
+      "pnl_r": 0.7371336346030086
     },
     {
       "symbol": "GBPUSD",
@@ -14397,11 +14397,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1770292800,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 3.085638,
+      "outcome": "GAGNE",
+      "hit_price": 3.134072760000001,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": -1.0
+      "pnl_r": 0.9679327157484329
     },
     {
       "symbol": "GBPUSD",
@@ -14475,11 +14475,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1770296400,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 3.085638,
+      "outcome": "GAGNE",
+      "hit_price": 3.134072760000001,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": -1.0
+      "pnl_r": 1.3578405218576748
     },
     {
       "symbol": "USDZAR",
@@ -15385,11 +15385,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1770642000,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 9.5658158,
+      "outcome": "PERDU",
+      "hit_price": 9.70688,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 1.1931623134328329
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDILS",
@@ -16061,11 +16061,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1770804000,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 6.8936033000000005,
+      "outcome": "PERDU",
+      "hit_price": 6.915755,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": 1.4275835616437489
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDMXN",
@@ -17907,11 +17907,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1771243200,
       "symbol_type": "METAL",
-      "outcome": "PERDU",
-      "hit_price": 2079.049,
+      "outcome": "GAGNE",
+      "hit_price": 1971.1715800000004,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": -1.0
+      "pnl_r": 1.174991834512787
     },
     {
       "symbol": "NZDUSD",
@@ -24901,11 +24901,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1772629200,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 9.562331200000003,
+      "outcome": "PERDU",
+      "hit_price": 9.70258,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 1.3706693711967557
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDPLN",
@@ -25317,11 +25317,11 @@
       "al_swept_session": null,
       "scan_epoch": 1772701200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 9.595663,
+      "outcome": "GAGNE",
+      "hit_price": 9.729307060000002,
       "tf_used": "M5",
       "scan_hour_utc": 9,
-      "pnl_r": -1.0
+      "pnl_r": 0.8606382001197368
     },
     {
       "symbol": "USDSEK",
@@ -25603,11 +25603,11 @@
       "al_swept_session": null,
       "scan_epoch": 1772704800,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 9.595663,
+      "outcome": "GAGNE",
+      "hit_price": 9.729307060000002,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": -1.0
+      "pnl_r": 0.8348375139009303
     },
     {
       "symbol": "USDSEK",
@@ -25707,11 +25707,11 @@
       "al_swept_session": null,
       "scan_epoch": 1772708400,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 9.595663,
+      "outcome": "GAGNE",
+      "hit_price": 9.729307060000002,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": -1.0
+      "pnl_r": 1.2718149829160732
     },
     {
       "symbol": "USDZAR",
@@ -25811,11 +25811,11 @@
       "al_swept_session": null,
       "scan_epoch": 1772712000,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 9.595663,
+      "outcome": "GAGNE",
+      "hit_price": 9.729307060000002,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": -1.0
+      "pnl_r": 1.1332874678755802
     },
     {
       "symbol": "USDZAR",
@@ -25941,11 +25941,11 @@
       "al_swept_session": null,
       "scan_epoch": 1772715600,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 9.595663,
+      "outcome": "GAGNE",
+      "hit_price": 9.729307060000002,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": -1.0
+      "pnl_r": 1.0097757793584925
     },
     {
       "symbol": "USDZAR",
@@ -26071,11 +26071,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1772787600,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 9.590734099999999,
+      "outcome": "PERDU",
+      "hit_price": 9.679205,
       "tf_used": "M5",
       "scan_hour_utc": 9,
-      "pnl_r": 1.2863651634579019
+      "pnl_r": -1.0
     },
     {
       "symbol": "EURUSD",
@@ -26149,11 +26149,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1772791200,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 9.590734099999999,
+      "outcome": "PERDU",
+      "hit_price": 9.679205,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": 1.084856839872798
+      "pnl_r": -1.0
     },
     {
       "symbol": "XPTUSD",
@@ -27423,11 +27423,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1773140400,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 9.564273,
+      "outcome": "GAGNE",
+      "hit_price": 9.66095226,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": -1.0
+      "pnl_r": 0.9902270621899338
     },
     {
       "symbol": "USDCHF",
@@ -27709,11 +27709,11 @@
       "al_swept_session": null,
       "scan_epoch": 1773219600,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 7.834598079999999,
+      "outcome": "PERDU",
+      "hit_price": 7.822204,
       "tf_used": "M5",
       "scan_hour_utc": 9,
-      "pnl_r": 1.322728635682081
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAGUSD",
@@ -28229,11 +28229,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1773392400,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 1.326478,
+      "outcome": "PERDU",
+      "hit_price": 1.33735,
       "tf_used": "M5",
       "scan_hour_utc": 9,
-      "pnl_r": 0.8907826086956036
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDCAD",
@@ -28489,11 +28489,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1773396000,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 1.326478,
+      "outcome": "PERDU",
+      "hit_price": 1.33735,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": 0.15782747603833672
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDCAD",
@@ -29451,11 +29451,11 @@
       "al_swept_session": null,
       "scan_epoch": 1773655200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 0.785948,
+      "outcome": "GAGNE",
+      "hit_price": 0.7987769599999999,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": -1.0
+      "pnl_r": 1.3359359067734462
     },
     {
       "symbol": "AUDUSD",
@@ -29867,11 +29867,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1773666000,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 3.104229459999999,
+      "outcome": "PERDU",
+      "hit_price": 3.1423630000000005,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 1.018395172815371
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDNOK",
@@ -30023,11 +30023,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1773745200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.329313,
+      "outcome": "GAGNE",
+      "hit_price": 1.3357546599999999,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": -1.0
+      "pnl_r": 0.8008554654738637
     },
     {
       "symbol": "USDNOK",
@@ -30049,11 +30049,11 @@
       "al_swept_session": null,
       "scan_epoch": 1773745200,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 9.59242696,
+      "outcome": "PERDU",
+      "hit_price": 9.688317999999999,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": 0.5982372745758558
+      "pnl_r": -1.0
     },
     {
       "symbol": "EURUSD",
@@ -30101,11 +30101,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1773748800,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.329313,
+      "outcome": "GAGNE",
+      "hit_price": 1.3357546599999999,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": -1.0
+      "pnl_r": 0.5348248749106255
     },
     {
       "symbol": "USDCAD",
@@ -30231,11 +30231,11 @@
       "al_swept_session": null,
       "scan_epoch": 1773748800,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 9.59242696,
+      "outcome": "PERDU",
+      "hit_price": 9.688317999999999,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": 0.49484068092536887
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDSEK",
@@ -30283,11 +30283,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1773752400,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.329313,
+      "outcome": "GAGNE",
+      "hit_price": 1.3357546599999999,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": -1.0
+      "pnl_r": 1.107183513248191
     },
     {
       "symbol": "NZDUSD",
@@ -30361,11 +30361,11 @@
       "al_swept_session": null,
       "scan_epoch": 1773752400,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 9.59242696,
+      "outcome": "PERDU",
+      "hit_price": 9.688317999999999,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 0.7745112698471892
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDSEK",
@@ -30491,11 +30491,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1773828000,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 21.2404154,
+      "outcome": "PERDU",
+      "hit_price": 21.14447,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": 1.250654468683923
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDSEK",
@@ -30621,11 +30621,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1773838800,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 338.407266,
+      "outcome": "PERDU",
+      "hit_price": 336.1323,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 0.6512782173187189
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDNOK",
@@ -30647,11 +30647,11 @@
       "al_swept_session": null,
       "scan_epoch": 1773838800,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 9.557694,
+      "outcome": "GAGNE",
+      "hit_price": 9.645376680000002,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": -1.0
+      "pnl_r": 1.2166720598644916
     },
     {
       "symbol": "USDSEK",
@@ -30751,11 +30751,11 @@
       "al_swept_session": null,
       "scan_epoch": 1773914400,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 6.891686,
+      "outcome": "GAGNE",
+      "hit_price": 6.9192465200000015,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": -1.0
+      "pnl_r": 1.0214551855656546
     },
     {
       "symbol": "USDHUF",
@@ -30803,11 +30803,11 @@
       "al_swept_session": null,
       "scan_epoch": 1773914400,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 3.092702,
+      "outcome": "GAGNE",
+      "hit_price": 3.14891024,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": -1.0
+      "pnl_r": 1.3961224315798753
     },
     {
       "symbol": "XPDUSD",
@@ -30855,11 +30855,11 @@
       "al_swept_session": null,
       "scan_epoch": 1773918000,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.371163,
+      "outcome": "GAGNE",
+      "hit_price": 1.3776046599999998,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": -1.0
+      "pnl_r": 0.9597383632491105
     },
     {
       "symbol": "USDCNH",
@@ -30881,11 +30881,11 @@
       "al_swept_session": null,
       "scan_epoch": 1773918000,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 6.891686,
+      "outcome": "GAGNE",
+      "hit_price": 6.9192465200000015,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": -1.0
+      "pnl_r": 0.9227375470909603
     },
     {
       "symbol": "USDHUF",
@@ -30933,11 +30933,11 @@
       "al_swept_session": null,
       "scan_epoch": 1773918000,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 3.092702,
+      "outcome": "GAGNE",
+      "hit_price": 3.14891024,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": -1.0
+      "pnl_r": 1.070437601296605
     },
     {
       "symbol": "USDNOK",
@@ -31037,11 +31037,11 @@
       "al_swept_session": null,
       "scan_epoch": 1773921600,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 0.790688,
+      "outcome": "GAGNE",
+      "hit_price": 0.7969937599999999,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": -1.0
+      "pnl_r": 1.1360975609755413
     },
     {
       "symbol": "USDHUF",
@@ -31141,11 +31141,11 @@
       "al_swept_session": null,
       "scan_epoch": 1773925200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 0.790688,
+      "outcome": "GAGNE",
+      "hit_price": 0.7969937599999999,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": -1.0
+      "pnl_r": 0.3158931552587466
     },
     {
       "symbol": "USDILS",
@@ -31167,11 +31167,11 @@
       "al_swept_session": null,
       "scan_epoch": 1773925200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 3.092702,
+      "outcome": "GAGNE",
+      "hit_price": 3.14891024,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": -1.0
+      "pnl_r": 1.3788826815642532
     },
     {
       "symbol": "XPDUSD",
@@ -32077,11 +32077,11 @@
       "al_swept_session": null,
       "scan_epoch": 1774260000,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.278487,
+      "outcome": "GAGNE",
+      "hit_price": 1.2907995399999999,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": -1.0
+      "pnl_r": 1.3801546491397068
     },
     {
       "symbol": "XAUAUD",
@@ -32155,11 +32155,11 @@
       "al_swept_session": null,
       "scan_epoch": 1774263600,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.3697530000000002,
+      "outcome": "GAGNE",
+      "hit_price": 1.3783690599999998,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": -1.0
+      "pnl_r": 1.3625061694544067
     },
     {
       "symbol": "USDCHF",
@@ -32181,11 +32181,11 @@
       "al_swept_session": null,
       "scan_epoch": 1774263600,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 0.786295,
+      "outcome": "GAGNE",
+      "hit_price": 0.7943131,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": -1.0
+      "pnl_r": 0.6686992715920769
     },
     {
       "symbol": "XAUAUD",
@@ -32285,11 +32285,11 @@
       "al_swept_session": null,
       "scan_epoch": 1774267200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.3697530000000002,
+      "outcome": "GAGNE",
+      "hit_price": 1.3783690599999998,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": -1.0
+      "pnl_r": 0.6547071250240106
     },
     {
       "symbol": "USDCHF",
@@ -32311,11 +32311,11 @@
       "al_swept_session": null,
       "scan_epoch": 1774267200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 0.786295,
+      "outcome": "GAGNE",
+      "hit_price": 0.7943131,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": -1.0
+      "pnl_r": 0.21210884353741233
     },
     {
       "symbol": "USDILS",
@@ -32363,11 +32363,11 @@
       "al_swept_session": null,
       "scan_epoch": 1774267200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.278487,
+      "outcome": "GAGNE",
+      "hit_price": 1.2907995399999999,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": -1.0
+      "pnl_r": 0.8152056612117875
     },
     {
       "symbol": "XAUAUD",
@@ -32493,11 +32493,11 @@
       "al_swept_session": null,
       "scan_epoch": 1774270800,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.3697530000000002,
+      "outcome": "GAGNE",
+      "hit_price": 1.3783690599999998,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": -1.0
+      "pnl_r": 0.564565098964963
     },
     {
       "symbol": "USDCHF",
@@ -32519,11 +32519,11 @@
       "al_swept_session": null,
       "scan_epoch": 1774270800,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 0.786295,
+      "outcome": "GAGNE",
+      "hit_price": 0.7943131,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": -1.0
+      "pnl_r": 0.06694610778442785
     },
     {
       "symbol": "USDILS",
@@ -32571,11 +32571,11 @@
       "al_swept_session": null,
       "scan_epoch": 1774270800,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.278487,
+      "outcome": "GAGNE",
+      "hit_price": 1.2907995399999999,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": -1.0
+      "pnl_r": 0.5799486718849831
     },
     {
       "symbol": "XAUAUD",
@@ -32987,11 +32987,11 @@
       "al_swept_session": null,
       "scan_epoch": 1774357200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 21.00761,
+      "outcome": "GAGNE",
+      "hit_price": 21.273702200000006,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": -1.0
+      "pnl_r": 1.4369649235278161
     },
     {
       "symbol": "USDHKD",
@@ -70765,11 +70765,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1782208800,
       "symbol_type": "METAL",
-      "outcome": "OUVERT",
-      "hit_price": 5912.2,
+      "outcome": "GAGNE",
+      "hit_price": 5748.19082,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": 0.0
+      "pnl_r": 1.297082042878842
     },
     {
       "symbol": "XPDUSD",
@@ -72429,11 +72429,11 @@
       "al_swept_session": null,
       "scan_epoch": 1782468000,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 1.31914,
+      "outcome": "GAGNE",
+      "hit_price": 1.3236487000000001,
       "tf_used": "M5",
       "scan_hour_utc": 10,
-      "pnl_r": 0.0
+      "pnl_r": 1.1764245810056326
     },
     {
       "symbol": "EURUSD",
@@ -72481,11 +72481,11 @@
       "al_swept_session": null,
       "scan_epoch": 1782471600,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 1.31914,
+      "outcome": "GAGNE",
+      "hit_price": 1.3236487000000001,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": 0.0
+      "pnl_r": 0.5198179453836358
     },
     {
       "symbol": "NZDUSD",
@@ -72507,11 +72507,11 @@
       "al_swept_session": null,
       "scan_epoch": 1782471600,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 0.56352,
+      "outcome": "GAGNE",
+      "hit_price": 0.5686314,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": 0.0
+      "pnl_r": 1.3951724137931687
     },
     {
       "symbol": "USDCAD",
@@ -72533,11 +72533,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1782471600,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 1.41925,
+      "outcome": "PERDU",
+      "hit_price": 1.421157,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": 0.0
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDCHF",
@@ -72559,11 +72559,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1782471600,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 0.81007,
+      "outcome": "PERDU",
+      "hit_price": 0.811449,
       "tf_used": "M5",
       "scan_hour_utc": 11,
-      "pnl_r": 0.0
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDCZK",
@@ -72663,11 +72663,11 @@
       "al_swept_session": null,
       "scan_epoch": 1782475200,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 1.31914,
+      "outcome": "GAGNE",
+      "hit_price": 1.3236487000000001,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": 0.0
+      "pnl_r": 0.4270329670329597
     },
     {
       "symbol": "NZDUSD",
@@ -72689,11 +72689,11 @@
       "al_swept_session": null,
       "scan_epoch": 1782475200,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 0.56352,
+      "outcome": "GAGNE",
+      "hit_price": 0.5686314,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": 0.0
+      "pnl_r": 1.1263265306122547
     },
     {
       "symbol": "USDCAD",
@@ -72715,11 +72715,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1782475200,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 1.41925,
+      "outcome": "PERDU",
+      "hit_price": 1.421157,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": 0.0
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDCHF",
@@ -72741,11 +72741,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1782475200,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 0.81007,
+      "outcome": "PERDU",
+      "hit_price": 0.811449,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": 0.0
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDCZK",
@@ -72819,11 +72819,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1782475200,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 9.73469,
+      "outcome": "PERDU",
+      "hit_price": 9.762324999999999,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": 0.0
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAGAUD",
@@ -72846,7 +72846,7 @@
       "scan_epoch": 1782475200,
       "symbol_type": "METAL",
       "outcome": "OUVERT",
-      "hit_price": 85.039,
+      "hit_price": 86.095,
       "tf_used": "M5",
       "scan_hour_utc": 12,
       "pnl_r": 0.0
@@ -72872,7 +72872,7 @@
       "scan_epoch": 1782475200,
       "symbol_type": "METAL",
       "outcome": "OUVERT",
-      "hit_price": 58.618,
+      "hit_price": 59.342,
       "tf_used": "M5",
       "scan_hour_utc": 12,
       "pnl_r": 0.0
@@ -72897,11 +72897,11 @@
       "al_swept_session": null,
       "scan_epoch": 1782475200,
       "symbol_type": "METAL",
-      "outcome": "OUVERT",
-      "hit_price": 4075.46,
+      "outcome": "PERDU",
+      "hit_price": 3977.5550000000003,
       "tf_used": "M5",
       "scan_hour_utc": 12,
-      "pnl_r": 0.0
+      "pnl_r": -1.0
     },
     {
       "symbol": "EURUSD",
@@ -72949,11 +72949,11 @@
       "al_swept_session": null,
       "scan_epoch": 1782478800,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 1.31914,
+      "outcome": "GAGNE",
+      "hit_price": 1.3236487000000001,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 0.0
+      "pnl_r": 0.3357028571429041
     },
     {
       "symbol": "NZDUSD",
@@ -72975,11 +72975,11 @@
       "al_swept_session": null,
       "scan_epoch": 1782478800,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 0.56352,
+      "outcome": "GAGNE",
+      "hit_price": 0.5686314,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 0.0
+      "pnl_r": 1.04294117647059
     },
     {
       "symbol": "USDCAD",
@@ -73001,11 +73001,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1782478800,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 1.41925,
+      "outcome": "PERDU",
+      "hit_price": 1.421157,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 0.0
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDCHF",
@@ -73027,11 +73027,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1782478800,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 0.81007,
+      "outcome": "PERDU",
+      "hit_price": 0.811449,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 0.0
+      "pnl_r": -1.0
     },
     {
       "symbol": "USDCZK",
@@ -73105,11 +73105,11 @@
       "al_swept_session": "London",
       "scan_epoch": 1782478800,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 9.73469,
+      "outcome": "PERDU",
+      "hit_price": 9.762324999999999,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 0.0
+      "pnl_r": -1.0
     },
     {
       "symbol": "XAGAUD",
@@ -73132,7 +73132,7 @@
       "scan_epoch": 1782478800,
       "symbol_type": "METAL",
       "outcome": "OUVERT",
-      "hit_price": 85.039,
+      "hit_price": 86.095,
       "tf_used": "M5",
       "scan_hour_utc": 13,
       "pnl_r": 0.0
@@ -73158,7 +73158,7 @@
       "scan_epoch": 1782478800,
       "symbol_type": "METAL",
       "outcome": "OUVERT",
-      "hit_price": 51.476,
+      "hit_price": 52.158,
       "tf_used": "M5",
       "scan_hour_utc": 13,
       "pnl_r": 0.0
@@ -73184,7 +73184,7 @@
       "scan_epoch": 1782478800,
       "symbol_type": "METAL",
       "outcome": "OUVERT",
-      "hit_price": 58.618,
+      "hit_price": 59.342,
       "tf_used": "M5",
       "scan_hour_utc": 13,
       "pnl_r": 0.0
@@ -73209,11 +73209,11 @@
       "al_swept_session": null,
       "scan_epoch": 1782478800,
       "symbol_type": "METAL",
-      "outcome": "OUVERT",
-      "hit_price": 4075.46,
+      "outcome": "PERDU",
+      "hit_price": 3977.5550000000003,
       "tf_used": "M5",
       "scan_hour_utc": 13,
-      "pnl_r": 0.0
+      "pnl_r": -1.0
     }
   ],
   "daily_stats": {
@@ -73227,51 +73227,51 @@
     },
     "2026-01-02": {
       "trades": 30,
-      "gagnes": 18,
-      "perdus": 12,
+      "gagnes": 9,
+      "perdus": 21,
       "ouverts": 0,
-      "winrate": 60.0,
-      "pnl_r": 8.76
+      "winrate": 30.0,
+      "pnl_r": -10.77
     },
     "2026-01-05": {
       "trades": 12,
-      "gagnes": 11,
-      "perdus": 1,
+      "gagnes": 8,
+      "perdus": 4,
       "ouverts": 0,
-      "winrate": 91.7,
-      "pnl_r": 12.54
+      "winrate": 66.7,
+      "pnl_r": 5.66
     },
     "2026-01-06": {
       "trades": 21,
-      "gagnes": 16,
-      "perdus": 5,
+      "gagnes": 17,
+      "perdus": 4,
       "ouverts": 0,
-      "winrate": 76.2,
-      "pnl_r": 10.72
+      "winrate": 81.0,
+      "pnl_r": 12.69
     },
     "2026-01-07": {
       "trades": 17,
-      "gagnes": 11,
-      "perdus": 6,
+      "gagnes": 10,
+      "perdus": 7,
       "ouverts": 0,
-      "winrate": 64.7,
-      "pnl_r": 2.44
+      "winrate": 58.8,
+      "pnl_r": 0.24
     },
     "2026-01-08": {
       "trades": 41,
-      "gagnes": 24,
-      "perdus": 17,
+      "gagnes": 26,
+      "perdus": 15,
       "ouverts": 0,
-      "winrate": 58.5,
-      "pnl_r": 3.97
+      "winrate": 63.4,
+      "pnl_r": 8.67
     },
     "2026-01-09": {
       "trades": 37,
-      "gagnes": 25,
-      "perdus": 12,
+      "gagnes": 19,
+      "perdus": 18,
       "ouverts": 0,
-      "winrate": 67.6,
-      "pnl_r": 7.6
+      "winrate": 51.4,
+      "pnl_r": -4.38
     },
     "2026-01-12": {
       "trades": 30,
@@ -73291,11 +73291,11 @@
     },
     "2026-01-14": {
       "trades": 24,
-      "gagnes": 8,
-      "perdus": 16,
+      "gagnes": 7,
+      "perdus": 17,
       "ouverts": 0,
-      "winrate": 33.3,
-      "pnl_r": -5.57
+      "winrate": 29.2,
+      "pnl_r": -8.03
     },
     "2026-01-15": {
       "trades": 30,
@@ -73323,19 +73323,19 @@
     },
     "2026-01-20": {
       "trades": 22,
-      "gagnes": 16,
-      "perdus": 6,
+      "gagnes": 8,
+      "perdus": 14,
       "ouverts": 0,
-      "winrate": 72.7,
-      "pnl_r": 4.93
+      "winrate": 36.4,
+      "pnl_r": -10.43
     },
     "2026-01-21": {
       "trades": 31,
-      "gagnes": 21,
-      "perdus": 10,
+      "gagnes": 23,
+      "perdus": 8,
       "ouverts": 0,
-      "winrate": 67.7,
-      "pnl_r": 5.6
+      "winrate": 74.2,
+      "pnl_r": 9.68
     },
     "2026-01-22": {
       "trades": 20,
@@ -73351,7 +73351,7 @@
       "perdus": 10,
       "ouverts": 0,
       "winrate": 54.5,
-      "pnl_r": -0.72
+      "pnl_r": -0.86
     },
     "2026-01-26": {
       "trades": 13,
@@ -73363,11 +73363,11 @@
     },
     "2026-01-27": {
       "trades": 17,
-      "gagnes": 6,
-      "perdus": 11,
+      "gagnes": 5,
+      "perdus": 12,
       "ouverts": 0,
-      "winrate": 35.3,
-      "pnl_r": -4.68
+      "winrate": 29.4,
+      "pnl_r": -6.87
     },
     "2026-01-28": {
       "trades": 14,
@@ -73411,19 +73411,19 @@
     },
     "2026-02-04": {
       "trades": 20,
-      "gagnes": 16,
-      "perdus": 4,
+      "gagnes": 19,
+      "perdus": 1,
       "ouverts": 0,
-      "winrate": 80.0,
-      "pnl_r": 8.29
+      "winrate": 95.0,
+      "pnl_r": 13.36
     },
     "2026-02-05": {
       "trades": 11,
-      "gagnes": 5,
-      "perdus": 6,
+      "gagnes": 9,
+      "perdus": 2,
       "ouverts": 0,
-      "winrate": 45.5,
-      "pnl_r": -1.96
+      "winrate": 81.8,
+      "pnl_r": 6.11
     },
     "2026-02-06": {
       "trades": 31,
@@ -73435,11 +73435,11 @@
     },
     "2026-02-09": {
       "trades": 4,
-      "gagnes": 1,
-      "perdus": 3,
+      "gagnes": 0,
+      "perdus": 4,
       "ouverts": 0,
-      "winrate": 25.0,
-      "pnl_r": -1.81
+      "winrate": 0.0,
+      "pnl_r": -4.0
     },
     "2026-02-10": {
       "trades": 24,
@@ -73451,11 +73451,11 @@
     },
     "2026-02-11": {
       "trades": 22,
-      "gagnes": 2,
-      "perdus": 20,
+      "gagnes": 1,
+      "perdus": 21,
       "ouverts": 0,
-      "winrate": 9.1,
-      "pnl_r": -17.4
+      "winrate": 4.5,
+      "pnl_r": -19.83
     },
     "2026-02-12": {
       "trades": 20,
@@ -73475,11 +73475,11 @@
     },
     "2026-02-16": {
       "trades": 16,
-      "gagnes": 2,
-      "perdus": 14,
+      "gagnes": 3,
+      "perdus": 13,
       "ouverts": 0,
-      "winrate": 12.5,
-      "pnl_r": -11.28
+      "winrate": 18.8,
+      "pnl_r": -9.1
     },
     "2026-02-17": {
       "trades": 17,
@@ -73571,27 +73571,27 @@
     },
     "2026-03-04": {
       "trades": 47,
-      "gagnes": 4,
-      "perdus": 43,
+      "gagnes": 3,
+      "perdus": 44,
       "ouverts": 0,
-      "winrate": 8.5,
-      "pnl_r": -39.01
+      "winrate": 6.4,
+      "pnl_r": -41.38
     },
     "2026-03-05": {
       "trades": 31,
-      "gagnes": 26,
-      "perdus": 5,
+      "gagnes": 31,
+      "perdus": 0,
       "ouverts": 0,
-      "winrate": 83.9,
-      "pnl_r": 24.65
+      "winrate": 100.0,
+      "pnl_r": 34.76
     },
     "2026-03-06": {
       "trades": 35,
-      "gagnes": 28,
-      "perdus": 7,
+      "gagnes": 26,
+      "perdus": 9,
       "ouverts": 0,
-      "winrate": 80.0,
-      "pnl_r": 9.45
+      "winrate": 74.3,
+      "pnl_r": 5.08
     },
     "2026-03-09": {
       "trades": 11,
@@ -73603,19 +73603,19 @@
     },
     "2026-03-10": {
       "trades": 20,
-      "gagnes": 5,
-      "perdus": 15,
+      "gagnes": 6,
+      "perdus": 14,
       "ouverts": 0,
-      "winrate": 25.0,
-      "pnl_r": -8.54
+      "winrate": 30.0,
+      "pnl_r": -6.55
     },
     "2026-03-11": {
       "trades": 16,
-      "gagnes": 16,
-      "perdus": 0,
+      "gagnes": 15,
+      "perdus": 1,
       "ouverts": 0,
-      "winrate": 100.0,
-      "pnl_r": 17.6
+      "winrate": 93.8,
+      "pnl_r": 15.28
     },
     "2026-03-12": {
       "trades": 3,
@@ -73627,11 +73627,11 @@
     },
     "2026-03-13": {
       "trades": 48,
-      "gagnes": 34,
-      "perdus": 14,
+      "gagnes": 32,
+      "perdus": 16,
       "ouverts": 0,
-      "winrate": 70.8,
-      "pnl_r": 12.29
+      "winrate": 66.7,
+      "pnl_r": 9.24
     },
     "2026-03-16": {
       "trades": 21,
@@ -73639,7 +73639,7 @@
       "perdus": 9,
       "ouverts": 0,
       "winrate": 57.1,
-      "pnl_r": 0.39
+      "pnl_r": 0.71
     },
     "2026-03-17": {
       "trades": 17,
@@ -73647,23 +73647,23 @@
       "perdus": 8,
       "ouverts": 0,
       "winrate": 52.9,
-      "pnl_r": -1.23
+      "pnl_r": -0.66
     },
     "2026-03-18": {
       "trades": 11,
-      "gagnes": 7,
-      "perdus": 4,
+      "gagnes": 6,
+      "perdus": 5,
       "ouverts": 0,
-      "winrate": 63.6,
-      "pnl_r": 1.32
+      "winrate": 54.5,
+      "pnl_r": -0.37
     },
     "2026-03-19": {
       "trades": 19,
-      "gagnes": 6,
-      "perdus": 13,
+      "gagnes": 14,
+      "perdus": 5,
       "ouverts": 0,
-      "winrate": 31.6,
-      "pnl_r": -8.92
+      "winrate": 73.7,
+      "pnl_r": 7.28
     },
     "2026-03-20": {
       "trades": 31,
@@ -73675,19 +73675,19 @@
     },
     "2026-03-23": {
       "trades": 24,
-      "gagnes": 0,
-      "perdus": 24,
+      "gagnes": 9,
+      "perdus": 15,
       "ouverts": 0,
-      "winrate": 0.0,
-      "pnl_r": -24.0
+      "winrate": 37.5,
+      "pnl_r": -8.7
     },
     "2026-03-24": {
       "trades": 23,
-      "gagnes": 14,
-      "perdus": 9,
+      "gagnes": 15,
+      "perdus": 8,
       "ouverts": 0,
-      "winrate": 60.9,
-      "pnl_r": 7.9
+      "winrate": 65.2,
+      "pnl_r": 10.34
     },
     "2026-03-25": {
       "trades": 9,
@@ -74203,11 +74203,11 @@
     },
     "2026-06-23": {
       "trades": 55,
-      "gagnes": 53,
+      "gagnes": 54,
       "perdus": 1,
-      "ouverts": 1,
-      "winrate": 98.1,
-      "pnl_r": 47.34
+      "ouverts": 0,
+      "winrate": 98.2,
+      "pnl_r": 48.64
     },
     "2026-06-24": {
       "trades": 19,
@@ -74227,11 +74227,11 @@
     },
     "2026-06-26": {
       "trades": 32,
-      "gagnes": 10,
-      "perdus": 0,
-      "ouverts": 22,
-      "winrate": 100.0,
-      "pnl_r": 3.83
+      "gagnes": 17,
+      "perdus": 10,
+      "ouverts": 5,
+      "winrate": 63.0,
+      "pnl_r": -0.15
     }
   }
 }
