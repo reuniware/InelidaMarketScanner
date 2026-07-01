@@ -1,5 +1,7 @@
 """
 download_historical.py — Telechargeur universel de donnees M3 depuis MT5
+========================================================================
+Corrigé : utilise copy_rates_from_pos (pas de bug timezone serveur FTMO GMT+3)
 
 Usage:
     python download_historical.py XAUUSD
@@ -38,7 +40,6 @@ TIMEFRAME_MAP = {
 }
 
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reports")
-CHUNK_DAYS = 30
 
 
 def list_symbols():
@@ -77,47 +78,56 @@ def download(symbol: str, timeframe_str: str, start_dt: datetime, end_dt: dateti
     print(f"  Symbole : {symbol} (digits={info.digits}, spread={info.spread}, "
           f"timeframe={timeframe_str})")
 
-    # --- Telechargement par chunks ---
-    print(f"\n[2/3] Telechargement {timeframe_str} par chunks de {CHUNK_DAYS} jours...")
+    # --- Telechargement (corrige: copy_rates_from_pos au lieu de copy_rates_range) ---
+    print(f"\n[2/3] Telechargement {timeframe_str}...")
     all_bars = []
-    chunk_start = start_dt
-    chunk_num = 0
-    total_bars = 0
 
-    while chunk_start < end_dt:
-        chunk_end_ts = chunk_start.timestamp() + CHUNK_DAYS * 86400
-        chunk_end_dt = datetime.fromtimestamp(chunk_end_ts, tz=UTC) if chunk_end_ts < end_dt.timestamp() else end_dt
+    # 80 000 barres = ~166 jours en M3 (~5.5 mois), suffisant pour la periode demande
+    # Au-dela de 80k, MT5 retourne None (limite du broker FTMO)
+    max_bars = 80000
+    start_ts = int(start_dt.timestamp())
+    end_ts = int(end_dt.timestamp())
 
-        chunk_num += 1
-        print(f"  Chunk {chunk_num:02d} : {chunk_start.strftime('%Y-%m-%d')} --> "
-              f"{chunk_end_dt.strftime('%Y-%m-%d')} ...", end=" ", flush=True)
+    print(f"  Telechargement des {max_bars} dernieres barres depuis position 0...")
+    rates = mt5.copy_rates_from_pos(symbol, tf, 0, max_bars)
 
-        rates = mt5.copy_rates_range(symbol, tf, chunk_start, chunk_end_dt)
-        if rates is None or len(rates) == 0:
-            print("0 barres")
-            chunk_start = chunk_end_dt
+    if rates is None or len(rates) == 0:
+        print(f"  [ERREUR] Aucune donnee retournee par MT5")
+        print(f"  Verifiez que MT5 est connecte et que le symbole '{symbol}' est disponible.")
+        mt5.shutdown()
+        return ""
+
+    n_raw = len(rates)
+    first_ts = int(rates[0][0])
+
+    for r in rates:
+        t = int(r[0])
+        if t < start_ts or t >= end_ts:
             continue
+        all_bars.append({
+            "time": t,
+            "open": float(r[1]),
+            "high": float(r[2]),
+            "low": float(r[3]),
+            "close": float(r[4]),
+            "tick_volume": int(r[5]),
+            "spread": int(r[6]) if len(r) > 6 else 0,
+            "real_volume": int(r[7]) if len(r) > 7 else 0,
+        })
 
-        chunk_bars = []
-        for r in rates:
-            chunk_bars.append({
-                "time": int(r[0]),
-                "open": float(r[1]),
-                "high": float(r[2]),
-                "low": float(r[3]),
-                "close": float(r[4]),
-                "tick_volume": int(r[5]),
-                "spread": int(r[6]) if len(r) > 6 else 0,
-                "real_volume": int(r[7]) if len(r) > 7 else 0,
-            })
+    all_bars.sort(key=lambda b: b["time"])
+    total_bars = len(all_bars)
 
-        all_bars.extend(chunk_bars)
-        n = len(chunk_bars)
-        total_bars += n
-        first_dt = datetime.fromtimestamp(chunk_bars[0]["time"], tz=UTC).strftime("%Y-%m-%d %H:%M")
-        last_dt = datetime.fromtimestamp(chunk_bars[-1]["time"], tz=UTC).strftime("%Y-%m-%d %H:%M")
-        print(f"{n} barres ({first_dt} --> {last_dt})")
-        chunk_start = chunk_end_dt
+    print(f"  {n_raw} barres brutes MT5 → {total_bars} barres dans [{start_dt.strftime('%Y-%m-%d')} → {end_dt.strftime('%Y-%m-%d')}[")
+    if first_ts > start_ts:
+        oldest = datetime.fromtimestamp(first_ts, tz=UTC)
+        print(f"  ⚠️  Donnees les plus anciennes : {oldest.strftime('%Y-%m-%d %H:%M')} UTC")
+        print(f"      (plus recent que {start_dt.strftime('%Y-%m-%d')} — periode partielle)")
+
+    if all_bars:
+        first_dt = datetime.fromtimestamp(all_bars[0]["time"], tz=UTC)
+        last_dt = datetime.fromtimestamp(all_bars[-1]["time"], tz=UTC)
+        print(f"  Periode reelle : {first_dt.strftime('%Y-%m-%d %H:%M')} → {last_dt.strftime('%Y-%m-%d %H:%M')} UTC")
 
     mt5.shutdown()
 
@@ -150,10 +160,10 @@ def download(symbol: str, timeframe_str: str, start_dt: datetime, end_dt: dateti
     if all_bars:
         first = datetime.fromtimestamp(all_bars[0]["time"], tz=UTC)
         last = datetime.fromtimestamp(all_bars[-1]["time"], tz=UTC)
-        print(f"  Periode : {first.strftime('%Y-%m-%d %H:%M')} --> {last.strftime('%Y-%m-%d %H:%M')} UTC")
+        print(f"  Periode : {first.strftime('%Y-%m-%d %H:%M')} → {last.strftime('%Y-%m-%d %H:%M')} UTC")
         high = max(b["high"] for b in all_bars)
         low = min(b["low"] for b in all_bars)
-        print(f"  Range   : {low:.2f} --> {high:.2f} ({high - low:.2f})")
+        print(f"  Range   : {low:.2f} → {high:.2f} ({high - low:.2f})")
 
     print("\n[OK] Termine.")
     return output_path

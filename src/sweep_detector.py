@@ -403,8 +403,7 @@ def detect_daily_levels_for_symbol(
     yesterday_date = time.strftime("%Y-%m-%d", time.gmtime(yesterday["time"]))
 
     # Récupérer les bougies du timeframe de scan pour détecter les sweeps
-    now_epoch = int(time.time())
-    rates_raw = mt5.copy_rates_from(symbol, tf, now_epoch, 240)
+    rates_raw = mt5.copy_rates_from_pos(symbol, tf, 0, 240)
     if rates_raw is None or len(rates_raw) == 0:
         # Fallback: copy_rates_from_pos
         rates_raw = mt5.copy_rates_from_pos(symbol, tf, 0, 48)
@@ -516,8 +515,7 @@ def detect_weekly_levels_for_symbol(
 
     # Récupérer les D1 de cette semaine pour détecter les sweeps
     this_week_start = this_week["time"]
-    now_epoch = int(time.time())
-    d1_rates = mt5.copy_rates_from(symbol, mt5.TIMEFRAME_D1, now_epoch, 14)
+    d1_rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_D1, 0, 14)
     if d1_rates is None or len(d1_rates) == 0:
         d1_rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_D1, 0, 14)
         if d1_rates is None or len(d1_rates) == 0:

@@ -44,13 +44,15 @@ def fetch(symbol, tf_name, start_str):
     tf = TIMEFRAMES[tf_name]
     s_ep = int(datetime.strptime(start_str,"%Y-%m-%d").replace(tzinfo=UTC).timestamp())
     e_ep = int(datetime.now(UTC).timestamp())
+    # Utilise copy_rates_from_pos en priorité (pas de bug timezone serveur FTMO GMT+3)
+    rates = mt5.copy_rates_from_pos(symbol, tf, 0, 80000)
+    if rates is not None and len(rates) > 0:
+        return [b for b in bars_to_dicts(rates) if b["time"] >= s_ep]
+    # Fallback copy_rates_range
     rates = mt5.copy_rates_range(symbol, tf, s_ep, e_ep)
-    if rates is None or len(rates) == 0:
-        rates = mt5.copy_rates_from_pos(symbol, tf, 0, 100000)
-        if rates is not None and len(rates) > 0:
-            return [b for b in bars_to_dicts(rates) if b["time"] >= s_ep]
-        return []
-    return bars_to_dicts(rates)
+    if rates is not None and len(rates) > 0:
+        return bars_to_dicts(rates)
+    return []
 
 # ─── Sweep detection ───────────────────────────────────────────────
 def detect_day(bars, day_str, max_post):

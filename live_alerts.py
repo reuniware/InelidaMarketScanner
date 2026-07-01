@@ -129,10 +129,12 @@ def _session() -> str:
 
 
 def _trade_key(r) -> str:
-    """Cle unique pour un trade: symbole + direction + entry arrondi."""
+    """Cle unique pour un trade: symbole + direction.
+    Une seule alerte par symbole+direction par journee (alerted est vide a minuit).
+    Evite que le meme setup reapparaisse a cause de micro-fluctuations du prix d'entree."""
     if not r.trade_action or r.trade_action == "-" or r.trade_entry is None:
         return ""
-    return f"{r.symbol}_{r.trade_action}_{r.trade_entry:.5f}"
+    return f"{r.symbol}_{r.trade_action}"
 
 
 def _spread_too_high(symbol: str) -> bool:

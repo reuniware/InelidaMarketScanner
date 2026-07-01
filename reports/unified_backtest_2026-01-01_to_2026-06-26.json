@@ -22,130 +22,130 @@
         "METAL"
       ]
     },
-    "generated_at": "2026-06-28 09:26:26 UTC"
+    "generated_at": "2026-07-01 21:02:07 UTC"
   },
   "comparison": {
     "default": {
       "total_trades": 5944,
-      "gagnes": 3527,
-      "perdus": 2355,
-      "ouverts": 62,
+      "gagnes": 3495,
+      "perdus": 2435,
+      "ouverts": 14,
       "no_data": 0,
-      "winrate": 60.0,
-      "pnl_total_r": -387.02,
-      "pnl_avg_r": -0.07,
+      "winrate": 58.9,
+      "pnl_total_r": -478.79,
+      "pnl_avg_r": -0.08,
       "by_type": {
         "CRYPTO": {
           "trades": 1600,
-          "gagnes": 901,
-          "perdus": 682,
-          "ouverts": 17,
-          "winrate": 56.9,
-          "pnl_r": -117.52,
-          "pnl_avg_r": -0.07
+          "gagnes": 887,
+          "perdus": 708,
+          "ouverts": 5,
+          "winrate": 55.6,
+          "pnl_r": -150.87,
+          "pnl_avg_r": -0.09
         },
         "OTHER": {
           "trades": 1266,
-          "gagnes": 812,
-          "perdus": 443,
-          "ouverts": 11,
-          "winrate": 64.7,
-          "pnl_r": -93.52,
-          "pnl_avg_r": -0.07
+          "gagnes": 807,
+          "perdus": 458,
+          "ouverts": 1,
+          "winrate": 63.8,
+          "pnl_r": -108.28,
+          "pnl_avg_r": -0.09
         },
         "FOREX_CROSS": {
           "trades": 1218,
-          "gagnes": 716,
-          "perdus": 486,
-          "ouverts": 16,
-          "winrate": 59.6,
-          "pnl_r": -37.49,
-          "pnl_avg_r": -0.03
+          "gagnes": 715,
+          "perdus": 500,
+          "ouverts": 3,
+          "winrate": 58.8,
+          "pnl_r": -56.17,
+          "pnl_avg_r": -0.05
         },
         "FOREX_JPY": {
           "trades": 405,
-          "gagnes": 227,
-          "perdus": 174,
-          "ouverts": 4,
-          "winrate": 56.6,
-          "pnl_r": -41.42,
-          "pnl_avg_r": -0.1
+          "gagnes": 226,
+          "perdus": 179,
+          "ouverts": 0,
+          "winrate": 55.8,
+          "pnl_r": -44.65,
+          "pnl_avg_r": -0.11
         },
         "FOREX_USD": {
           "trades": 1092,
-          "gagnes": 669,
-          "perdus": 418,
-          "ouverts": 5,
-          "winrate": 61.5,
-          "pnl_r": -69.24,
+          "gagnes": 670,
+          "perdus": 421,
+          "ouverts": 1,
+          "winrate": 61.4,
+          "pnl_r": -66.33,
           "pnl_avg_r": -0.06
         },
         "METAL": {
           "trades": 363,
-          "gagnes": 202,
-          "perdus": 152,
-          "ouverts": 9,
-          "winrate": 57.1,
-          "pnl_r": -27.83,
-          "pnl_avg_r": -0.08
+          "gagnes": 190,
+          "perdus": 169,
+          "ouverts": 4,
+          "winrate": 52.9,
+          "pnl_r": -52.49,
+          "pnl_avg_r": -0.15
         }
       },
       "by_direction": {
         "BUY": {
           "trades": 3133,
-          "gagnes": 1756,
-          "perdus": 1335,
-          "ouverts": 42,
-          "winrate": 56.8,
-          "pnl_r": -339.46,
-          "pnl_avg_r": -0.11
+          "gagnes": 1716,
+          "perdus": 1407,
+          "ouverts": 10,
+          "winrate": 54.9,
+          "pnl_r": -433.49,
+          "pnl_avg_r": -0.14
         },
         "SELL": {
           "trades": 2811,
-          "gagnes": 1771,
-          "perdus": 1020,
-          "ouverts": 20,
-          "winrate": 63.5,
-          "pnl_r": -47.56,
+          "gagnes": 1779,
+          "perdus": 1028,
+          "ouverts": 4,
+          "winrate": 63.4,
+          "pnl_r": -45.29,
           "pnl_avg_r": -0.02
         }
       },
       "monthly": {
         "2026-01": {
           "trades": 1063,
-          "gagnes": 598,
-          "perdus": 465,
+          "gagnes": 575,
+          "perdus": 488,
           "ouverts": 0,
-          "winrate": 56.3,
-          "pnl_r": -50.75,
-          "pnl_avg_r": -0.05
+          "winrate": 54.1,
+          "pnl_r": -89.3,
+          "pnl_avg_r": -0.08
         },
         "2026-02": {
           "trades": 910,
-          "gagnes": 449,
-          "perdus": 461,
+          "gagnes": 443,
+          "perdus": 467,
           "ouverts": 0,
-          "winrate": 49.3,
-          "pnl_r": -186.08,
-          "pnl_avg_r": -0.2
+          "winrate": 48.7,
+          "pnl_r": -200.17,
+          "pnl_avg_r": -0.22
         },
         "2026-03": {
           "trades": 1103,
-          "gagnes": 701,
-          "perdus": 402,
+          "gagnes": 693,
+          "perdus": 410,
           "ouverts": 0,
-          "winrate": 63.6,
-          "pnl_r": -45.82,
-          "pnl_avg_r": -0.04
+          "winrate": 62.8,
+          "pnl_r": -50.33,
+          "pnl_avg_r": -0.05
         },
         "2026-04": {
           "trades": 990,
-          "gagnes": 603,
-          "perdus": 387,
+          "gagnes": 584,
+          "perdus": 406,
           "ouverts": 0,
-          "winrate": 60.9,
-          "pnl_r": -70.68,
-          "pnl_avg_r": -0.07
+          "winrate": 59.0,
+          "pnl_r": -97.89,
+          "pnl_avg_r": -0.1
         },
         "2026-05": {
           "trades": 943,
@@ -158,100 +158,100 @@
         },
         "2026-06": {
           "trades": 935,
-          "gagnes": 592,
-          "perdus": 281,
-          "ouverts": 62,
-          "winrate": 67.8,
-          "pnl_r": 20.6,
-          "pnl_avg_r": 0.02
+          "gagnes": 616,
+          "perdus": 305,
+          "ouverts": 14,
+          "winrate": 66.9,
+          "pnl_r": 13.19,
+          "pnl_avg_r": 0.01
         }
       }
     },
     "elite_v1": {
       "total_trades": 1600,
-      "gagnes": 805,
-      "perdus": 771,
-      "ouverts": 24,
+      "gagnes": 799,
+      "perdus": 795,
+      "ouverts": 6,
       "no_data": 0,
-      "winrate": 51.1,
-      "pnl_total_r": -3.65,
-      "pnl_avg_r": -0.0,
+      "winrate": 50.1,
+      "pnl_total_r": -35.89,
+      "pnl_avg_r": -0.02,
       "by_type": {
         "FOREX_CROSS": {
           "trades": 774,
-          "gagnes": 398,
-          "perdus": 363,
-          "ouverts": 13,
-          "winrate": 52.3,
-          "pnl_r": 20.04,
-          "pnl_avg_r": 0.03
+          "gagnes": 393,
+          "perdus": 378,
+          "ouverts": 3,
+          "winrate": 51.0,
+          "pnl_r": -2.82,
+          "pnl_avg_r": -0.0
         },
         "FOREX_USD": {
           "trades": 581,
-          "gagnes": 297,
-          "perdus": 280,
-          "ouverts": 4,
-          "winrate": 51.5,
-          "pnl_r": -0.98,
-          "pnl_avg_r": -0.0
+          "gagnes": 303,
+          "perdus": 278,
+          "ouverts": 0,
+          "winrate": 52.2,
+          "pnl_r": 7.18,
+          "pnl_avg_r": 0.01
         },
         "METAL": {
           "trades": 245,
-          "gagnes": 110,
-          "perdus": 128,
-          "ouverts": 7,
-          "winrate": 46.2,
-          "pnl_r": -22.7,
-          "pnl_avg_r": -0.1
+          "gagnes": 103,
+          "perdus": 139,
+          "ouverts": 3,
+          "winrate": 42.6,
+          "pnl_r": -40.25,
+          "pnl_avg_r": -0.17
         }
       },
       "by_direction": {
         "SELL": {
           "trades": 689,
-          "gagnes": 366,
-          "perdus": 318,
-          "ouverts": 5,
-          "winrate": 53.5,
-          "pnl_r": 25.57,
-          "pnl_avg_r": 0.04
+          "gagnes": 358,
+          "perdus": 331,
+          "ouverts": 0,
+          "winrate": 52.0,
+          "pnl_r": 4.26,
+          "pnl_avg_r": 0.01
         },
         "BUY": {
           "trades": 911,
-          "gagnes": 439,
-          "perdus": 453,
-          "ouverts": 19,
-          "winrate": 49.2,
-          "pnl_r": -29.22,
-          "pnl_avg_r": -0.03
+          "gagnes": 441,
+          "perdus": 464,
+          "ouverts": 6,
+          "winrate": 48.7,
+          "pnl_r": -40.15,
+          "pnl_avg_r": -0.04
         }
       },
       "monthly": {
         "2026-01": {
           "trades": 272,
-          "gagnes": 155,
-          "perdus": 117,
+          "gagnes": 147,
+          "perdus": 125,
           "ouverts": 0,
-          "winrate": 57.0,
-          "pnl_r": 33.28,
-          "pnl_avg_r": 0.12
+          "winrate": 54.0,
+          "pnl_r": 16.42,
+          "pnl_avg_r": 0.06
         },
         "2026-02": {
           "trades": 260,
-          "gagnes": 132,
-          "perdus": 128,
+          "gagnes": 124,
+          "perdus": 136,
           "ouverts": 0,
-          "winrate": 50.8,
-          "pnl_r": -0.11,
-          "pnl_avg_r": -0.0
+          "winrate": 47.7,
+          "pnl_r": -16.62,
+          "pnl_avg_r": -0.06
         },
         "2026-03": {
           "trades": 271,
-          "gagnes": 154,
-          "perdus": 117,
+          "gagnes": 157,
+          "perdus": 114,
           "ouverts": 0,
-          "winrate": 56.8,
-          "pnl_r": 28.81,
-          "pnl_avg_r": 0.11
+          "winrate": 57.9,
+          "pnl_r": 34.08,
+          "pnl_avg_r": 0.13
         },
         "2026-04": {
           "trades": 289,
@@ -273,91 +273,91 @@
         },
         "2026-06": {
           "trades": 253,
-          "gagnes": 128,
-          "perdus": 101,
-          "ouverts": 24,
-          "winrate": 55.9,
-          "pnl_r": 21.3,
-          "pnl_avg_r": 0.09
+          "gagnes": 135,
+          "perdus": 112,
+          "ouverts": 6,
+          "winrate": 54.7,
+          "pnl_r": 17.16,
+          "pnl_avg_r": 0.07
         }
       }
     },
     "elite_v2": {
       "total_trades": 1455,
-      "gagnes": 871,
-      "perdus": 570,
-      "ouverts": 14,
+      "gagnes": 860,
+      "perdus": 590,
+      "ouverts": 5,
       "no_data": 0,
-      "winrate": 60.4,
-      "pnl_total_r": -97.07,
-      "pnl_avg_r": -0.07,
+      "winrate": 59.3,
+      "pnl_total_r": -118.82,
+      "pnl_avg_r": -0.08,
       "by_type": {
         "FOREX_USD": {
           "trades": 1092,
-          "gagnes": 669,
-          "perdus": 418,
-          "ouverts": 5,
-          "winrate": 61.5,
-          "pnl_r": -69.24,
+          "gagnes": 670,
+          "perdus": 421,
+          "ouverts": 1,
+          "winrate": 61.4,
+          "pnl_r": -66.33,
           "pnl_avg_r": -0.06
         },
         "METAL": {
           "trades": 363,
-          "gagnes": 202,
-          "perdus": 152,
-          "ouverts": 9,
-          "winrate": 57.1,
-          "pnl_r": -27.83,
-          "pnl_avg_r": -0.08
+          "gagnes": 190,
+          "perdus": 169,
+          "ouverts": 4,
+          "winrate": 52.9,
+          "pnl_r": -52.49,
+          "pnl_avg_r": -0.15
         }
       },
       "by_direction": {
         "SELL": {
           "trades": 655,
-          "gagnes": 405,
-          "perdus": 246,
-          "ouverts": 4,
-          "winrate": 62.2,
-          "pnl_r": -34.24,
-          "pnl_avg_r": -0.05
+          "gagnes": 397,
+          "perdus": 257,
+          "ouverts": 1,
+          "winrate": 60.7,
+          "pnl_r": -46.54,
+          "pnl_avg_r": -0.07
         },
         "BUY": {
           "trades": 800,
-          "gagnes": 466,
-          "perdus": 324,
-          "ouverts": 10,
-          "winrate": 59.0,
-          "pnl_r": -62.83,
-          "pnl_avg_r": -0.08
+          "gagnes": 463,
+          "perdus": 333,
+          "ouverts": 4,
+          "winrate": 58.2,
+          "pnl_r": -72.28,
+          "pnl_avg_r": -0.09
         }
       },
       "monthly": {
         "2026-01": {
           "trades": 250,
-          "gagnes": 133,
-          "perdus": 117,
+          "gagnes": 124,
+          "perdus": 126,
           "ouverts": 0,
-          "winrate": 53.2,
-          "pnl_r": -22.37,
-          "pnl_avg_r": -0.09
+          "winrate": 49.6,
+          "pnl_r": -37.66,
+          "pnl_avg_r": -0.15
         },
         "2026-02": {
           "trades": 207,
-          "gagnes": 103,
-          "perdus": 104,
+          "gagnes": 104,
+          "perdus": 103,
           "ouverts": 0,
-          "winrate": 49.8,
-          "pnl_r": -40.25,
+          "winrate": 50.2,
+          "pnl_r": -38.86,
           "pnl_avg_r": -0.19
         },
         "2026-03": {
           "trades": 303,
-          "gagnes": 206,
-          "perdus": 97,
+          "gagnes": 200,
+          "perdus": 103,
           "ouverts": 0,
-          "winrate": 68.0,
-          "pnl_r": 2.31,
-          "pnl_avg_r": 0.01
+          "winrate": 66.0,
+          "pnl_r": -2.43,
+          "pnl_avg_r": -0.01
         },
         "2026-04": {
           "trades": 272,
@@ -379,12 +379,12 @@
         },
         "2026-06": {
           "trades": 214,
-          "gagnes": 147,
-          "perdus": 53,
-          "ouverts": 14,
-          "winrate": 73.5,
-          "pnl_r": 23.29,
-          "pnl_avg_r": 0.12
+          "gagnes": 150,
+          "perdus": 59,
+          "ouverts": 5,
+          "winrate": 71.8,
+          "pnl_r": 20.19,
+          "pnl_avg_r": 0.1
         }
       }
     }
@@ -1170,8 +1170,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1767387600,
       "symbol_type": "FOREX_JPY",
-      "outcome": "GAGNE",
-      "hit_price": 183.20524799999998,
+      "outcome": "PERDU",
+      "hit_price": 184.4664,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -1274,8 +1274,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1767387600,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 0.22920460000000004,
+      "outcome": "PERDU",
+      "hit_price": 0.21173,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -1820,8 +1820,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1767387600,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 2484.481,
+      "outcome": "GAGNE",
+      "hit_price": 2507.8286199999993,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -1872,8 +1872,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1767387600,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.3702480000000001,
+      "outcome": "GAGNE",
+      "hit_price": 1.3751947599999998,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -2106,8 +2106,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1767387600,
       "symbol_type": "METAL",
-      "outcome": "PERDU",
-      "hit_price": 110.7412,
+      "outcome": "GAGNE",
+      "hit_price": 103.234084,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -4758,8 +4758,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1767733200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.3758489999999999,
+      "outcome": "GAGNE",
+      "hit_price": 1.3808400000000003,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -4784,8 +4784,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1767733200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 0.79046,
+      "outcome": "GAGNE",
+      "hit_price": 0.795896,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -5044,8 +5044,8 @@
       "al_swept_session": null,
       "scan_epoch": 1767733200,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 6723.76624,
+      "outcome": "PERDU",
+      "hit_price": 6594.172,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -5408,8 +5408,8 @@
       "al_swept_session": null,
       "scan_epoch": 1767819600,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 98.77698000000001,
+      "outcome": "PERDU",
+      "hit_price": 98.47800000000001,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -6266,8 +6266,8 @@
       "al_swept_session": null,
       "scan_epoch": 1767819600,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.2791089999999998,
+      "outcome": "GAGNE",
+      "hit_price": 1.28538758,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -6734,8 +6734,8 @@
       "al_swept_session": null,
       "scan_epoch": 1767906000,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 98.94580000000002,
+      "outcome": "PERDU",
+      "hit_price": 98.67399999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -7670,8 +7670,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1767906000,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 6733.963380000002,
+      "outcome": "PERDU",
+      "hit_price": 6583.3589999999995,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -8112,8 +8112,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1767992400,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 99.16399999999997,
+      "outcome": "PERDU",
+      "hit_price": 98.885,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -8528,8 +8528,8 @@
       "al_swept_session": null,
       "scan_epoch": 1767992400,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 53722.182,
+      "outcome": "PERDU",
+      "hit_price": 51253.43,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -9100,8 +9100,8 @@
       "al_swept_session": null,
       "scan_epoch": 1767992400,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 69.35111800000001,
+      "outcome": "PERDU",
+      "hit_price": 64.5919,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -9126,8 +9126,8 @@
       "al_swept_session": null,
       "scan_epoch": 1767992400,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 80.775686,
+      "outcome": "PERDU",
+      "hit_price": 75.2663,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -9802,8 +9802,8 @@
       "al_swept_session": null,
       "scan_epoch": 1768251600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 0.79589,
+      "outcome": "GAGNE",
+      "hit_price": 0.8024131999999999,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -10088,8 +10088,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1768251600,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 0.7899589999999999,
+      "outcome": "PERDU",
+      "hit_price": 0.80219,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -10322,8 +10322,8 @@
       "al_swept_session": null,
       "scan_epoch": 1768251600,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 7036.048879999999,
+      "outcome": "PERDU",
+      "hit_price": 6750.224,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -10738,8 +10738,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1768338000,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 99.16799999999999,
+      "outcome": "PERDU",
+      "hit_price": 98.91069999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -11856,8 +11856,8 @@
       "al_swept_session": null,
       "scan_epoch": 1768338000,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 6926.635,
+      "outcome": "PERDU",
+      "hit_price": 6811.12,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -12142,8 +12142,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1768424400,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 99.271,
+      "outcome": "GAGNE",
+      "hit_price": 98.91766000000001,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -13026,8 +13026,8 @@
       "al_swept_session": null,
       "scan_epoch": 1768424400,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 7029.8029799999995,
+      "outcome": "PERDU",
+      "hit_price": 6859.629000000001,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -13416,8 +13416,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1768510800,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 414.75827999999996,
+      "outcome": "PERDU",
+      "hit_price": 418.944,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -13936,8 +13936,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1768510800,
       "symbol_type": "FOREX_JPY",
-      "outcome": "GAGNE",
-      "hit_price": 211.79954,
+      "outcome": "PERDU",
+      "hit_price": 213.077,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -16016,8 +16016,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1768856400,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 99.242,
+      "outcome": "GAGNE",
+      "hit_price": 98.80712000000001,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -16380,8 +16380,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1768856400,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 0.7911158600000001,
+      "outcome": "PERDU",
+      "hit_price": 0.8026129999999999,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -17212,8 +17212,8 @@
       "al_swept_session": null,
       "scan_epoch": 1768942800,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 7097.75448,
+      "outcome": "PERDU",
+      "hit_price": 6936.414000000001,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -17264,8 +17264,8 @@
       "al_swept_session": null,
       "scan_epoch": 1768942800,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 4808.980160000002,
+      "outcome": "PERDU",
+      "hit_price": 4653.727999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -17290,8 +17290,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1768942800,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 587.8019999999999,
+      "outcome": "GAGNE",
+      "hit_price": 570.8960400000002,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -18278,8 +18278,8 @@
       "al_swept_session": null,
       "scan_epoch": 1769029200,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 54520.929220000005,
+      "outcome": "PERDU",
+      "hit_price": 51707.011,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -18382,8 +18382,8 @@
       "al_swept_session": null,
       "scan_epoch": 1769029200,
       "symbol_type": "FOREX_JPY",
-      "outcome": "GAGNE",
-      "hit_price": 92.909502,
+      "outcome": "PERDU",
+      "hit_price": 91.9881,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -18616,8 +18616,8 @@
       "al_swept_session": null,
       "scan_epoch": 1769029200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 0.788068,
+      "outcome": "GAGNE",
+      "hit_price": 0.7970917599999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -19032,8 +19032,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1769029200,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 583.865,
+      "outcome": "GAGNE",
+      "hit_price": 561.7133,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -19370,8 +19370,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1769115600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 0.57568,
+      "outcome": "GAGNE",
+      "hit_price": 0.5726902,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -19396,8 +19396,8 @@
       "al_swept_session": null,
       "scan_epoch": 1769115600,
       "symbol_type": "FOREX_JPY",
-      "outcome": "GAGNE",
-      "hit_price": 115.64329199999999,
+      "outcome": "PERDU",
+      "hit_price": 114.30059999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -19422,8 +19422,8 @@
       "al_swept_session": null,
       "scan_epoch": 1769115600,
       "symbol_type": "FOREX_JPY",
-      "outcome": "GAGNE",
-      "hit_price": 201.53585600000002,
+      "outcome": "PERDU",
+      "hit_price": 198.56779999999998,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -19838,8 +19838,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1769115600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 1.9818668,
+      "outcome": "PERDU",
+      "hit_price": 2.00198,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -20150,8 +20150,8 @@
       "al_swept_session": null,
       "scan_epoch": 1769115600,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 55082.787220000006,
+      "outcome": "PERDU",
+      "hit_price": 53135.911,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -20384,8 +20384,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1769115600,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 1.3770872400000003,
+      "outcome": "PERDU",
+      "hit_price": 1.3847519999999998,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -20670,8 +20670,8 @@
       "al_swept_session": null,
       "scan_epoch": 1769115600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 4192.956440000001,
+      "outcome": "PERDU",
+      "hit_price": 4079.942,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -20696,8 +20696,8 @@
       "al_swept_session": null,
       "scan_epoch": 1769115600,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 4920.61,
+      "outcome": "PERDU",
+      "hit_price": 4767.3150000000005,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -21268,8 +21268,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1769202000,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 54078.03,
+      "outcome": "GAGNE",
+      "hit_price": 52800.83,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -21814,8 +21814,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1769202000,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 5026.367340000001,
+      "outcome": "PERDU",
+      "hit_price": 4926.807000000001,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -22230,8 +22230,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1769461200,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 1.9779826800000002,
+      "outcome": "PERDU",
+      "hit_price": 1.993584,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -22646,8 +22646,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1769461200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.367168,
+      "outcome": "GAGNE",
+      "hit_price": 1.37646356,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -22698,8 +22698,8 @@
       "al_swept_session": null,
       "scan_epoch": 1769461200,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 3.10218016,
+      "outcome": "PERDU",
+      "hit_price": 3.137188,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -23036,8 +23036,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1769547600,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 0.6986257800000001,
+      "outcome": "PERDU",
+      "hit_price": 0.6904089999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -23062,8 +23062,8 @@
       "al_swept_session": null,
       "scan_epoch": 1769547600,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 9049.192,
+      "outcome": "PERDU",
+      "hit_price": 8916.01,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -23556,8 +23556,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1769547600,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 0.22981020000000002,
+      "outcome": "PERDU",
+      "hit_price": 0.21921,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -25220,8 +25220,8 @@
       "al_swept_session": null,
       "scan_epoch": 1769634000,
       "symbol_type": "FOREX_JPY",
-      "outcome": "GAGNE",
-      "hit_price": 92.83699999999997,
+      "outcome": "PERDU",
+      "hit_price": 91.7086,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -25870,8 +25870,8 @@
       "al_swept_session": null,
       "scan_epoch": 1769720400,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 9071.5288,
+      "outcome": "PERDU",
+      "hit_price": 8849.74,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -26156,8 +26156,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1769720400,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 0.9121531999999999,
+      "outcome": "PERDU",
+      "hit_price": 0.91922,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -26312,8 +26312,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1769720400,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 0.24084,
+      "outcome": "GAGNE",
+      "hit_price": 0.1908288,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -26390,8 +26390,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1769720400,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 1.0516469999999998,
+      "outcome": "PERDU",
+      "hit_price": 1.06116,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -28184,8 +28184,8 @@
       "al_swept_session": null,
       "scan_epoch": 1770066000,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 8995.40138,
+      "outcome": "PERDU",
+      "hit_price": 8733.359,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -29302,8 +29302,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1770152400,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 74527.56000000003,
+      "outcome": "PERDU",
+      "hit_price": 79314.79699999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -29510,8 +29510,8 @@
       "al_swept_session": null,
       "scan_epoch": 1770152400,
       "symbol_type": "FOREX_JPY",
-      "outcome": "PERDU",
-      "hit_price": 183.3012,
+      "outcome": "GAGNE",
+      "hit_price": 184.35578400000003,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -29770,8 +29770,8 @@
       "al_swept_session": null,
       "scan_epoch": 1770152400,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 54887.33,
+      "outcome": "GAGNE",
+      "hit_price": 52210.1,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -29978,8 +29978,8 @@
       "al_swept_session": null,
       "scan_epoch": 1770152400,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 10357.337,
+      "outcome": "GAGNE",
+      "hit_price": 10241.35994,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -31200,8 +31200,8 @@
       "al_swept_session": null,
       "scan_epoch": 1770238800,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 9.599789000000001,
+      "outcome": "GAGNE",
+      "hit_price": 9.689238379999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -32474,8 +32474,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1770325200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 3.085638,
+      "outcome": "GAGNE",
+      "hit_price": 3.134072760000001,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -32968,8 +32968,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1770411600,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 60.750000000000014,
+      "outcome": "PERDU",
+      "hit_price": 61.56999999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -33254,8 +33254,8 @@
       "al_swept_session": null,
       "scan_epoch": 1770411600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 1.050392,
+      "outcome": "GAGNE",
+      "hit_price": 1.0584916400000004,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -34424,8 +34424,8 @@
       "al_swept_session": null,
       "scan_epoch": 1770670800,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 9023.199220000002,
+      "outcome": "PERDU",
+      "hit_price": 8791.381,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -34580,8 +34580,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1770670800,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 0.90934914,
+      "outcome": "PERDU",
+      "hit_price": 0.918237,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -35022,8 +35022,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1770670800,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 9.5658158,
+      "outcome": "PERDU",
+      "hit_price": 9.70688,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -35958,8 +35958,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1770757200,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 3.5308,
+      "outcome": "GAGNE",
+      "hit_price": 3.1529979999999993,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -36946,8 +36946,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1770843600,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 3.5505540000000004,
+      "outcome": "PERDU",
+      "hit_price": 3.2706,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -37232,8 +37232,8 @@
       "al_swept_session": null,
       "scan_epoch": 1770843600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 4287.49478,
+      "outcome": "PERDU",
+      "hit_price": 4225.769,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -37310,8 +37310,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1770930000,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 113.91478000000001,
+      "outcome": "PERDU",
+      "hit_price": 106.54899999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -37440,8 +37440,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1770930000,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 9109.819,
+      "outcome": "GAGNE",
+      "hit_price": 8900.01658,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -37570,8 +37570,8 @@
       "al_swept_session": null,
       "scan_epoch": 1770930000,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 1.661743,
+      "outcome": "GAGNE",
+      "hit_price": 1.6763386600000003,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -37622,8 +37622,8 @@
       "al_swept_session": null,
       "scan_epoch": 1770930000,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 0.9103051199999999,
+      "outcome": "PERDU",
+      "hit_price": 0.916176,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -37726,8 +37726,8 @@
       "al_swept_session": null,
       "scan_epoch": 1770930000,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 1.907233,
+      "outcome": "GAGNE",
+      "hit_price": 1.9267210599999998,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -38324,8 +38324,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1770930000,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 4296.53,
+      "outcome": "GAGNE",
+      "hit_price": 4157.03,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -38402,8 +38402,8 @@
       "al_swept_session": null,
       "scan_epoch": 1770930000,
       "symbol_type": "METAL",
-      "outcome": "PERDU",
-      "hit_price": 2145.103,
+      "outcome": "GAGNE",
+      "hit_price": 1989.28006,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -38662,8 +38662,8 @@
       "al_swept_session": null,
       "scan_epoch": 1771016400,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 33.435,
+      "outcome": "GAGNE",
+      "hit_price": 38.38890000000002,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -39338,8 +39338,8 @@
       "al_swept_session": null,
       "scan_epoch": 1771016400,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 3.5081499999999997,
+      "outcome": "PERDU",
+      "hit_price": 3.1683999999999997,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -39546,8 +39546,8 @@
       "al_swept_session": null,
       "scan_epoch": 1771016400,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 4359.76488,
+      "outcome": "PERDU",
+      "hit_price": 4109.273999999999,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -39676,8 +39676,8 @@
       "al_swept_session": null,
       "scan_epoch": 1771016400,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 2137.0665200000003,
+      "outcome": "PERDU",
+      "hit_price": 1973.6059999999998,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -40040,8 +40040,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1771275600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 11.191482060000004,
+      "outcome": "PERDU",
+      "hit_price": 11.295663,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -40326,8 +40326,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1771275600,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 24815.309,
+      "outcome": "GAGNE",
+      "hit_price": 24495.69938,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -40508,8 +40508,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1771275600,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 0.1616516,
+      "outcome": "PERDU",
+      "hit_price": 0.17198,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -40638,8 +40638,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1771362000,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 9054.7638,
+      "outcome": "PERDU",
+      "hit_price": 8948.49,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -41626,8 +41626,8 @@
       "al_swept_session": null,
       "scan_epoch": 1771448400,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 9065.5592,
+      "outcome": "PERDU",
+      "hit_price": 8972.06,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -41834,8 +41834,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1771448400,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 38.109,
+      "outcome": "GAGNE",
+      "hit_price": 34.87457999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -41912,8 +41912,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1771448400,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 8.738,
+      "outcome": "GAGNE",
+      "hit_price": 8.411840000000002,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -43134,8 +43134,8 @@
       "al_swept_session": null,
       "scan_epoch": 1771448400,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 69.56094999999999,
+      "outcome": "PERDU",
+      "hit_price": 60.6595,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -43160,8 +43160,8 @@
       "al_swept_session": null,
       "scan_epoch": 1771448400,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 82.29770400000001,
+      "outcome": "PERDU",
+      "hit_price": 71.8932,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -43212,8 +43212,8 @@
       "al_swept_session": null,
       "scan_epoch": 1771448400,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 4294.81508,
+      "outcome": "PERDU",
+      "hit_price": 4088.084,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -43290,8 +43290,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1771448400,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 0.1599314,
+      "outcome": "PERDU",
+      "hit_price": 0.16727,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -43472,8 +43472,8 @@
       "al_swept_session": null,
       "scan_epoch": 1771534800,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 35.982,
+      "outcome": "GAGNE",
+      "hit_price": 34.02504,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -43628,8 +43628,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1771534800,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 11.211862,
+      "outcome": "GAGNE",
+      "hit_price": 11.27703964,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -43732,8 +43732,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1771534800,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 1.8427621000000003,
+      "outcome": "PERDU",
+      "hit_price": 1.848525,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -43914,8 +43914,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1771534800,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 3.021942,
+      "outcome": "PERDU",
+      "hit_price": 3.2420999999999998,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -44278,8 +44278,8 @@
       "al_swept_session": null,
       "scan_epoch": 1771534800,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 4291.501739999999,
+      "outcome": "PERDU",
+      "hit_price": 4203.357,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -44408,8 +44408,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1771534800,
       "symbol_type": "METAL",
-      "outcome": "PERDU",
-      "hit_price": 2088.4199999999996,
+      "outcome": "GAGNE",
+      "hit_price": 2021.8289999999997,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -44824,8 +44824,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1771621200,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 1.6532417199999998,
+      "outcome": "PERDU",
+      "hit_price": 1.6762360000000003,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -44980,8 +44980,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1771621200,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 11.172701439999999,
+      "outcome": "PERDU",
+      "hit_price": 11.270332,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -45110,8 +45110,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1771621200,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 1.839523,
+      "outcome": "GAGNE",
+      "hit_price": 1.84786726,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -45396,8 +45396,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1771621200,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 3.05,
+      "outcome": "GAGNE",
+      "hit_price": 3.1587199999999998,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -45916,8 +45916,8 @@
       "al_swept_session": null,
       "scan_epoch": 1771621200,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 4318.1900000000005,
+      "outcome": "PERDU",
+      "hit_price": 4233.156999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -45968,8 +45968,8 @@
       "al_swept_session": null,
       "scan_epoch": 1771621200,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 587.8665,
+      "outcome": "PERDU",
+      "hit_price": 572.065,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -46358,8 +46358,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1771880400,
       "symbol_type": "FOREX_JPY",
-      "outcome": "PERDU",
-      "hit_price": 92.7016,
+      "outcome": "GAGNE",
+      "hit_price": 91.570912,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -46592,8 +46592,8 @@
       "al_swept_session": null,
       "scan_epoch": 1771880400,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 3.0885930000000004,
+      "outcome": "GAGNE",
+      "hit_price": 3.1648872600000004,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -46904,8 +46904,8 @@
       "al_swept_session": null,
       "scan_epoch": 1771966800,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 9166.756980000002,
+      "outcome": "PERDU",
+      "hit_price": 8974.839,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -47034,8 +47034,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1771966800,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 8.783410000000002,
+      "outcome": "PERDU",
+      "hit_price": 8.1175,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -48204,8 +48204,8 @@
       "al_swept_session": null,
       "scan_epoch": 1772053200,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 0.15677000000000002,
+      "outcome": "GAGNE",
+      "hit_price": 0.18204740000000003,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -48776,8 +48776,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772139600,
       "symbol_type": "FOREX_JPY",
-      "outcome": "PERDU",
-      "hit_price": 111.4031,
+      "outcome": "GAGNE",
+      "hit_price": 110.367542,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -50310,8 +50310,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772226000,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 0.5513809999999999,
+      "outcome": "GAGNE",
+      "hit_price": 0.5448306200000002,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -50648,8 +50648,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1772226000,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 11.18185132,
+      "outcome": "PERDU",
+      "hit_price": 11.280406000000001,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -50752,8 +50752,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772226000,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 1.8368847800000003,
+      "outcome": "PERDU",
+      "hit_price": 1.845399,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -51870,8 +51870,8 @@
       "al_swept_session": null,
       "scan_epoch": 1772485200,
       "symbol_type": "FOREX_JPY",
-      "outcome": "GAGNE",
-      "hit_price": 115.81162,
+      "outcome": "PERDU",
+      "hit_price": 114.208,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -52780,8 +52780,8 @@
       "al_swept_session": null,
       "scan_epoch": 1772571600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 0.57646726,
+      "outcome": "PERDU",
+      "hit_price": 0.5681229999999999,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -52806,8 +52806,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772571600,
       "symbol_type": "FOREX_JPY",
-      "outcome": "GAGNE",
-      "hit_price": 115.861064,
+      "outcome": "PERDU",
+      "hit_price": 114.9152,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -52962,8 +52962,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772571600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 1.5868600000000002,
+      "outcome": "PERDU",
+      "hit_price": 1.5998489999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -53040,8 +53040,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772571600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 11.153293,
+      "outcome": "GAGNE",
+      "hit_price": 11.281229259999998,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -54054,8 +54054,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772658000,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 99.35419999999999,
+      "outcome": "GAGNE",
+      "hit_price": 98.58772400000001,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -54158,8 +54158,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772658000,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 11.136742899999998,
+      "outcome": "PERDU",
+      "hit_price": 11.248045,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -54470,8 +54470,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772658000,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 2.9401780000000004,
+      "outcome": "PERDU",
+      "hit_price": 3.1548999999999996,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -55016,8 +55016,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772658000,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 9.562331200000003,
+      "outcome": "PERDU",
+      "hit_price": 9.70258,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -55276,8 +55276,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772744400,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 0.552215,
+      "outcome": "GAGNE",
+      "hit_price": 0.5463712999999998,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -55302,8 +55302,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772744400,
       "symbol_type": "FOREX_JPY",
-      "outcome": "PERDU",
-      "hit_price": 111.2396,
+      "outcome": "GAGNE",
+      "hit_price": 109.75557199999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -55406,8 +55406,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772744400,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 9.622,
+      "outcome": "GAGNE",
+      "hit_price": 9.024040000000003,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -55536,8 +55536,8 @@
       "al_swept_session": null,
       "scan_epoch": 1772744400,
       "symbol_type": "FOREX_JPY",
-      "outcome": "GAGNE",
-      "hit_price": 115.812964,
+      "outcome": "PERDU",
+      "hit_price": 114.7312,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -55796,8 +55796,8 @@
       "al_swept_session": null,
       "scan_epoch": 1772744400,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 11.172534,
+      "outcome": "GAGNE",
+      "hit_price": 11.253693479999999,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -56212,8 +56212,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772744400,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 54.0475,
+      "outcome": "PERDU",
+      "hit_price": 57.445,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -56264,8 +56264,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772744400,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 2.9947999999999997,
+      "outcome": "GAGNE",
+      "hit_price": 3.190496,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -56862,8 +56862,8 @@
       "al_swept_session": null,
       "scan_epoch": 1772744400,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 9.595663,
+      "outcome": "GAGNE",
+      "hit_price": 9.729307060000002,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -57408,8 +57408,8 @@
       "al_swept_session": null,
       "scan_epoch": 1772830800,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 0.961988,
+      "outcome": "GAGNE",
+      "hit_price": 0.95117036,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -57538,8 +57538,8 @@
       "al_swept_session": null,
       "scan_epoch": 1772830800,
       "symbol_type": "FOREX_JPY",
-      "outcome": "GAGNE",
-      "hit_price": 116.33573,
+      "outcome": "PERDU",
+      "hit_price": 115.0175,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -57746,8 +57746,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772830800,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 11.116210000000002,
+      "outcome": "PERDU",
+      "hit_price": 11.235994,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -58006,8 +58006,8 @@
       "al_swept_session": null,
       "scan_epoch": 1772830800,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 2.5788,
+      "outcome": "GAGNE",
+      "hit_price": 2.393976,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -58162,8 +58162,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772830800,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 0.461697,
+      "outcome": "GAGNE",
+      "hit_price": 0.45579894,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -58214,8 +58214,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772830800,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 89.53,
+      "outcome": "GAGNE",
+      "hit_price": 84.3658,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -58422,8 +58422,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1772830800,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 9.578299999999999,
+      "outcome": "PERDU",
+      "hit_price": 9.679205,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -58942,8 +58942,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773090000,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 11.077459999999999,
+      "outcome": "GAGNE",
+      "hit_price": 11.233745000000003,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -59150,8 +59150,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773090000,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 55060.560000000005,
+      "outcome": "PERDU",
+      "hit_price": 51024.33,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -59514,8 +59514,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773090000,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 24826.6146,
+      "outcome": "PERDU",
+      "hit_price": 23944.079999999998,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -59566,8 +59566,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773090000,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 6744.437479999999,
+      "outcome": "PERDU",
+      "hit_price": 6573.584,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -59982,8 +59982,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773176400,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 9.94304,
+      "outcome": "PERDU",
+      "hit_price": 9.182,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -60086,8 +60086,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773176400,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 11.119617,
+      "outcome": "GAGNE",
+      "hit_price": 11.224341540000003,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -60580,8 +60580,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773176400,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 9.564273,
+      "outcome": "GAGNE",
+      "hit_price": 9.66095226,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -60918,8 +60918,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773262800,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 0.5766803800000002,
+      "outcome": "PERDU",
+      "hit_price": 0.5714889999999999,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -61230,8 +61230,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773262800,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 11.09238016,
+      "outcome": "PERDU",
+      "hit_price": 11.208928,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -61620,8 +61620,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773262800,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 0.08954000000000001,
+      "outcome": "GAGNE",
+      "hit_price": 0.09388880000000001,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -61646,8 +61646,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773262800,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 3.0529,
+      "outcome": "GAGNE",
+      "hit_price": 3.2463379999999997,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -61750,8 +61750,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1773262800,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 89.74094,
+      "outcome": "PERDU",
+      "hit_price": 84.767,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -62114,8 +62114,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773262800,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 9.594679,
+      "outcome": "GAGNE",
+      "hit_price": 9.711036579999998,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -62660,8 +62660,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773349200,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 394.88552599999997,
+      "outcome": "PERDU",
+      "hit_price": 385.62530000000004,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -63076,8 +63076,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773349200,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 24914.041,
+      "outcome": "GAGNE",
+      "hit_price": 24319.315419999995,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -63102,8 +63102,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1773349200,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 47322.367,
+      "outcome": "GAGNE",
+      "hit_price": 46039.82433999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -63284,8 +63284,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773349200,
       "symbol_type": "FOREX_JPY",
-      "outcome": "PERDU",
-      "hit_price": 158.71030000000002,
+      "outcome": "GAGNE",
+      "hit_price": 160.00678600000003,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -63310,8 +63310,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773349200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 9.612814,
+      "outcome": "GAGNE",
+      "hit_price": 9.77795968,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -64064,8 +64064,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773435600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 0.460311,
+      "outcome": "GAGNE",
+      "hit_price": 0.45620681999999996,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -64142,8 +64142,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773435600,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 24659.239999999998,
+      "outcome": "GAGNE",
+      "hit_price": 24200.169800000003,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -64168,8 +64168,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773435600,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 2515.5,
+      "outcome": "GAGNE",
+      "hit_price": 2438.0370000000003,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -64194,8 +64194,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773435600,
       "symbol_type": "OTHER",
-      "outcome": "PERDU",
-      "hit_price": 6710.37,
+      "outcome": "GAGNE",
+      "hit_price": 6601.65,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -64324,8 +64324,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1773435600,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 17.97814226,
+      "outcome": "PERDU",
+      "hit_price": 17.786333,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -64584,8 +64584,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1773435600,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 567.5833999999999,
+      "outcome": "PERDU",
+      "hit_price": 581.34,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -65052,8 +65052,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1773694800,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 393.3198,
+      "outcome": "GAGNE",
+      "hit_price": 384.980976,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -65468,8 +65468,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1773694800,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 2.957796,
+      "outcome": "PERDU",
+      "hit_price": 3.1698,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -65650,8 +65650,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773694800,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 24939.995619999998,
+      "outcome": "PERDU",
+      "hit_price": 24260.250999999997,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -65702,8 +65702,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773694800,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 47390.54434000001,
+      "outcome": "PERDU",
+      "hit_price": 46389.967,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -65832,8 +65832,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773694800,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 343.5798,
+      "outcome": "GAGNE",
+      "hit_price": 338.41921600000006,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -65858,8 +65858,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773694800,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 3.104229459999999,
+      "outcome": "PERDU",
+      "hit_price": 3.1423630000000005,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -65884,8 +65884,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773694800,
       "symbol_type": "FOREX_JPY",
-      "outcome": "GAGNE",
-      "hit_price": 158.418292,
+      "outcome": "PERDU",
+      "hit_price": 159.7936,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -66144,8 +66144,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773694800,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 0.16615,
+      "outcome": "GAGNE",
+      "hit_price": 0.181099,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -66222,8 +66222,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773694800,
       "symbol_type": "METAL",
-      "outcome": "GAGNE",
-      "hit_price": 2168.21836,
+      "outcome": "PERDU",
+      "hit_price": 1999.648,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -66326,8 +66326,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773781200,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 0.576782,
+      "outcome": "GAGNE",
+      "hit_price": 0.5718352399999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -66534,8 +66534,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773781200,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 11.05982,
+      "outcome": "PERDU",
+      "hit_price": 11.130965,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -66664,8 +66664,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773781200,
       "symbol_type": "FOREX_JPY",
-      "outcome": "PERDU",
-      "hit_price": 211.6395,
+      "outcome": "GAGNE",
+      "hit_price": 212.87618999999995,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -66716,8 +66716,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773781200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 1.329313,
+      "outcome": "GAGNE",
+      "hit_price": 1.3357546599999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -66950,8 +66950,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773781200,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 24814.487960000002,
+      "outcome": "PERDU",
+      "hit_price": 24544.808,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -66976,8 +66976,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773781200,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 2526.97396,
+      "outcome": "PERDU",
+      "hit_price": 2482.8880000000004,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -67002,8 +67002,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773781200,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 47184.40666000001,
+      "outcome": "PERDU",
+      "hit_price": 46786.573,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -67028,8 +67028,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773781200,
       "symbol_type": "OTHER",
-      "outcome": "GAGNE",
-      "hit_price": 6734.245319999999,
+      "outcome": "PERDU",
+      "hit_price": 6675.156,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -67158,8 +67158,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773781200,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 340.2152,
+      "outcome": "GAGNE",
+      "hit_price": 335.18146400000006,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -67210,8 +67210,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773781200,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 9.578949999999999,
+      "outcome": "PERDU",
+      "hit_price": 9.688317999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -67704,8 +67704,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773867600,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 0.101978,
+      "outcome": "GAGNE",
+      "hit_price": 0.09387276,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -67990,8 +67990,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773867600,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 1.3283399999999999,
+      "outcome": "PERDU",
+      "hit_price": 1.3366529999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -68666,8 +68666,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773867600,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 21.3110154,
+      "outcome": "PERDU",
+      "hit_price": 21.14447,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -68718,8 +68718,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773867600,
       "symbol_type": "FOREX_JPY",
-      "outcome": "PERDU",
-      "hit_price": 158.7127,
+      "outcome": "GAGNE",
+      "hit_price": 159.75369399999997,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -68770,8 +68770,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1773867600,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 9.557694,
+      "outcome": "GAGNE",
+      "hit_price": 9.645376680000002,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -69550,8 +69550,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773954000,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 1.1597067200000002,
+      "outcome": "PERDU",
+      "hit_price": 1.1446859999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -69576,8 +69576,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773954000,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 0.22943000000000002,
+      "outcome": "GAGNE",
+      "hit_price": 0.2041526,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -69654,8 +69654,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773954000,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "PERDU",
-      "hit_price": 1.049539,
+      "outcome": "GAGNE",
+      "hit_price": 1.05924298,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -69706,8 +69706,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773954000,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 1.3421046000000005,
+      "outcome": "PERDU",
+      "hit_price": 1.32463,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -69836,8 +69836,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773954000,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 2.5828999999999995,
+      "outcome": "GAGNE",
+      "hit_price": 2.4768980000000007,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -69914,8 +69914,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773954000,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 0.08804940000000001,
+      "outcome": "PERDU",
+      "hit_price": 0.09267,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -69992,8 +69992,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773954000,
       "symbol_type": "FOREX_JPY",
-      "outcome": "PERDU",
-      "hit_price": 93.0637,
+      "outcome": "GAGNE",
+      "hit_price": 91.54977399999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -70200,8 +70200,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1773954000,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 0.78716624,
+      "outcome": "PERDU",
+      "hit_price": 0.793472,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -70252,8 +70252,8 @@
       "al_swept_session": null,
       "scan_epoch": 1773954000,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 21.096357199999996,
+      "outcome": "PERDU",
+      "hit_price": 21.38066,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -70278,8 +70278,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1773954000,
       "symbol_type": "FOREX_USD",
-      "outcome": "PERDU",
-      "hit_price": 343.8299,
+      "outcome": "GAGNE",
+      "hit_price": 337.8104579999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -70356,8 +70356,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1773954000,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 3.6818857400000002,
+      "outcome": "PERDU",
+      "hit_price": 3.735077,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -70512,8 +70512,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1773954000,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 0.162846,
+      "outcome": "PERDU",
+      "hit_price": 0.17099999999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -70850,8 +70850,8 @@
       "al_swept_session": null,
       "scan_epoch": 1774040400,
       "symbol_type": "FOREX_JPY",
-      "outcome": "GAGNE",
-      "hit_price": 202.227774,
+      "outcome": "PERDU",
+      "hit_price": 199.66469999999998,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -71188,8 +71188,8 @@
       "al_swept_session": null,
       "scan_epoch": 1774040400,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 1.0506300000000002,
+      "outcome": "PERDU",
+      "hit_price": 1.059363,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -71968,8 +71968,8 @@
       "al_swept_session": null,
       "scan_epoch": 1774040400,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 0.15980780000000003,
+      "outcome": "PERDU",
+      "hit_price": 0.16769,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -72046,8 +72046,8 @@
       "al_swept_session": null,
       "scan_epoch": 1774040400,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 1.4609,
+      "outcome": "GAGNE",
+      "hit_price": 1.4119760000000001,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -72072,8 +72072,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1774299600,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 113.18906000000001,
+      "outcome": "PERDU",
+      "hit_price": 104.57300000000001,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -72670,8 +72670,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1774299600,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 0.2244058,
+      "outcome": "PERDU",
+      "hit_price": 0.20239,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -73060,8 +73060,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1774299600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "GAGNE",
-      "hit_price": 0.80659458,
+      "outcome": "PERDU",
+      "hit_price": 0.796239,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -73398,8 +73398,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1774299600,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 21.0067,
+      "outcome": "PERDU",
+      "hit_price": 21.22835,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -73476,8 +73476,8 @@
       "al_swept_session": null,
       "scan_epoch": 1774299600,
       "symbol_type": "FOREX_JPY",
-      "outcome": "GAGNE",
-      "hit_price": 158.03511000000003,
+      "outcome": "PERDU",
+      "hit_price": 159.6795,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -73528,8 +73528,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1774299600,
       "symbol_type": "FOREX_USD",
-      "outcome": "GAGNE",
-      "hit_price": 3.6573405999999995,
+      "outcome": "PERDU",
+      "hit_price": 3.70679,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -73658,8 +73658,8 @@
       "al_swept_session": null,
       "scan_epoch": 1774299600,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 0.006763,
+      "outcome": "GAGNE",
+      "hit_price": 0.007225059999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -73788,8 +73788,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1774299600,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 341.2112600000001,
+      "outcome": "PERDU",
+      "hit_price": 365.48299999999995,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -73892,8 +73892,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1774386000,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 9.616,
+      "outcome": "GAGNE",
+      "hit_price": 9.18112,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -73970,8 +73970,8 @@
       "al_swept_session": null,
       "scan_epoch": 1774386000,
       "symbol_type": "FOREX_JPY",
-      "outcome": "PERDU",
-      "hit_price": 201.52949999999998,
+      "outcome": "GAGNE",
+      "hit_price": 200.34716999999998,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -75270,8 +75270,8 @@
       "al_swept_session": null,
       "scan_epoch": 1774472400,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 9.565644000000002,
+      "outcome": "PERDU",
+      "hit_price": 9.136199999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -76934,8 +76934,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1774645200,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 106.88900000000001,
+      "outcome": "GAGNE",
+      "hit_price": 97.02838,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -80392,8 +80392,8 @@
       "al_swept_session": null,
       "scan_epoch": 1775077200,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 101.81183999999999,
+      "outcome": "PERDU",
+      "hit_price": 96.702,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -81224,8 +81224,8 @@
       "al_swept_session": null,
       "scan_epoch": 1775077200,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 0.16580999999999999,
+      "outcome": "GAGNE",
+      "hit_price": 0.17641020000000002,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -82420,8 +82420,8 @@
       "al_swept_session": null,
       "scan_epoch": 1775250000,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 0.24028439999999998,
+      "outcome": "PERDU",
+      "hit_price": 0.22452,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -86086,8 +86086,8 @@
       "al_swept_session": null,
       "scan_epoch": 1775768400,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 2.613058000000001,
+      "outcome": "PERDU",
+      "hit_price": 2.3928999999999996,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -86138,8 +86138,8 @@
       "al_swept_session": null,
       "scan_epoch": 1775768400,
       "symbol_type": "CRYPTO",
-      "outcome": "PERDU",
-      "hit_price": 0.08707000000000001,
+      "outcome": "GAGNE",
+      "hit_price": 0.0960394,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -86970,8 +86970,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1775854800,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 99.37457999999998,
+      "outcome": "PERDU",
+      "hit_price": 89.019,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -91078,8 +91078,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1776286800,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 9.757419999999998,
+      "outcome": "PERDU",
+      "hit_price": 9.241,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -91364,8 +91364,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1776286800,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 2391.5912600000006,
+      "outcome": "PERDU",
+      "hit_price": 2307.143,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -91546,8 +91546,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1776286800,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 0.2352866,
+      "outcome": "PERDU",
+      "hit_price": 0.22522999999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -91884,8 +91884,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1776286800,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 1.407,
+      "outcome": "PERDU",
+      "hit_price": 1.345,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -92612,8 +92612,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1776373200,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 114.80999999999999,
+      "outcome": "PERDU",
+      "hit_price": 104.33200000000001,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -92638,8 +92638,8 @@
       "al_swept_session": null,
       "scan_epoch": 1776373200,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 0.263135,
+      "outcome": "PERDU",
+      "hit_price": 0.24275,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -92742,8 +92742,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1776373200,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 9.905960000000002,
+      "outcome": "PERDU",
+      "hit_price": 9.308,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -92924,8 +92924,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1776373200,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 8.905218000000001,
+      "outcome": "PERDU",
+      "hit_price": 8.3589,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -93080,8 +93080,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1776373200,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 0.24234620000000004,
+      "outcome": "PERDU",
+      "hit_price": 0.22630999999999998,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -93184,8 +93184,8 @@
       "al_swept_session": null,
       "scan_epoch": 1776373200,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 0.17046640000000002,
+      "outcome": "PERDU",
+      "hit_price": 0.15742,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -93210,8 +93210,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1776373200,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 9.594700000000001,
+      "outcome": "PERDU",
+      "hit_price": 9.187,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -93236,8 +93236,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1776373200,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 57.066199999999995,
+      "outcome": "PERDU",
+      "hit_price": 54.620000000000005,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -93366,8 +93366,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1776373200,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 89.28755999999996,
+      "outcome": "PERDU",
+      "hit_price": 84.00800000000001,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -93444,8 +93444,8 @@
       "al_swept_session": null,
       "scan_epoch": 1776373200,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 3.436305999999999,
+      "outcome": "PERDU",
+      "hit_price": 3.1872000000000003,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -93938,8 +93938,8 @@
       "al_swept_session": null,
       "scan_epoch": 1776373200,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 1.4702445999999998,
+      "outcome": "PERDU",
+      "hit_price": 1.3759299999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -94380,8 +94380,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1776459600,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 2420.8099999999995,
+      "outcome": "PERDU",
+      "hit_price": 2318.7889999999998,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -94640,8 +94640,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1776459600,
       "symbol_type": "CRYPTO",
-      "outcome": "GAGNE",
-      "hit_price": 0.02644574,
+      "outcome": "PERDU",
+      "hit_price": 0.025276999999999997,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -136995,7 +136995,7 @@
       "scan_epoch": 1780952400,
       "symbol_type": "FOREX_CROSS",
       "outcome": "OUVERT",
-      "hit_price": 1.06859,
+      "hit_price": 1.0745,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -142533,7 +142533,7 @@
       "scan_epoch": 1781298000,
       "symbol_type": "CRYPTO",
       "outcome": "OUVERT",
-      "hit_price": 308.04,
+      "hit_price": 309.17,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -148850,8 +148850,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782162000,
       "symbol_type": "FOREX_JPY",
-      "outcome": "OUVERT",
-      "hit_price": 213.378,
+      "outcome": "GAGNE",
+      "hit_price": 215.574498,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -149604,8 +149604,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1782248400,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "OUVERT",
-      "hit_price": 0.57069,
+      "outcome": "GAGNE",
+      "hit_price": 0.56784334,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -149813,7 +149813,7 @@
       "scan_epoch": 1782248400,
       "symbol_type": "FOREX_CROSS",
       "outcome": "OUVERT",
-      "hit_price": 2.01907,
+      "hit_price": 2.00569,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -149838,8 +149838,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782248400,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "OUVERT",
-      "hit_price": 4.2833,
+      "outcome": "GAGNE",
+      "hit_price": 4.29421004,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -149942,8 +149942,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782248400,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "OUVERT",
-      "hit_price": 2.34022,
+      "outcome": "GAGNE",
+      "hit_price": 2.34378206,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -150645,7 +150645,7 @@
       "scan_epoch": 1782248400,
       "symbol_type": "CRYPTO",
       "outcome": "OUVERT",
-      "hit_price": 307.88,
+      "hit_price": 309.17,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -151295,7 +151295,7 @@
       "scan_epoch": 1782334800,
       "symbol_type": "FOREX_CROSS",
       "outcome": "OUVERT",
-      "hit_price": 2.01907,
+      "hit_price": 2.00569,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -151580,8 +151580,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1782334800,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "OUVERT",
-      "hit_price": 0.79974,
+      "outcome": "PERDU",
+      "hit_price": 0.8061349999999999,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -151606,8 +151606,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1782334800,
       "symbol_type": "FOREX_JPY",
-      "outcome": "OUVERT",
-      "hit_price": 91.154,
+      "outcome": "PERDU",
+      "hit_price": 91.68700000000001,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -151632,8 +151632,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1782334800,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 0.56352,
+      "outcome": "PERDU",
+      "hit_price": 0.5673590000000001,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -152127,7 +152127,7 @@
       "scan_epoch": 1782334800,
       "symbol_type": "METAL",
       "outcome": "OUVERT",
-      "hit_price": 5912.2,
+      "hit_price": 5850.7,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -152152,8 +152152,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1782334800,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "OUVERT",
-      "hit_price": 3578.83,
+      "outcome": "GAGNE",
+      "hit_price": 3476.3624000000004,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -152230,8 +152230,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782334800,
       "symbol_type": "METAL",
-      "outcome": "OUVERT",
-      "hit_price": 1206.09,
+      "outcome": "PERDU",
+      "hit_price": 1236.672,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -152386,8 +152386,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782421200,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "OUVERT",
-      "hit_price": 1.22254,
+      "outcome": "PERDU",
+      "hit_price": 1.217413,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -152438,8 +152438,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1782421200,
       "symbol_type": "CRYPTO",
-      "outcome": "OUVERT",
-      "hit_price": 0.07128,
+      "outcome": "GAGNE",
+      "hit_price": 0.06917128,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -152542,8 +152542,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1782421200,
       "symbol_type": "FOREX_JPY",
-      "outcome": "OUVERT",
-      "hit_price": 199.65,
+      "outcome": "GAGNE",
+      "hit_price": 200.45909199999997,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -152802,8 +152802,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1782421200,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "OUVERT",
-      "hit_price": 353.463,
+      "outcome": "GAGNE",
+      "hit_price": 351.85730199999995,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -152958,8 +152958,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782421200,
       "symbol_type": "FOREX_JPY",
-      "outcome": "OUVERT",
-      "hit_price": 213.378,
+      "outcome": "GAGNE",
+      "hit_price": 214.132282,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -152984,8 +152984,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782421200,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 1.31914,
+      "outcome": "GAGNE",
+      "hit_price": 1.3244356999999998,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -153036,8 +153036,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1782421200,
       "symbol_type": "OTHER",
-      "outcome": "OUVERT",
-      "hit_price": 3.123,
+      "outcome": "GAGNE",
+      "hit_price": 3.2359999999999993,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -153063,7 +153063,7 @@
       "scan_epoch": 1782421200,
       "symbol_type": "OTHER",
       "outcome": "OUVERT",
-      "hit_price": 22909.78,
+      "hit_price": 22981.31,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -153738,8 +153738,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782421200,
       "symbol_type": "METAL",
-      "outcome": "OUVERT",
-      "hit_price": 5912.2,
+      "outcome": "PERDU",
+      "hit_price": 5743.315,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -153764,8 +153764,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782421200,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "OUVERT",
-      "hit_price": 3578.83,
+      "outcome": "PERDU",
+      "hit_price": 3484.2870000000003,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -153790,8 +153790,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782421200,
       "symbol_type": "METAL",
-      "outcome": "OUVERT",
-      "hit_price": 4075.46,
+      "outcome": "PERDU",
+      "hit_price": 3958.112,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -153920,8 +153920,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1782421200,
       "symbol_type": "METAL",
-      "outcome": "OUVERT",
-      "hit_price": 1627.91,
+      "outcome": "PERDU",
+      "hit_price": 1550.84,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -153998,8 +153998,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "CRYPTO",
-      "outcome": "OUVERT",
-      "hit_price": 0.1455,
+      "outcome": "GAGNE",
+      "hit_price": 0.15390800000000002,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154024,8 +154024,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "OTHER",
-      "outcome": "OUVERT",
-      "hit_price": 8789.61,
+      "outcome": "PERDU",
+      "hit_price": 8701.57,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154050,8 +154050,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "CRYPTO",
-      "outcome": "OUVERT",
-      "hit_price": 6.36,
+      "outcome": "GAGNE",
+      "hit_price": 6.735399999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154076,8 +154076,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "CRYPTO",
-      "outcome": "OUVERT",
-      "hit_price": 193.61,
+      "outcome": "GAGNE",
+      "hit_price": 207.91874,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154102,8 +154102,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "CRYPTO",
-      "outcome": "OUVERT",
-      "hit_price": 557.11,
+      "outcome": "PERDU",
+      "hit_price": 549.162,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154128,8 +154128,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1782507600,
       "symbol_type": "OTHER",
-      "outcome": "OUVERT",
-      "hit_price": 412.14,
+      "outcome": "GAGNE",
+      "hit_price": 411.24377999999996,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154154,8 +154154,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1782507600,
       "symbol_type": "OTHER",
-      "outcome": "OUVERT",
-      "hit_price": 101.331,
+      "outcome": "GAGNE",
+      "hit_price": 101.05048999999998,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154180,8 +154180,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "CRYPTO",
-      "outcome": "OUVERT",
-      "hit_price": 7.126,
+      "outcome": "PERDU",
+      "hit_price": 6.7783,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154206,8 +154206,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "OUVERT",
-      "hit_price": 1.6151900000000001,
+      "outcome": "GAGNE",
+      "hit_price": 1.6184922999999998,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -154232,8 +154232,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "OUVERT",
-      "hit_price": 11.29987,
+      "outcome": "GAGNE",
+      "hit_price": 11.34563926,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154258,8 +154258,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "OUVERT",
-      "hit_price": 2.01907,
+      "outcome": "PERDU",
+      "hit_price": 2.005963,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -154284,8 +154284,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "OUVERT",
-      "hit_price": 4.2833,
+      "outcome": "PERDU",
+      "hit_price": 4.279289,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -154310,8 +154310,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 1.13813,
+      "outcome": "GAGNE",
+      "hit_price": 1.1414414,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -154337,7 +154337,7 @@
       "scan_epoch": 1782507600,
       "symbol_type": "CRYPTO",
       "outcome": "OUVERT",
-      "hit_price": 0.1731,
+      "hit_price": 0.1775,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154362,8 +154362,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "CRYPTO",
-      "outcome": "OUVERT",
-      "hit_price": 0.00227,
+      "outcome": "PERDU",
+      "hit_price": 0.002189,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154388,8 +154388,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1782507600,
       "symbol_type": "OTHER",
-      "outcome": "OUVERT",
-      "hit_price": 24644.94,
+      "outcome": "PERDU",
+      "hit_price": 25063.84,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154414,8 +154414,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1782507600,
       "symbol_type": "CRYPTO",
-      "outcome": "OUVERT",
-      "hit_price": 0.01764,
+      "outcome": "PERDU",
+      "hit_price": 0.017234,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154466,8 +154466,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "CRYPTO",
-      "outcome": "OUVERT",
-      "hit_price": 2.166,
+      "outcome": "PERDU",
+      "hit_price": 2.0673,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154493,7 +154493,7 @@
       "scan_epoch": 1782507600,
       "symbol_type": "CRYPTO",
       "outcome": "OUVERT",
-      "hit_price": 42.88,
+      "hit_price": 42.45,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154518,8 +154518,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "CRYPTO",
-      "outcome": "OUVERT",
-      "hit_price": 0.064,
+      "outcome": "PERDU",
+      "hit_price": 0.06145,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154570,8 +154570,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1782507600,
       "symbol_type": "OTHER",
-      "outcome": "OUVERT",
-      "hit_price": 1135.59,
+      "outcome": "PERDU",
+      "hit_price": 1129.5539999999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154596,8 +154596,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1782507600,
       "symbol_type": "OTHER",
-      "outcome": "OUVERT",
-      "hit_price": 73.042,
+      "outcome": "GAGNE",
+      "hit_price": 71.51807,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154622,8 +154622,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "CRYPTO",
-      "outcome": "OUVERT",
-      "hit_price": 2.9629,
+      "outcome": "PERDU",
+      "hit_price": 2.7579000000000002,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154648,8 +154648,8 @@
       "al_swept_session": "NY",
       "scan_epoch": 1782507600,
       "symbol_type": "OTHER",
-      "outcome": "OUVERT",
-      "hit_price": 2999.64,
+      "outcome": "PERDU",
+      "hit_price": 3028.409,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154674,8 +154674,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1782507600,
       "symbol_type": "FOREX_USD",
-      "outcome": "OUVERT",
-      "hit_price": 21.2948,
+      "outcome": "GAGNE",
+      "hit_price": 21.2285,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -154701,7 +154701,7 @@
       "scan_epoch": 1782507600,
       "symbol_type": "FOREX_USD",
       "outcome": "OUVERT",
-      "hit_price": 9.927340000000001,
+      "hit_price": 9.91438,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": true
@@ -154726,8 +154726,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1782507600,
       "symbol_type": "OTHER",
-      "outcome": "OUVERT",
-      "hit_price": 70.505,
+      "outcome": "GAGNE",
+      "hit_price": 68.57208,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154752,8 +154752,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "OTHER",
-      "outcome": "OUVERT",
-      "hit_price": 579.12,
+      "outcome": "GAGNE",
+      "hit_price": 577.5703799999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154779,7 +154779,7 @@
       "scan_epoch": 1782507600,
       "symbol_type": "METAL",
       "outcome": "OUVERT",
-      "hit_price": 85.039,
+      "hit_price": 85.724,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -154805,7 +154805,7 @@
       "scan_epoch": 1782507600,
       "symbol_type": "METAL",
       "outcome": "OUVERT",
-      "hit_price": 51.476,
+      "hit_price": 51.938,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -154831,7 +154831,7 @@
       "scan_epoch": 1782507600,
       "symbol_type": "METAL",
       "outcome": "OUVERT",
-      "hit_price": 58.618,
+      "hit_price": 59.087,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -154856,8 +154856,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "FOREX_CROSS",
-      "outcome": "OUVERT",
-      "hit_price": 3578.83,
+      "outcome": "PERDU",
+      "hit_price": 3502.564,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": false
@@ -154882,8 +154882,8 @@
       "al_swept_session": null,
       "scan_epoch": 1782507600,
       "symbol_type": "METAL",
-      "outcome": "OUVERT",
-      "hit_price": 4075.46,
+      "outcome": "PERDU",
+      "hit_price": 3977.5550000000003,
       "tf_used": "M5",
       "is_elite_v1": true,
       "is_elite_v2": true
@@ -154908,8 +154908,8 @@
       "al_swept_session": "London",
       "scan_epoch": 1782507600,
       "symbol_type": "CRYPTO",
-      "outcome": "OUVERT",
-      "hit_price": 612.21,
+      "outcome": "GAGNE",
+      "hit_price": 623.3113599999999,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154935,7 +154935,7 @@
       "scan_epoch": 1782507600,
       "symbol_type": "CRYPTO",
       "outcome": "OUVERT",
-      "hit_price": 307.91,
+      "hit_price": 309.17,
       "tf_used": "M5",
       "is_elite_v1": false,
       "is_elite_v2": false
@@ -154953,10 +154953,10 @@
     },
     "2026-01-02": {
       "trades": 56,
-      "gagnes": 22,
-      "perdus": 34,
+      "gagnes": 23,
+      "perdus": 33,
       "ouverts": 0,
-      "winrate": 39.285714285714285
+      "winrate": 41.07142857142857
     },
     "2026-01-05": {
       "trades": 49,
@@ -154967,10 +154967,10 @@
     },
     "2026-01-06": {
       "trades": 64,
-      "gagnes": 43,
-      "perdus": 21,
+      "gagnes": 44,
+      "perdus": 20,
       "ouverts": 0,
-      "winrate": 67.1875
+      "winrate": 68.75
     },
     "2026-01-07": {
       "trades": 50,
@@ -154981,31 +154981,31 @@
     },
     "2026-01-08": {
       "trades": 53,
-      "gagnes": 37,
-      "perdus": 16,
+      "gagnes": 35,
+      "perdus": 18,
       "ouverts": 0,
-      "winrate": 69.81132075471697
+      "winrate": 66.0377358490566
     },
     "2026-01-09": {
       "trades": 56,
-      "gagnes": 39,
-      "perdus": 17,
+      "gagnes": 35,
+      "perdus": 21,
       "ouverts": 0,
-      "winrate": 69.64285714285714
+      "winrate": 62.5
     },
     "2026-01-12": {
       "trades": 43,
-      "gagnes": 19,
-      "perdus": 24,
+      "gagnes": 18,
+      "perdus": 25,
       "ouverts": 0,
-      "winrate": 44.18604651162791
+      "winrate": 41.86046511627907
     },
     "2026-01-13": {
       "trades": 60,
-      "gagnes": 16,
-      "perdus": 44,
+      "gagnes": 14,
+      "perdus": 46,
       "ouverts": 0,
-      "winrate": 26.666666666666668
+      "winrate": 23.333333333333332
     },
     "2026-01-14": {
       "trades": 44,
@@ -155016,10 +155016,10 @@
     },
     "2026-01-15": {
       "trades": 63,
-      "gagnes": 46,
-      "perdus": 17,
+      "gagnes": 44,
+      "perdus": 19,
       "ouverts": 0,
-      "winrate": 73.01587301587301
+      "winrate": 69.84126984126983
     },
     "2026-01-16": {
       "trades": 42,
@@ -155037,10 +155037,10 @@
     },
     "2026-01-20": {
       "trades": 31,
-      "gagnes": 24,
-      "perdus": 7,
+      "gagnes": 23,
+      "perdus": 8,
       "ouverts": 0,
-      "winrate": 77.41935483870968
+      "winrate": 74.19354838709677
     },
     "2026-01-21": {
       "trades": 69,
@@ -155051,10 +155051,10 @@
     },
     "2026-01-22": {
       "trades": 62,
-      "gagnes": 34,
-      "perdus": 28,
+      "gagnes": 28,
+      "perdus": 34,
       "ouverts": 0,
-      "winrate": 54.83870967741935
+      "winrate": 45.16129032258064
     },
     "2026-01-23": {
       "trades": 44,
@@ -155065,31 +155065,31 @@
     },
     "2026-01-26": {
       "trades": 38,
-      "gagnes": 7,
-      "perdus": 31,
+      "gagnes": 6,
+      "perdus": 32,
       "ouverts": 0,
-      "winrate": 18.421052631578945
+      "winrate": 15.789473684210526
     },
     "2026-01-27": {
       "trades": 57,
-      "gagnes": 26,
-      "perdus": 31,
+      "gagnes": 23,
+      "perdus": 34,
       "ouverts": 0,
-      "winrate": 45.614035087719294
+      "winrate": 40.35087719298245
     },
     "2026-01-28": {
       "trades": 54,
-      "gagnes": 43,
-      "perdus": 11,
+      "gagnes": 42,
+      "perdus": 12,
       "ouverts": 0,
-      "winrate": 79.62962962962963
+      "winrate": 77.77777777777779
     },
     "2026-01-29": {
       "trades": 53,
-      "gagnes": 45,
-      "perdus": 8,
+      "gagnes": 43,
+      "perdus": 10,
       "ouverts": 0,
-      "winrate": 84.90566037735849
+      "winrate": 81.13207547169812
     },
     "2026-01-30": {
       "trades": 34,
@@ -155100,31 +155100,31 @@
     },
     "2026-02-02": {
       "trades": 47,
-      "gagnes": 17,
-      "perdus": 30,
+      "gagnes": 16,
+      "perdus": 31,
       "ouverts": 0,
-      "winrate": 36.17021276595745
+      "winrate": 34.04255319148936
     },
     "2026-02-03": {
       "trades": 38,
-      "gagnes": 21,
-      "perdus": 17,
+      "gagnes": 23,
+      "perdus": 15,
       "ouverts": 0,
-      "winrate": 55.26315789473685
+      "winrate": 60.526315789473685
     },
     "2026-02-04": {
       "trades": 44,
-      "gagnes": 30,
-      "perdus": 14,
+      "gagnes": 31,
+      "perdus": 13,
       "ouverts": 0,
-      "winrate": 68.18181818181817
+      "winrate": 70.45454545454545
     },
     "2026-02-05": {
       "trades": 52,
-      "gagnes": 31,
-      "perdus": 21,
+      "gagnes": 32,
+      "perdus": 20,
       "ouverts": 0,
-      "winrate": 59.61538461538461
+      "winrate": 61.53846153846154
     },
     "2026-02-06": {
       "trades": 62,
@@ -155135,59 +155135,59 @@
     },
     "2026-02-09": {
       "trades": 33,
-      "gagnes": 12,
-      "perdus": 21,
+      "gagnes": 9,
+      "perdus": 24,
       "ouverts": 0,
-      "winrate": 36.36363636363637
+      "winrate": 27.27272727272727
     },
     "2026-02-10": {
       "trades": 40,
-      "gagnes": 16,
-      "perdus": 24,
+      "gagnes": 17,
+      "perdus": 23,
       "ouverts": 0,
-      "winrate": 40.0
+      "winrate": 42.5
     },
     "2026-02-11": {
       "trades": 40,
-      "gagnes": 22,
-      "perdus": 18,
+      "gagnes": 20,
+      "perdus": 20,
       "ouverts": 0,
-      "winrate": 55.00000000000001
+      "winrate": 50.0
     },
     "2026-02-12": {
       "trades": 43,
-      "gagnes": 22,
-      "perdus": 21,
+      "gagnes": 25,
+      "perdus": 18,
       "ouverts": 0,
-      "winrate": 51.162790697674424
+      "winrate": 58.139534883720934
     },
     "2026-02-13": {
       "trades": 51,
-      "gagnes": 22,
-      "perdus": 29,
+      "gagnes": 20,
+      "perdus": 31,
       "ouverts": 0,
-      "winrate": 43.13725490196079
+      "winrate": 39.21568627450981
     },
     "2026-02-16": {
       "trades": 31,
-      "gagnes": 21,
-      "perdus": 10,
+      "gagnes": 20,
+      "perdus": 11,
       "ouverts": 0,
-      "winrate": 67.74193548387096
+      "winrate": 64.51612903225806
     },
     "2026-02-17": {
       "trades": 33,
-      "gagnes": 12,
-      "perdus": 21,
+      "gagnes": 11,
+      "perdus": 22,
       "ouverts": 0,
-      "winrate": 36.36363636363637
+      "winrate": 33.33333333333333
     },
     "2026-02-18": {
       "trades": 75,
-      "gagnes": 48,
-      "perdus": 27,
+      "gagnes": 45,
+      "perdus": 30,
       "ouverts": 0,
-      "winrate": 64.0
+      "winrate": 60.0
     },
     "2026-02-19": {
       "trades": 41,
@@ -155198,94 +155198,94 @@
     },
     "2026-02-20": {
       "trades": 63,
-      "gagnes": 24,
-      "perdus": 39,
+      "gagnes": 22,
+      "perdus": 41,
       "ouverts": 0,
-      "winrate": 38.095238095238095
+      "winrate": 34.92063492063492
     },
     "2026-02-23": {
       "trades": 32,
-      "gagnes": 25,
-      "perdus": 7,
+      "gagnes": 27,
+      "perdus": 5,
       "ouverts": 0,
-      "winrate": 78.125
+      "winrate": 84.375
     },
     "2026-02-24": {
       "trades": 30,
-      "gagnes": 8,
-      "perdus": 22,
+      "gagnes": 6,
+      "perdus": 24,
       "ouverts": 0,
-      "winrate": 26.666666666666668
+      "winrate": 20.0
     },
     "2026-02-25": {
       "trades": 38,
-      "gagnes": 8,
-      "perdus": 30,
+      "gagnes": 9,
+      "perdus": 29,
       "ouverts": 0,
-      "winrate": 21.052631578947366
+      "winrate": 23.684210526315788
     },
     "2026-02-26": {
       "trades": 61,
-      "gagnes": 36,
-      "perdus": 25,
+      "gagnes": 37,
+      "perdus": 24,
       "ouverts": 0,
-      "winrate": 59.01639344262295
+      "winrate": 60.65573770491803
     },
     "2026-02-27": {
       "trades": 56,
-      "gagnes": 30,
-      "perdus": 26,
+      "gagnes": 29,
+      "perdus": 27,
       "ouverts": 0,
-      "winrate": 53.57142857142857
+      "winrate": 51.78571428571429
     },
     "2026-03-02": {
       "trades": 37,
-      "gagnes": 25,
-      "perdus": 12,
+      "gagnes": 24,
+      "perdus": 13,
       "ouverts": 0,
-      "winrate": 67.56756756756756
+      "winrate": 64.86486486486487
     },
     "2026-03-03": {
       "trades": 45,
-      "gagnes": 37,
-      "perdus": 8,
+      "gagnes": 35,
+      "perdus": 10,
       "ouverts": 0,
-      "winrate": 82.22222222222221
+      "winrate": 77.77777777777779
     },
     "2026-03-04": {
       "trades": 51,
-      "gagnes": 7,
-      "perdus": 44,
+      "gagnes": 5,
+      "perdus": 46,
       "ouverts": 0,
-      "winrate": 13.725490196078432
+      "winrate": 9.803921568627452
     },
     "2026-03-05": {
       "trades": 84,
-      "gagnes": 62,
-      "perdus": 22,
+      "gagnes": 66,
+      "perdus": 18,
       "ouverts": 0,
-      "winrate": 73.80952380952381
+      "winrate": 78.57142857142857
     },
     "2026-03-06": {
       "trades": 47,
-      "gagnes": 21,
-      "perdus": 26,
+      "gagnes": 22,
+      "perdus": 25,
       "ouverts": 0,
-      "winrate": 44.680851063829785
+      "winrate": 46.808510638297875
     },
     "2026-03-09": {
       "trades": 53,
-      "gagnes": 25,
-      "perdus": 28,
+      "gagnes": 23,
+      "perdus": 30,
       "ouverts": 0,
-      "winrate": 47.16981132075472
+      "winrate": 43.39622641509434
     },
     "2026-03-10": {
       "trades": 29,
-      "gagnes": 14,
-      "perdus": 15,
+      "gagnes": 15,
+      "perdus": 14,
       "ouverts": 0,
-      "winrate": 48.275862068965516
+      "winrate": 51.724137931034484
     },
     "2026-03-11": {
       "trades": 64,
@@ -155296,73 +155296,73 @@
     },
     "2026-03-12": {
       "trades": 43,
-      "gagnes": 31,
-      "perdus": 12,
+      "gagnes": 34,
+      "perdus": 9,
       "ouverts": 0,
-      "winrate": 72.09302325581395
+      "winrate": 79.06976744186046
     },
     "2026-03-13": {
       "trades": 44,
-      "gagnes": 30,
-      "perdus": 14,
+      "gagnes": 32,
+      "perdus": 12,
       "ouverts": 0,
-      "winrate": 68.18181818181817
+      "winrate": 72.72727272727273
     },
     "2026-03-16": {
       "trades": 63,
-      "gagnes": 26,
-      "perdus": 37,
+      "gagnes": 23,
+      "perdus": 40,
       "ouverts": 0,
-      "winrate": 41.269841269841265
+      "winrate": 36.507936507936506
     },
     "2026-03-17": {
       "trades": 45,
-      "gagnes": 25,
-      "perdus": 20,
+      "gagnes": 23,
+      "perdus": 22,
       "ouverts": 0,
-      "winrate": 55.55555555555556
+      "winrate": 51.11111111111111
     },
     "2026-03-18": {
       "trades": 63,
-      "gagnes": 56,
-      "perdus": 7,
+      "gagnes": 57,
+      "perdus": 6,
       "ouverts": 0,
-      "winrate": 88.88888888888889
+      "winrate": 90.47619047619048
     },
     "2026-03-19": {
       "trades": 60,
-      "gagnes": 34,
-      "perdus": 26,
+      "gagnes": 32,
+      "perdus": 28,
       "ouverts": 0,
-      "winrate": 56.666666666666664
+      "winrate": 53.333333333333336
     },
     "2026-03-20": {
       "trades": 55,
-      "gagnes": 43,
-      "perdus": 12,
+      "gagnes": 41,
+      "perdus": 14,
       "ouverts": 0,
-      "winrate": 78.18181818181819
+      "winrate": 74.54545454545455
     },
     "2026-03-23": {
       "trades": 69,
-      "gagnes": 46,
-      "perdus": 23,
+      "gagnes": 40,
+      "perdus": 29,
       "ouverts": 0,
-      "winrate": 66.66666666666666
+      "winrate": 57.971014492753625
     },
     "2026-03-24": {
       "trades": 40,
-      "gagnes": 23,
-      "perdus": 17,
+      "gagnes": 25,
+      "perdus": 15,
       "ouverts": 0,
-      "winrate": 57.49999999999999
+      "winrate": 62.5
     },
     "2026-03-25": {
       "trades": 30,
-      "gagnes": 27,
-      "perdus": 3,
+      "gagnes": 26,
+      "perdus": 4,
       "ouverts": 0,
-      "winrate": 90.0
+      "winrate": 86.66666666666667
     },
     "2026-03-26": {
       "trades": 48,
@@ -155373,10 +155373,10 @@
     },
     "2026-03-27": {
       "trades": 58,
-      "gagnes": 36,
-      "perdus": 22,
+      "gagnes": 37,
+      "perdus": 21,
       "ouverts": 0,
-      "winrate": 62.06896551724138
+      "winrate": 63.793103448275865
     },
     "2026-03-30": {
       "trades": 24,
@@ -155408,10 +155408,10 @@
     },
     "2026-04-03": {
       "trades": 39,
-      "gagnes": 14,
-      "perdus": 25,
+      "gagnes": 13,
+      "perdus": 26,
       "ouverts": 0,
-      "winrate": 35.8974358974359
+      "winrate": 33.33333333333333
     },
     "2026-04-06": {
       "trades": 34,
@@ -155443,10 +155443,10 @@
     },
     "2026-04-10": {
       "trades": 45,
-      "gagnes": 22,
-      "perdus": 23,
+      "gagnes": 21,
+      "perdus": 24,
       "ouverts": 0,
-      "winrate": 48.888888888888886
+      "winrate": 46.666666666666664
     },
     "2026-04-13": {
       "trades": 61,
@@ -155464,24 +155464,24 @@
     },
     "2026-04-15": {
       "trades": 60,
-      "gagnes": 42,
-      "perdus": 18,
+      "gagnes": 38,
+      "perdus": 22,
       "ouverts": 0,
-      "winrate": 70.0
+      "winrate": 63.33333333333333
     },
     "2026-04-16": {
       "trades": 53,
-      "gagnes": 27,
-      "perdus": 26,
+      "gagnes": 16,
+      "perdus": 37,
       "ouverts": 0,
-      "winrate": 50.943396226415096
+      "winrate": 30.18867924528302
     },
     "2026-04-17": {
       "trades": 59,
-      "gagnes": 34,
-      "perdus": 25,
+      "gagnes": 32,
+      "perdus": 27,
       "ouverts": 0,
-      "winrate": 57.6271186440678
+      "winrate": 54.23728813559322
     },
     "2026-04-20": {
       "trades": 51,
@@ -155800,47 +155800,47 @@
     },
     "2026-06-22": {
       "trades": 38,
-      "gagnes": 27,
+      "gagnes": 28,
       "perdus": 10,
-      "ouverts": 1,
-      "winrate": 72.97297297297297
+      "ouverts": 0,
+      "winrate": 73.68421052631578
     },
     "2026-06-23": {
       "trades": 44,
-      "gagnes": 37,
+      "gagnes": 40,
       "perdus": 2,
-      "ouverts": 5,
-      "winrate": 94.87179487179486
+      "ouverts": 2,
+      "winrate": 95.23809523809523
     },
     "2026-06-24": {
       "trades": 62,
-      "gagnes": 40,
-      "perdus": 15,
-      "ouverts": 7,
-      "winrate": 72.72727272727273
+      "gagnes": 41,
+      "perdus": 19,
+      "ouverts": 2,
+      "winrate": 68.33333333333333
     },
     "2026-06-25": {
       "trades": 64,
-      "gagnes": 32,
-      "perdus": 20,
-      "ouverts": 12,
-      "winrate": 61.53846153846154
+      "gagnes": 38,
+      "perdus": 25,
+      "ouverts": 1,
+      "winrate": 60.317460317460316
     },
     "2026-06-26": {
       "trades": 38,
-      "gagnes": 3,
-      "perdus": 0,
-      "ouverts": 35,
-      "winrate": 100.0
+      "gagnes": 16,
+      "perdus": 15,
+      "ouverts": 7,
+      "winrate": 51.61290322580645
     }
   },
   "daily_stats_v1": {
     "2026-01-02": {
       "trades": 20,
-      "gagnes": 12,
-      "perdus": 8,
+      "gagnes": 14,
+      "perdus": 6,
       "ouverts": 0,
-      "winrate": 60.0
+      "winrate": 70.0
     },
     "2026-01-05": {
       "trades": 10,
@@ -155851,24 +155851,24 @@
     },
     "2026-01-06": {
       "trades": 14,
-      "gagnes": 9,
-      "perdus": 5,
+      "gagnes": 8,
+      "perdus": 6,
       "ouverts": 0,
-      "winrate": 64.28571428571429
+      "winrate": 57.14285714285714
     },
     "2026-01-07": {
       "trades": 11,
-      "gagnes": 3,
-      "perdus": 8,
+      "gagnes": 4,
+      "perdus": 7,
       "ouverts": 0,
-      "winrate": 27.27272727272727
+      "winrate": 36.36363636363637
     },
     "2026-01-08": {
       "trades": 10,
-      "gagnes": 4,
-      "perdus": 6,
+      "gagnes": 3,
+      "perdus": 7,
       "ouverts": 0,
-      "winrate": 40.0
+      "winrate": 30.0
     },
     "2026-01-09": {
       "trades": 11,
@@ -155879,24 +155879,24 @@
     },
     "2026-01-12": {
       "trades": 21,
-      "gagnes": 9,
-      "perdus": 12,
+      "gagnes": 8,
+      "perdus": 13,
       "ouverts": 0,
-      "winrate": 42.857142857142854
+      "winrate": 38.095238095238095
     },
     "2026-01-13": {
       "trades": 19,
-      "gagnes": 7,
-      "perdus": 12,
+      "gagnes": 6,
+      "perdus": 13,
       "ouverts": 0,
-      "winrate": 36.84210526315789
+      "winrate": 31.57894736842105
     },
     "2026-01-14": {
       "trades": 20,
-      "gagnes": 12,
-      "perdus": 8,
+      "gagnes": 11,
+      "perdus": 9,
       "ouverts": 0,
-      "winrate": 60.0
+      "winrate": 55.00000000000001
     },
     "2026-01-15": {
       "trades": 7,
@@ -155914,10 +155914,10 @@
     },
     "2026-01-19": {
       "trades": 15,
-      "gagnes": 8,
-      "perdus": 7,
+      "gagnes": 7,
+      "perdus": 8,
       "ouverts": 0,
-      "winrate": 53.333333333333336
+      "winrate": 46.666666666666664
     },
     "2026-01-20": {
       "trades": 5,
@@ -155935,24 +155935,24 @@
     },
     "2026-01-22": {
       "trades": 11,
-      "gagnes": 7,
-      "perdus": 4,
+      "gagnes": 6,
+      "perdus": 5,
       "ouverts": 0,
-      "winrate": 63.63636363636363
+      "winrate": 54.54545454545454
     },
     "2026-01-23": {
       "trades": 5,
-      "gagnes": 2,
-      "perdus": 3,
+      "gagnes": 1,
+      "perdus": 4,
       "ouverts": 0,
-      "winrate": 40.0
+      "winrate": 20.0
     },
     "2026-01-26": {
       "trades": 10,
-      "gagnes": 5,
-      "perdus": 5,
+      "gagnes": 4,
+      "perdus": 6,
       "ouverts": 0,
-      "winrate": 50.0
+      "winrate": 40.0
     },
     "2026-01-27": {
       "trades": 11,
@@ -155970,10 +155970,10 @@
     },
     "2026-01-29": {
       "trades": 18,
-      "gagnes": 15,
-      "perdus": 3,
+      "gagnes": 13,
+      "perdus": 5,
       "ouverts": 0,
-      "winrate": 83.33333333333334
+      "winrate": 72.22222222222221
     },
     "2026-01-30": {
       "trades": 16,
@@ -156012,17 +156012,17 @@
     },
     "2026-02-06": {
       "trades": 15,
-      "gagnes": 1,
-      "perdus": 14,
+      "gagnes": 2,
+      "perdus": 13,
       "ouverts": 0,
-      "winrate": 6.666666666666667
+      "winrate": 13.333333333333334
     },
     "2026-02-09": {
       "trades": 13,
-      "gagnes": 5,
-      "perdus": 8,
+      "gagnes": 4,
+      "perdus": 9,
       "ouverts": 0,
-      "winrate": 38.46153846153847
+      "winrate": 30.76923076923077
     },
     "2026-02-10": {
       "trades": 8,
@@ -156047,17 +156047,17 @@
     },
     "2026-02-13": {
       "trades": 14,
-      "gagnes": 7,
-      "perdus": 7,
+      "gagnes": 5,
+      "perdus": 9,
       "ouverts": 0,
-      "winrate": 50.0
+      "winrate": 35.714285714285715
     },
     "2026-02-16": {
       "trades": 12,
-      "gagnes": 9,
-      "perdus": 3,
+      "gagnes": 8,
+      "perdus": 4,
       "ouverts": 0,
-      "winrate": 75.0
+      "winrate": 66.66666666666666
     },
     "2026-02-17": {
       "trades": 11,
@@ -156068,10 +156068,10 @@
     },
     "2026-02-18": {
       "trades": 20,
-      "gagnes": 14,
-      "perdus": 6,
+      "gagnes": 11,
+      "perdus": 9,
       "ouverts": 0,
-      "winrate": 70.0
+      "winrate": 55.00000000000001
     },
     "2026-02-19": {
       "trades": 12,
@@ -156082,17 +156082,17 @@
     },
     "2026-02-20": {
       "trades": 17,
-      "gagnes": 5,
-      "perdus": 12,
+      "gagnes": 3,
+      "perdus": 14,
       "ouverts": 0,
-      "winrate": 29.411764705882355
+      "winrate": 17.647058823529413
     },
     "2026-02-23": {
       "trades": 17,
-      "gagnes": 13,
-      "perdus": 4,
+      "gagnes": 14,
+      "perdus": 3,
       "ouverts": 0,
-      "winrate": 76.47058823529412
+      "winrate": 82.35294117647058
     },
     "2026-02-24": {
       "trades": 10,
@@ -156117,10 +156117,10 @@
     },
     "2026-02-27": {
       "trades": 10,
-      "gagnes": 6,
-      "perdus": 4,
+      "gagnes": 5,
+      "perdus": 5,
       "ouverts": 0,
-      "winrate": 60.0
+      "winrate": 50.0
     },
     "2026-03-02": {
       "trades": 8,
@@ -156131,52 +156131,52 @@
     },
     "2026-03-03": {
       "trades": 12,
-      "gagnes": 11,
-      "perdus": 1,
+      "gagnes": 10,
+      "perdus": 2,
       "ouverts": 0,
-      "winrate": 91.66666666666666
+      "winrate": 83.33333333333334
     },
     "2026-03-04": {
       "trades": 18,
-      "gagnes": 3,
-      "perdus": 15,
+      "gagnes": 1,
+      "perdus": 17,
       "ouverts": 0,
-      "winrate": 16.666666666666664
+      "winrate": 5.555555555555555
     },
     "2026-03-05": {
       "trades": 16,
-      "gagnes": 13,
-      "perdus": 3,
+      "gagnes": 14,
+      "perdus": 2,
       "ouverts": 0,
-      "winrate": 81.25
+      "winrate": 87.5
     },
     "2026-03-06": {
       "trades": 8,
-      "gagnes": 2,
-      "perdus": 6,
+      "gagnes": 3,
+      "perdus": 5,
       "ouverts": 0,
-      "winrate": 25.0
+      "winrate": 37.5
     },
     "2026-03-09": {
       "trades": 19,
-      "gagnes": 4,
-      "perdus": 15,
+      "gagnes": 5,
+      "perdus": 14,
       "ouverts": 0,
-      "winrate": 21.052631578947366
+      "winrate": 26.31578947368421
     },
     "2026-03-10": {
       "trades": 12,
-      "gagnes": 6,
-      "perdus": 6,
+      "gagnes": 8,
+      "perdus": 4,
       "ouverts": 0,
-      "winrate": 50.0
+      "winrate": 66.66666666666666
     },
     "2026-03-11": {
       "trades": 18,
-      "gagnes": 13,
-      "perdus": 5,
+      "gagnes": 12,
+      "perdus": 6,
       "ouverts": 0,
-      "winrate": 72.22222222222221
+      "winrate": 66.66666666666666
     },
     "2026-03-12": {
       "trades": 14,
@@ -156194,10 +156194,10 @@
     },
     "2026-03-16": {
       "trades": 7,
-      "gagnes": 4,
-      "perdus": 3,
+      "gagnes": 5,
+      "perdus": 2,
       "ouverts": 0,
-      "winrate": 57.14285714285714
+      "winrate": 71.42857142857143
     },
     "2026-03-17": {
       "trades": 17,
@@ -156208,10 +156208,10 @@
     },
     "2026-03-18": {
       "trades": 7,
-      "gagnes": 5,
-      "perdus": 2,
+      "gagnes": 6,
+      "perdus": 1,
       "ouverts": 0,
-      "winrate": 71.42857142857143
+      "winrate": 85.71428571428571
     },
     "2026-03-19": {
       "trades": 4,
@@ -156691,40 +156691,40 @@
     },
     "2026-06-23": {
       "trades": 11,
-      "gagnes": 8,
+      "gagnes": 10,
       "perdus": 0,
-      "ouverts": 3,
+      "ouverts": 1,
       "winrate": 100.0
     },
     "2026-06-24": {
       "trades": 13,
       "gagnes": 3,
-      "perdus": 7,
-      "ouverts": 3,
-      "winrate": 30.0
+      "perdus": 9,
+      "ouverts": 1,
+      "winrate": 25.0
     },
     "2026-06-25": {
       "trades": 18,
-      "gagnes": 6,
-      "perdus": 5,
-      "ouverts": 7,
-      "winrate": 54.54545454545454
+      "gagnes": 8,
+      "perdus": 10,
+      "ouverts": 0,
+      "winrate": 44.44444444444444
     },
     "2026-06-26": {
       "trades": 10,
-      "gagnes": 0,
-      "perdus": 0,
-      "ouverts": 10,
-      "winrate": 0
+      "gagnes": 3,
+      "perdus": 4,
+      "ouverts": 3,
+      "winrate": 42.857142857142854
     }
   },
   "daily_stats_v2": {
     "2026-01-02": {
       "trades": 12,
-      "gagnes": 5,
-      "perdus": 7,
+      "gagnes": 7,
+      "perdus": 5,
       "ouverts": 0,
-      "winrate": 41.66666666666667
+      "winrate": 58.333333333333336
     },
     "2026-01-05": {
       "trades": 8,
@@ -156735,52 +156735,52 @@
     },
     "2026-01-06": {
       "trades": 14,
-      "gagnes": 10,
-      "perdus": 4,
+      "gagnes": 11,
+      "perdus": 3,
       "ouverts": 0,
-      "winrate": 71.42857142857143
+      "winrate": 78.57142857142857
     },
     "2026-01-07": {
       "trades": 12,
-      "gagnes": 5,
-      "perdus": 7,
+      "gagnes": 6,
+      "perdus": 6,
       "ouverts": 0,
-      "winrate": 41.66666666666667
+      "winrate": 50.0
     },
     "2026-01-08": {
       "trades": 11,
-      "gagnes": 7,
-      "perdus": 4,
+      "gagnes": 6,
+      "perdus": 5,
       "ouverts": 0,
-      "winrate": 63.63636363636363
+      "winrate": 54.54545454545454
     },
     "2026-01-09": {
-      "trades": 13,
-      "gagnes": 7,
-      "perdus": 6,
-      "ouverts": 0,
-      "winrate": 53.84615384615385
-    },
-    "2026-01-12": {
       "trades": 13,
       "gagnes": 5,
       "perdus": 8,
       "ouverts": 0,
       "winrate": 38.46153846153847
     },
-    "2026-01-13": {
-      "trades": 14,
-      "gagnes": 4,
+    "2026-01-12": {
+      "trades": 13,
+      "gagnes": 3,
       "perdus": 10,
       "ouverts": 0,
-      "winrate": 28.57142857142857
+      "winrate": 23.076923076923077
+    },
+    "2026-01-13": {
+      "trades": 14,
+      "gagnes": 3,
+      "perdus": 11,
+      "ouverts": 0,
+      "winrate": 21.428571428571427
     },
     "2026-01-14": {
       "trades": 14,
-      "gagnes": 9,
-      "perdus": 5,
+      "gagnes": 8,
+      "perdus": 6,
       "ouverts": 0,
-      "winrate": 64.28571428571429
+      "winrate": 57.14285714285714
     },
     "2026-01-15": {
       "trades": 12,
@@ -156798,38 +156798,38 @@
     },
     "2026-01-19": {
       "trades": 9,
-      "gagnes": 4,
-      "perdus": 5,
+      "gagnes": 3,
+      "perdus": 6,
       "ouverts": 0,
-      "winrate": 44.44444444444444
+      "winrate": 33.33333333333333
     },
     "2026-01-20": {
       "trades": 5,
-      "gagnes": 4,
-      "perdus": 1,
+      "gagnes": 2,
+      "perdus": 3,
       "ouverts": 0,
-      "winrate": 80.0
+      "winrate": 40.0
     },
     "2026-01-21": {
       "trades": 16,
-      "gagnes": 11,
-      "perdus": 5,
+      "gagnes": 12,
+      "perdus": 4,
       "ouverts": 0,
-      "winrate": 68.75
+      "winrate": 75.0
     },
     "2026-01-22": {
       "trades": 14,
-      "gagnes": 5,
-      "perdus": 9,
+      "gagnes": 3,
+      "perdus": 11,
       "ouverts": 0,
-      "winrate": 35.714285714285715
+      "winrate": 21.428571428571427
     },
     "2026-01-23": {
       "trades": 17,
-      "gagnes": 3,
-      "perdus": 14,
+      "gagnes": 2,
+      "perdus": 15,
       "ouverts": 0,
-      "winrate": 17.647058823529413
+      "winrate": 11.76470588235294
     },
     "2026-01-26": {
       "trades": 6,
@@ -156840,10 +156840,10 @@
     },
     "2026-01-27": {
       "trades": 14,
-      "gagnes": 4,
-      "perdus": 10,
+      "gagnes": 3,
+      "perdus": 11,
       "ouverts": 0,
-      "winrate": 28.57142857142857
+      "winrate": 21.428571428571427
     },
     "2026-01-28": {
       "trades": 10,
@@ -156882,17 +156882,17 @@
     },
     "2026-02-04": {
       "trades": 12,
-      "gagnes": 10,
-      "perdus": 2,
+      "gagnes": 11,
+      "perdus": 1,
       "ouverts": 0,
-      "winrate": 83.33333333333334
+      "winrate": 91.66666666666666
     },
     "2026-02-05": {
       "trades": 10,
-      "gagnes": 8,
-      "perdus": 2,
+      "gagnes": 9,
+      "perdus": 1,
       "ouverts": 0,
-      "winrate": 80.0
+      "winrate": 90.0
     },
     "2026-02-06": {
       "trades": 17,
@@ -156903,10 +156903,10 @@
     },
     "2026-02-09": {
       "trades": 11,
-      "gagnes": 1,
-      "perdus": 10,
+      "gagnes": 0,
+      "perdus": 11,
       "ouverts": 0,
-      "winrate": 9.090909090909092
+      "winrate": 0.0
     },
     "2026-02-10": {
       "trades": 7,
@@ -156924,17 +156924,17 @@
     },
     "2026-02-12": {
       "trades": 9,
-      "gagnes": 7,
-      "perdus": 2,
+      "gagnes": 8,
+      "perdus": 1,
       "ouverts": 0,
-      "winrate": 77.77777777777779
+      "winrate": 88.88888888888889
     },
     "2026-02-13": {
       "trades": 8,
-      "gagnes": 2,
-      "perdus": 6,
+      "gagnes": 1,
+      "perdus": 7,
       "ouverts": 0,
-      "winrate": 25.0
+      "winrate": 12.5
     },
     "2026-02-16": {
       "trades": 7,
@@ -156952,17 +156952,17 @@
     },
     "2026-02-18": {
       "trades": 19,
-      "gagnes": 16,
-      "perdus": 3,
+      "gagnes": 14,
+      "perdus": 5,
       "ouverts": 0,
-      "winrate": 84.21052631578947
+      "winrate": 73.68421052631578
     },
     "2026-02-19": {
       "trades": 12,
-      "gagnes": 10,
-      "perdus": 2,
+      "gagnes": 11,
+      "perdus": 1,
       "ouverts": 0,
-      "winrate": 83.33333333333334
+      "winrate": 91.66666666666666
     },
     "2026-02-20": {
       "trades": 13,
@@ -156973,10 +156973,10 @@
     },
     "2026-02-23": {
       "trades": 12,
-      "gagnes": 9,
-      "perdus": 3,
+      "gagnes": 10,
+      "perdus": 2,
       "ouverts": 0,
-      "winrate": 75.0
+      "winrate": 83.33333333333334
     },
     "2026-02-24": {
       "trades": 7,
@@ -157022,24 +157022,24 @@
     },
     "2026-03-04": {
       "trades": 15,
-      "gagnes": 3,
-      "perdus": 12,
+      "gagnes": 2,
+      "perdus": 13,
       "ouverts": 0,
-      "winrate": 20.0
+      "winrate": 13.333333333333334
     },
     "2026-03-05": {
       "trades": 22,
-      "gagnes": 20,
-      "perdus": 2,
+      "gagnes": 21,
+      "perdus": 1,
       "ouverts": 0,
-      "winrate": 90.9090909090909
+      "winrate": 95.45454545454545
     },
     "2026-03-06": {
       "trades": 10,
-      "gagnes": 4,
-      "perdus": 6,
+      "gagnes": 3,
+      "perdus": 7,
       "ouverts": 0,
-      "winrate": 40.0
+      "winrate": 30.0
     },
     "2026-03-09": {
       "trades": 12,
@@ -157050,59 +157050,59 @@
     },
     "2026-03-10": {
       "trades": 6,
-      "gagnes": 3,
-      "perdus": 3,
+      "gagnes": 4,
+      "perdus": 2,
       "ouverts": 0,
-      "winrate": 50.0
+      "winrate": 66.66666666666666
     },
     "2026-03-11": {
       "trades": 14,
-      "gagnes": 12,
-      "perdus": 2,
+      "gagnes": 13,
+      "perdus": 1,
       "ouverts": 0,
-      "winrate": 85.71428571428571
+      "winrate": 92.85714285714286
     },
     "2026-03-12": {
       "trades": 12,
-      "gagnes": 9,
-      "perdus": 3,
+      "gagnes": 10,
+      "perdus": 2,
       "ouverts": 0,
-      "winrate": 75.0
+      "winrate": 83.33333333333334
     },
     "2026-03-13": {
       "trades": 17,
-      "gagnes": 12,
-      "perdus": 5,
+      "gagnes": 11,
+      "perdus": 6,
       "ouverts": 0,
-      "winrate": 70.58823529411765
+      "winrate": 64.70588235294117
     },
     "2026-03-16": {
-      "trades": 14,
-      "gagnes": 7,
-      "perdus": 7,
-      "ouverts": 0,
-      "winrate": 50.0
-    },
-    "2026-03-17": {
-      "trades": 16,
-      "gagnes": 7,
-      "perdus": 9,
-      "ouverts": 0,
-      "winrate": 43.75
-    },
-    "2026-03-18": {
-      "trades": 16,
-      "gagnes": 15,
-      "perdus": 1,
-      "ouverts": 0,
-      "winrate": 93.75
-    },
-    "2026-03-19": {
       "trades": 14,
       "gagnes": 6,
       "perdus": 8,
       "ouverts": 0,
       "winrate": 42.857142857142854
+    },
+    "2026-03-17": {
+      "trades": 16,
+      "gagnes": 8,
+      "perdus": 8,
+      "ouverts": 0,
+      "winrate": 50.0
+    },
+    "2026-03-18": {
+      "trades": 16,
+      "gagnes": 14,
+      "perdus": 2,
+      "ouverts": 0,
+      "winrate": 87.5
+    },
+    "2026-03-19": {
+      "trades": 14,
+      "gagnes": 2,
+      "perdus": 12,
+      "ouverts": 0,
+      "winrate": 14.285714285714285
     },
     "2026-03-20": {
       "trades": 17,
@@ -157113,10 +157113,10 @@
     },
     "2026-03-23": {
       "trades": 17,
-      "gagnes": 6,
-      "perdus": 11,
+      "gagnes": 4,
+      "perdus": 13,
       "ouverts": 0,
-      "winrate": 35.294117647058826
+      "winrate": 23.52941176470588
     },
     "2026-03-24": {
       "trades": 11,
@@ -157583,23 +157583,23 @@
     "2026-06-24": {
       "trades": 14,
       "gagnes": 6,
-      "perdus": 5,
-      "ouverts": 3,
-      "winrate": 54.54545454545454
+      "perdus": 7,
+      "ouverts": 1,
+      "winrate": 46.15384615384615
     },
     "2026-06-25": {
       "trades": 15,
-      "gagnes": 7,
-      "perdus": 4,
-      "ouverts": 4,
-      "winrate": 63.63636363636363
+      "gagnes": 8,
+      "perdus": 7,
+      "ouverts": 0,
+      "winrate": 53.333333333333336
     },
     "2026-06-26": {
       "trades": 7,
-      "gagnes": 0,
-      "perdus": 0,
-      "ouverts": 7,
-      "winrate": 0
+      "gagnes": 2,
+      "perdus": 1,
+      "ouverts": 4,
+      "winrate": 66.66666666666666
     }
   }
 }

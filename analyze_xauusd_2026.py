@@ -272,16 +272,17 @@ def fetch_historical(symbol, tf_name, start_date_str):
 
     print(f"  Chargement {tf_name} du {start_date_str} au {end_dt.strftime('%Y-%m-%d')}...")
 
-    rates = mt5.copy_rates_range(symbol, tf, start_epoch, end_epoch)
-    if rates is None or len(rates) == 0:
-        # Fallback
-        rates = mt5.copy_rates_from_pos(symbol, tf, 0, 100000)
-        if rates is not None and len(rates) > 0:
-            bars = bars_to_dicts(rates)
-            bars = [b for b in bars if b["time"] >= start_epoch]
-        else:
-            return []
+    # Utilise copy_rates_from_pos en priorité (pas de bug timezone serveur FTMO GMT+3)
+    # 80k barres M15 = ~83 jours (avec weekends), suffisant pour ~6 mois
+    rates = mt5.copy_rates_from_pos(symbol, tf, 0, 80000)
+    if rates is not None and len(rates) > 0:
+        bars = bars_to_dicts(rates)
+        bars = [b for b in bars if b["time"] >= start_epoch and b["time"] <= end_epoch]
     else:
+        # Fallback copy_rates_range
+        rates = mt5.copy_rates_range(symbol, tf, start_epoch, end_epoch)
+        if rates is None or len(rates) == 0:
+            return []
         bars = bars_to_dicts(rates)
 
     print(f"  → {len(bars)} barres {tf_name}")

@@ -8,7 +8,6 @@ M3 (~84 960 bougies sur 177 jours) : ~6 chunks de 30 jours.
 import json
 import os
 import sys
-import time
 from datetime import datetime, timezone
 
 # Force UTF-8 pour eviter les UnicodeEncodeError sur Windows cp1252
@@ -31,7 +30,7 @@ OUTPUT_FILE = os.path.join(
     "xauusd_m3_2026_01_01_to_2026_06_26.json",
 )
 
-CHUNK_DAYS = 30  # 30 jours M3 = ~14 400 barres
+UTC = timezone.utc
 
 # --- Connexion MT5 -----------------------------------------------------------
 print("[1/3] Connexion a MetaTrader 5...")
@@ -59,57 +58,48 @@ if not info.visible:
 
 print(f"  Symbole  : {SYMBOL} (digits={info.digits}, spread={info.spread})")
 
-# --- Telechargement par chunks -----------------------------------------------
-print(f"\n[2/3] Telechargement M3 par chunks de {CHUNK_DAYS} jours...")
+# --- Telechargement (corrige: copy_rates_from_pos au lieu de copy_rates_range) ---
+print(f"\n[2/3] Telechargement M3...")
 
 all_bars = []
-chunk_start = START_DATE
-chunk_num = 0
-total_bars = 0
 
-while chunk_start < END_DATE:
-    # Calcul de la fin de chunk
-    chunk_end_ts = chunk_start.timestamp() + CHUNK_DAYS * 86400
-    if chunk_end_ts >= END_DATE.timestamp():
-        chunk_end_dt = END_DATE
-    else:
-        chunk_end_dt = datetime.fromtimestamp(chunk_end_ts, tz=timezone.utc)
+# 80 000 barres M3 = ~166 jours (~5.5 mois)
+# Au-dela de 80k, MT5 retourne None (limite du broker FTMO)
+max_bars = 80000
+print(f"  Telechargement des {max_bars} dernieres barres...")
+rates = mt5.copy_rates_from_pos(SYMBOL, TIMEFRAME, 0, max_bars)
 
-    chunk_num += 1
-    print(
-        f"  Chunk {chunk_num:02d} : "
-        f"{chunk_start.strftime('%Y-%m-%d')} --> {chunk_end_dt.strftime('%Y-%m-%d')} ...",
-        end=" ", flush=True,
-    )
+if rates is None or len(rates) == 0:
+    print(f"  [ERREUR] Aucune donnee retournee par MT5")
+    mt5.shutdown()
+    sys.exit(1)
 
-    rates = mt5.copy_rates_range(SYMBOL, TIMEFRAME, chunk_start, chunk_end_dt)
+start_ts = int(START_DATE.timestamp())
+end_ts = int(END_DATE.timestamp())
 
-    if rates is None or len(rates) == 0:
-        print(f"0 barres (pas de donnees sur cette periode)")
-        chunk_start = chunk_end_dt
+for r in rates:
+    t = int(r[0])
+    if t < start_ts or t >= end_ts:
         continue
+    all_bars.append({
+        "time": t,
+        "open": float(r[1]),
+        "high": float(r[2]),
+        "low": float(r[3]),
+        "close": float(r[4]),
+        "tick_volume": int(r[5]),
+        "spread": int(r[6]) if len(r) > 6 else 0,
+        "real_volume": int(r[7]) if len(r) > 7 else 0,
+    })
 
-    chunk_bars = []
-    for r in rates:
-        chunk_bars.append({
-            "time": int(r[0]),
-            "open": float(r[1]),
-            "high": float(r[2]),
-            "low": float(r[3]),
-            "close": float(r[4]),
-            "tick_volume": int(r[5]),
-            "spread": int(r[6]) if len(r) > 6 else 0,
-            "real_volume": int(r[7]) if len(r) > 7 else 0,
-        })
+all_bars.sort(key=lambda b: b["time"])
+total_bars = len(all_bars)
+print(f"  {total_bars} barres dans la periode")
 
-    all_bars.extend(chunk_bars)
-    n = len(chunk_bars)
-    total_bars += n
-    first_dt = datetime.fromtimestamp(chunk_bars[0]["time"], tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
-    last_dt = datetime.fromtimestamp(chunk_bars[-1]["time"], tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
-    print(f"{n} barres ({first_dt} --> {last_dt})")
-
-    chunk_start = chunk_end_dt
+if all_bars:
+    first_dt = datetime.fromtimestamp(all_bars[0]["time"], tz=UTC)
+    last_dt = datetime.fromtimestamp(all_bars[-1]["time"], tz=UTC)
+    print(f"  Periode : {first_dt.strftime('%Y-%m-%d %H:%M')} → {last_dt.strftime('%Y-%m-%d %H:%M')} UTC")
 
 # --- Sauvegarde --------------------------------------------------------------
 print(f"\n[3/3] Sauvegarde de {total_bars} barres...")
@@ -123,7 +113,7 @@ data = {
     "end_date": END_DATE.strftime("%Y-%m-%d"),
     "total_bars": total_bars,
     "broker": ai.server if ai else "unknown",
-    "downloaded_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+    "downloaded_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC"),
     "bars": all_bars,
 }
 
@@ -137,12 +127,12 @@ print(f"  Taille  : {file_size_kb:.0f} Ko")
 print(f"  Barres  : {total_bars}")
 
 if all_bars:
-    first = datetime.fromtimestamp(all_bars[0]["time"], tz=timezone.utc)
-    last = datetime.fromtimestamp(all_bars[-1]["time"], tz=timezone.utc)
-    print(f"  Periode : {first.strftime('%Y-%m-%d %H:%M')} --> {last.strftime('%Y-%m-%d %H:%M')} UTC")
+    first = datetime.fromtimestamp(all_bars[0]["time"], tz=UTC)
+    last = datetime.fromtimestamp(all_bars[-1]["time"], tz=UTC)
+    print(f"  Periode : {first.strftime('%Y-%m-%d %H:%M')} → {last.strftime('%Y-%m-%d %H:%M')} UTC")
     high = max(b["high"] for b in all_bars)
     low = min(b["low"] for b in all_bars)
-    print(f"  Range   : {low:.2f} --> {high:.2f} ({high - low:.2f} USD)")
+    print(f"  Range   : {low:.2f} → {high:.2f} ({high - low:.2f} USD)")
 
 mt5.shutdown()
 print("\n[OK] Termine.")
