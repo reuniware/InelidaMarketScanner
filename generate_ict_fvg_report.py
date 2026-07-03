@@ -167,7 +167,7 @@ def build_report():
         f"Timeframe : M3 (3 minutes)\n"
         f"Periode : 2 janvier - 26 juin 2026\n"
         f"Barres : 56 782\n"
-        f"Broker : FTMO-Server4\n"
+        f"Broker : (via MT5)\n"
         f"Jours de trading : 125"
     )
 

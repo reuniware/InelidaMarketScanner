@@ -41,14 +41,14 @@ SESSION_DATE = now_utc.strftime("%Y-%m-%d")
 # ===========================================================================
 
 ACCOUNT_INFO = {
-    "login": 541320891,
-    "server": "FTMO-Server4",
-    "balance": 10035.55,
+    "login": 0,
+    "server": "?",
+    "balance": 0.0,
     "currency": "EUR",
     "leverage": "1:30",
     "trade_allowed": False,
-    "terminal_build": 5833,
-    "broker": "FTMO Global Markets Ltd.",
+    "terminal_build": 0,
+    "broker": "?",
 }
 
 SWEEPS_DATA = [
@@ -194,7 +194,7 @@ class InelidaReport(FPDF):
         self.set_y(-10)
         self.set_font(FM, '', 6)
         self.set_text_color(150, 150, 150)
-        self.cell(0, 4, f"Genere le {TIMESTAMP_UTC} | FTMO Demo 541320891 | Pour verification trades", align='C')
+        self.cell(0, 4, f"Genere le {TIMESTAMP_UTC} | Demo Account | Pour verification trades", align='C')
 
     def section_title(self, title, emoji=""):
         self.set_font(FB, 'B', 13)

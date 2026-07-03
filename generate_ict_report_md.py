@@ -64,7 +64,7 @@ w(f"**Date de generation** : {datetime.now(UTC).strftime('%Y-%m-%d %H:%M')} UTC"
 w(f"**Instrument** : XAUUSD (Or / Dollar US)")
 w(f"**Timeframe** : M3 (bougies de 3 minutes)")
 w(f"**Periode** : 2 janvier 2026 → 26 juin 2026")
-w(f"**Broker** : FTMO-Server4")
+w(f"**Broker** : (via MT5)")
 w(f"**Algorithme teste** : Draw On Liquidity → Raid oppose → FVG → SL/TP mecaniques")
 w()
 hr()
