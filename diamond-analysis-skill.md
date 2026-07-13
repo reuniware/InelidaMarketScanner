@@ -147,6 +147,131 @@ mt5.shutdown()
 
 ---
 
+### Étape 4b : DXY Tenkan W1 — Niveaux plats historiques
+
+**⚠️ NOUVEAU :** La Tenkan W1 peut former des plats qui agissent comme résistance/support
+des mois plus tard. Ces niveaux ont une **mémoire institutionnelle**.
+
+```bash
+cd IchimokuSword
+python -c "
+import MetaTrader5 as mt5, numpy as np
+from datetime import datetime, timezone
+
+mt5.initialize()
+mt5.symbol_select('DXY.cash', True)
+tick = mt5.symbol_info_tick('DXY.cash')
+rates = mt5.copy_rates_from_pos('DXY.cash', mt5.TIMEFRAME_W1, 0, 80)
+highs = np.array([float(r[2]) for r in rates])
+lows = np.array([float(r[3]) for r in rates])
+timestamps = [int(r[0]) for r in rates]
+
+UTC = timezone.utc
+prev_tk = None
+print(f'DXY: {tick.bid:.3f}')
+print('Niveaux Tenkan W1 plats proches du prix:')
+for i in range(8, len(rates)):
+    tk = (np.max(highs[i-8:i+1]) + np.min(lows[i-8:i+1])) / 2.0
+    dt = datetime.fromtimestamp(timestamps[i], UTC)
+    dist = (tick.bid - tk) / tk * 100
+    if prev_tk is not None and abs(tk - prev_tk) < 0.01 and abs(dist) < 2.0:
+        marker = 'PLAT' if abs(tk - prev_tk) < 0.005 else 'quasi-plat'
+        print(f'  {dt.strftime(\"%d/%m/%Y\")}: Tenkan={tk:.3f} | ecart={dist:+.2f}% ({marker})')
+    prev_tk = tk
+mt5.shutdown()
+"
+```
+
+**Règle :** Un Tenkan W1 resté figé ≥ 2 semaines à un niveau X crée une résistance/support
+structurel qui reste actif pendant des mois. Si le prix actuel est à moins de 0.1% de ce
+niveau, c'est un **confluent majeur** à prendre en compte.
+
+---
+
+### Étape 5b : Nuage H4 — Risque de pullback
+
+Le nuage Ichimoku est une zone d'attraction/répulsion. Quand le prix est proche du nuage,
+il faut évaluer le risque de pullback AVANT que le prix n'atteigne TP1.
+
+```bash
+cd IchimokuSword
+python -c "
+import MetaTrader5 as mt5, numpy as np
+from datetime import datetime, timezone
+
+mt5.initialize()
+SYM = 'EURUSD'  # changer ici
+mt5.symbol_select(SYM, True)
+tick = mt5.symbol_info_tick(SYM)
+price = float(tick.bid)
+
+rates = mt5.copy_rates_from_pos(SYM, mt5.TIMEFRAME_H4, 0, 150)
+highs = np.array([float(r[2]) for r in rates])
+lows = np.array([float(r[3]) for r in rates])
+timestamps = [int(r[0]) for r in rates]
+last = len(rates) - 1
+UTC = timezone.utc
+
+# Nuage visible (26 barres en arriere)
+idx_vis = last - 26
+tk_vis = (np.max(highs[idx_vis-8:idx_vis+1]) + np.min(lows[idx_vis-8:idx_vis+1])) / 2.0
+kj_vis = (np.max(highs[idx_vis-25:idx_vis+1]) + np.min(lows[idx_vis-25:idx_vis+1])) / 2.0
+sa_vis = (tk_vis + kj_vis) / 2.0
+sb_vis = (np.max(highs[idx_vis-51:idx_vis+1]) + np.min(lows[idx_vis-51:idx_vis+1])) / 2.0
+
+vtop = max(sa_vis, sb_vis)
+vbot = min(sa_vis, sb_vis)
+vcolor = 'VERT' if sa_vis > sb_vis else 'ROUGE'
+
+# Nuage futur (calcule maintenant)
+tk_now = (np.max(highs[-9:]) + np.min(lows[-9:])) / 2.0
+kj_now = (np.max(highs[-26:]) + np.min(lows[-26:])) / 2.0
+sa_now = (tk_now + kj_now) / 2.0
+sb_now = (np.max(highs[-52:]) + np.min(lows[-52:])) / 2.0
+ftop = max(sa_now, sb_now)
+fbot = min(sa_now, sb_now)
+fcolor = 'VERT' if sa_now > sb_now else 'ROUGE'
+
+print(f'{SYM} BID: {price:.5f}')
+print(f'Nuage visible: {vbot:.5f}-{vtop:.5f} {vcolor} | Prix vs base: {(price-vbot)/vbot*100:+.3f}%')
+print(f'Nuage futur:   {fbot:.5f}-{ftop:.5f} {fcolor} | Transition: {vcolor}->{fcolor}')
+print()
+
+# Risque de pullback
+if price < vbot:
+    dist = (vbot - price) / price * 100
+    print(f'Prix SOUS le nuage de {dist:.3f}%')
+    if dist < 0.2:
+        print(f'RISQUE: Pullback possible vers la base du nuage ({vbot:.5f})')
+    else:
+        print(f'OK: Prix suffisamment eloigne du nuage')
+elif price > vtop:
+    dist = (price - vtop) / vtop * 100
+    print(f'Prix SUR le nuage de {dist:.3f}%')
+    if dist < 0.2:
+        print(f'RISQUE: Pullback possible vers le top du nuage ({vtop:.5f})')
+else:
+    print(f'Prix DANS le nuage - pullback en cours ou cassure imminente')
+
+# Comparaison SL vs nuage
+print(f'Si SL est place dans le nuage: protection partielle')
+print(f'Si SL est au-dessus du top du nuage: protection maximale')
+
+mt5.shutdown()
+"
+```
+
+**Ce qu'on cherche :**
+- Prix sous nuage visible de < 0.2% → pullback probable, SL doit être au-dessus du top du nuage
+- Transition vert→rouge du nuage = signal baissier qui se renforce
+- SL placé dans le nuage (entre base et top) = protection partielle, risque de déclenchement
+- SL placé au-dessus du top du nuage = protection maximale
+
+**⚠️ Règle :** Pour un SELL, le SL idéal est au-dessus du **top** du nuage visible H4,
+pas juste au-dessus de la base. Un pullback peut facilement traverser le nuage en 1-2 bougies.
+
+---
+
 ### Étape 6 : Vérification Kijun plat (deep dive)
 
 Quand un Kijun plat > 15B est détecté, vérifier manuellement :
@@ -262,7 +387,18 @@ et finir à 80% vendredi. Ne jamais qualifier un pattern sur une bougie non clô
 juste que le prix était stable il y a 26 bougies. Pas de pouvoir prédictif.
 **Action :** Ignorer dans l'analyse prioritaire. Le garder comme note secondaire.
 
-### 5. Discord — ne pas utiliser `discord_notifier.py` pour un embed personnalisé
+### 5. Tenkan W1 historique — niveau fantôme actif
+**Piège :** Un Tenkan W1 resté plat pendant 3 semaines il y a 14 mois (ex: mai 2025 à 101.268)
+continue d'agir comme résistance/support aujourd'hui. Le marché a une mémoire institutionnelle.
+**Action :** Vérifier systématiquement l'historique Tenkan W1 pour les paires USD + DXY.
+
+### 6. Nuage H4 — pullback sous-estimé
+**Piège :** Un prix à 20 pips sous le nuage H4 peut sembler en sécurité, mais une bougie H4
+peut couvrir cette distance. Si le SL est placé dans le nuage (pas au-dessus du top),
+il risque de sauter sur un pullback technique normal.
+**Action :** Comparer SL vs top du nuage (pas juste vs base).
+
+### 7. Discord — ne pas utiliser `discord_notifier.py` pour un embed personnalisé
 **Problème :** `discord_notifier.py --json` appelle `build_scan_embed()` qui attend
 des clés spécifiques (`scanned`, `trades`, `setups`...). Un embed brut sera ignoré.
 **Solution :** Envoyer directement en HTTP :
@@ -321,6 +457,8 @@ Ne jamais présenter un trade comme une certitude.
 - [ ] Kijun plat ≥ 10B vérifié manuellement (global max-min)
 - [ ] SSB proches (< 5 pips) identifiées
 - [ ] DXY consulté (pour les paires USD)
+- [ ] DXY Tenkan W1 historique vérifié (niveaux plats anciens proches du prix ?)
+- [ ] Nuage H4 visible checké (risque de pullback ? SL positionné correctement vs top ?)
 - [ ] W1 nuage VISIBLE vérifié (pas la valeur future)
 - [ ] Bougies W1 récentes inspectées (fausse cassure ? doji confirmé ?)
 - [ ] Alignement TF compté (X/4 baissier ou haussier)
