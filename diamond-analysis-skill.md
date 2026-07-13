@@ -272,6 +272,84 @@ pas juste au-dessus de la base. Un pullback peut facilement traverser le nuage e
 
 ---
 
+### Étape 5c : TP partiels basés sur les SSB
+
+**⚠️ NOUVEAU :** Le TP fib du scanner Asian est un niveau mathématique, pas un niveau
+Ichimoku. Il peut se trouver dans le vide, sans aucun support structurel. Il faut
+toujours cartographier les SSB entre le prix et le TP pour ajuster sa stratégie.
+
+```bash
+cd IchimokuSword
+python -c "
+import MetaTrader5 as mt5, numpy as np
+from datetime import datetime, timezone
+
+mt5.initialize()
+SYM = 'AUDUSD'  # changer ici
+mt5.symbol_select(SYM, True)
+tick = mt5.symbol_info_tick(SYM)
+price = float(tick.bid)
+tp1 = 0.68876  # TP1 du scanner
+tp2 = 0.0     # TP2 si applicable
+
+rates = mt5.copy_rates_from_pos(SYM, mt5.TIMEFRAME_H4, 0, 150)
+highs = np.array([float(r[2]) for r in rates])
+lows = np.array([float(r[3]) for r in rates])
+timestamps = [int(r[0]) for r in rates]
+
+# Trouver TOUS les SSB H4 entre prix et TP1
+print(f'{SYM}: prix={price:.5f} TP1={tp1:.5f}')
+print('SSB H4 entre prix et TP1:')
+seen = set()
+levels = []
+for i in range(52, len(rates)):
+    sb = (np.max(highs[i-51:i+1]) + np.min(lows[i-51:i+1])) / 2.0
+    if tp1 < sb < price:
+        key = round(sb, 5)
+        if key not in seen:
+            seen.add(key)
+            dt = datetime.fromtimestamp(timestamps[i], timezone.utc)
+            pips = (price - sb) * 10000
+            levels.append((sb, pips, dt))
+
+levels.sort(key=lambda x: x[0], reverse=True)
+for sb, pips, dt in levels:
+    print(f'  {sb:.5f} (-{pips:.1f} pips) [{dt.strftime(\"%d/%m\")}]')
+
+if not levels:
+    print('  AUNCUN SSB entre prix et TP1 - TP1 est dans le vide !')
+    print('  -> Le prix peut accelerer une fois les obstacles H1 franchis')
+else:
+    print(f'  {len(levels)} obstacles a franchir avant TP1')
+    print(f'  -> Recommandation: TP partiels sur les SSB les plus proches')
+
+mt5.shutdown()
+"
+```
+
+**Règles de décision :**
+
+| Situation | Stratégie |
+|:---|:---|
+| **0 SSB entre prix et TP1** | TP unique fib — pas d'obstacle |
+| **1-2 SSB entre prix et TP1** | TP partiel 50% sur le 1er SSB, 50% sur le fib |
+| **3-5 SSB entre prix et TP1** | 3 TP : 30% SSB cluster, 30% dernier SSB, 40% fib runner |
+| **6+ SSB entre prix et TP1** | TP unique sur le cluster SSB le plus proche — le fib est trop loin |
+
+**🎯 Exemple AUDUSD (30 pips, 6 SSB) :**
+```
+TP1 (30%) : 0.69125 (-5.1p)  cluster SSB 12h  → RR partiel 0.16x
+TP2 (30%) : 0.69073 (-10.3p) dernier obstacle → RR partiel 0.33x
+TP3 (40%) : 0.68876 (-30.0p) fib runner       → RR partiel 1.0x
+```
+
+**SL trailing recommandé :**
+1. Prix casse le 1er TP partiel → SL descend au-dessus du cluster franchi
+2. Prix casse le dernier SSB → SL descend juste au-dessus
+3. Laisser le runner courir vers le fib avec SL protégé
+
+---
+
 ### Étape 6 : Vérification Kijun plat (deep dive)
 
 Quand un Kijun plat > 15B est détecté, vérifier manuellement :
@@ -398,7 +476,13 @@ peut couvrir cette distance. Si le SL est placé dans le nuage (pas au-dessus du
 il risque de sauter sur un pullback technique normal.
 **Action :** Comparer SL vs top du nuage (pas juste vs base).
 
-### 7. Discord — ne pas utiliser `discord_notifier.py` pour un embed personnalisé
+### 8. TP fib dans le vide — ignorer les SSB obstacles
+**Piège :** Le TP du scanner Asian est basé sur le fib −1.618, pas sur l'Ichimoku.
+Il peut se trouver 20 pips sous le dernier support SSB, sans aucun niveau technique.
+**Action :** Cartographier TOUS les SSB entre prix et TP1. Adapter la stratégie :
+TP partiels sur les SSB proches + runner vers le fib.
+
+### 9. Discord — ne pas utiliser `discord_notifier.py` pour un embed personnalisé
 **Problème :** `discord_notifier.py --json` appelle `build_scan_embed()` qui attend
 des clés spécifiques (`scanned`, `trades`, `setups`...). Un embed brut sera ignoré.
 **Solution :** Envoyer directement en HTTP :
@@ -459,6 +543,7 @@ Ne jamais présenter un trade comme une certitude.
 - [ ] DXY consulté (pour les paires USD)
 - [ ] DXY Tenkan W1 historique vérifié (niveaux plats anciens proches du prix ?)
 - [ ] Nuage H4 visible checké (risque de pullback ? SL positionné correctement vs top ?)
+- [ ] SSB entre prix et TP1 cartographiées (combien d'obstacles ? TP partiels nécessaires ?)
 - [ ] W1 nuage VISIBLE vérifié (pas la valeur future)
 - [ ] Bougies W1 récentes inspectées (fausse cassure ? doji confirmé ?)
 - [ ] Alignement TF compté (X/4 baissier ou haussier)
