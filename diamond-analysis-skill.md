@@ -63,6 +63,137 @@ python analyze_flat_lines.py SYMBOLE1,SYMBOLE2,SYMBOLE3 --detail
 
 ---
 
+### Étape 3b : Détection SYSTÉMATIQUE des flat lines — TOUS TFs (passées, présentes, futures)
+
+**⚠️ OBLIGATOIRE avant toute décision de trade.**
+
+Le Diamond Analysis échoue si on ne cartographie pas TOUTES les flat lines. Une flat line
+omise = un trade qui bute sur un obstacle invisible. Cette étape systématise la détection.
+
+#### 🔍 Trois types de flat lines à vérifier
+
+| Type | Définition | Exemple | Impact |
+|:---|:---|:---|:---|
+| **PASSÉES** | Flat lines historiques qui ne sont PLUS actives mais dont le niveau reste en mémoire | Tenkan D1 plat 2j en juin 2026 à 185.30 → résistance aujourd'hui | **Obstacle invisible** — le prix rebondit sur un niveau "fantôme" |
+| **PRÉSENTES** | Flat lines actives EN CE MOMENT (Kijun/Tenkan/SSB plats) | Kijun H4 plat 16b à 161.991 | **Zone d'équilibre** — support/résistance immédiat |
+| **FUTURES** | Flat lines en FORMATION (3-7 barres, pas encore qualifiées) | Kijun H1 stable depuis 5 barres → pourrait devenir un plat 10b | **Anticipation** — zone qui pourrait devenir un support/résistance majeur |
+
+#### 📋 Matrice de détection (à exécuter pour CHAQUE paire)
+
+```
+Pour chaque TF (H1, H4, D1, W1, MN) :
+  1. Tenkan : flats PASSÉS (historique), PRÉSENT (actif), FUTUR (en formation)
+  2. Kijun  : flats PASSÉS, PRÉSENT, FUTUR
+  3. SSB    : flats PASSÉS, PRÉSENT, FUTUR
+```
+
+**Priorité de vérification :**
+1. **Kijun** (tous TFs) — le plus fiable, 100% de réussite aujourd'hui
+2. **Tenkan** (D1, W1, MN) — mémoire institutionnelle la plus forte
+3. **SSB** (H4, D1) — obstacles pour les TP
+
+#### ⚙️ Seuils de détection (corrigés — 14/07/2026)
+
+| Type de paire | Seuil Tenkan/Kijun plat | Seuil SSB |
+|:---|---:|---:|
+| **JPY** (USDJPY, EURJPY, GBPJPY) | `0.03` (3 pips) | `0.05` (5 pips) |
+| **Non-JPY** (EURUSD, GBPUSD, AUDUSD...) | `0.0003` (3 pips) | `0.0005` (5 pips) |
+| **XAUUSD** | `0.03` (3 pips) | `0.05` (5 pips) |
+
+**⚠️ Piège corrigé :** Avant le 14/07/2026, le seuil était `0.03` pour TOUTES les paires.
+Sur EURUSD (~1.10), `0.03` = 300 pips → tout était faussement détecté comme "plat".
+Le seuil doit être SCALÉ par type d'instrument.
+
+#### 🔧 Détection « FUTURES » — flat lines en formation
+
+Une flat line est considérée "en formation" quand :
+- **Kijun** : variation < 0.02% sur les 3-7 dernières barres (selon TF)
+- **Tenkan** : variation < 0.02% sur les 2-5 dernières barres
+- Le compteur est affiché comme `Kijun H4: 5b (en formation, seuil 10b)`
+
+**⚠️ Ne pas trader sur une flat en formation.** Elle devient un niveau SEULEMENT
+quand elle atteint le seuil critique (≥ 8b pour Kijun, ≥ 2j pour Tenkan D1).
+
+#### 🖥️ Script de détection des Tenkan D1 plats historiques
+
+```bash
+cd InelidaMarketScan
+python -c "
+import MetaTrader5 as mt5
+from datetime import datetime, timezone
+
+mt5.initialize()
+SYM = 'EURJPY'  # changer ici
+mt5.symbol_select(SYM, True)
+tick = mt5.symbol_info_tick(SYM)
+price = float(tick.bid)
+
+r = mt5.copy_rates_from_pos(SYM, mt5.TIMEFRAME_D1, 0, 200)
+highs = [float(x[2]) for x in r]
+lows = [float(x[3]) for x in r]
+ts = [int(x[0]) for x in r]
+
+UTC = timezone.utc
+thresh = 0.03 if 'JPY' in SYM or SYM == 'XAUUSD' else 0.0003
+prev_tk = None
+current_flat = []
+flats = []
+
+for i in range(8, len(r)):
+    tk_i = (max(highs[i-8:i+1]) + min(lows[i-8:i+1])) / 2.0
+    dt = datetime.fromtimestamp(ts[i], UTC)
+    if prev_tk is not None:
+        if abs(tk_i - prev_tk) < thresh:
+            current_flat.append((dt, tk_i))
+        else:
+            if len(current_flat) >= 2: flats.append(current_flat)
+            current_flat = [(dt, tk_i)]
+    else:
+        current_flat = [(dt, tk_i)]
+    prev_tk = tk_i
+if len(current_flat) >= 2: flats.append(current_flat)
+
+print(f'{SYM} prix={price:.5f}')
+print('Tenkan D1 plats historiques proches (< 80 pips):')
+factor = 100 if 'JPY' in SYM else 10000
+for period in flats:
+    vals = [p[1] for p in period]
+    avg = sum(vals) / len(vals)
+    dist = (price - avg) * factor
+    if abs(dist) < 80:
+        sd, ed = period[0][0], period[-1][0]
+        direction = 'RESISTANCE' if dist > 0 else 'SUPPORT'
+        print(f'  {sd.strftime(\"%d/%m\")}->{ed.strftime(\"%d/%m\")} ({len(period)}j) | {avg:.5f} | {dist:+.0f}p | {direction}')
+
+mt5.shutdown()
+"
+```
+
+**Intégration dans le scan Diamond :** La fonction `detect_tenkan_flat_history()`
+doit être appelée sur D1 pour chaque symbole. Tout flat à moins de 10 pips du prix
+déclenche un avertissement. Tout flat entre prix et TP réduit la probabilité du trade.
+
+#### 📝 Exemple concret — EURJPY (14/07/2026, 17:30 UTC)
+
+```
+PASSÉES (mémoire) :
+  Tenkan D1 plat 2j à 185.299 (19-22 juin 2026) → RÉSISTANCE immédiate
+  Tenkan D1 plat 2j à 185.307 (02-03 juin 2026) → RÉSISTANCE immédiate
+  → Le prix (185.296) est COINCÉ sous ces deux niveaux !
+
+PRÉSENTES (actives) :
+  Kijun H4 plat 12b à 185.039 → SUPPORT à +26 pips sous le prix
+  → Setup BUY valide MAIS l'entrée est dans la résistance Tenkan D1
+
+FUTURES (en formation) :
+  Aucune en formation significative
+```
+
+**Sans cette étape :** on recommande EURJPY BUY à 185.30 → le trade entre dans une résistance.
+**Avec cette étape :** on attend la cassure de 185.31 AVANT d'entrer.
+
+---
+
 ### Étape 4 : DXY (toujours, pour les paires USD)
 
 ```bash
@@ -532,13 +663,13 @@ KIJUN MN + Tenkan MN plat :     1.41061 ← SUPPORT
 
 Pour chaque trade, construire cette matrice :
 
-| TF | Prix vs Kijun | Nuage | Flat Lines | SSB proches | Biais |
-|----|:---:|:---:|:---|:---|:---:|
-| H1 | ±X% | Vert/Rouge | Kijun XB, Tenkan XB | Support/Res à X pips | 🔼/🔽 |
-| H4 | ±X% | Vert/Rouge | ... | ... | 🔼/🔽 |
-| D1 | ±X% | Vert/Rouge | ... | ... | 🔼/🔽 |
-| W1 | ±X% | Vert/Rouge | ... | ... | 🔼/🔽 |
-| MN | ±X% | Vert/Rouge | ... | ... | 🔼/🔽 |
+| TF | Prix vs Kijun | Nuage | Flat Lines (présent) | Mémoire (passé) | SSB proches | Biais |
+|----|:---:|:---:|:---|:---|:---|:---:|
+| H1 | ±X% | Vert/Rouge | Kijun XB, Tenkan XB | N/A (intraday) | Support/Res à X pips | 🔼/🔽 |
+| H4 | ±X% | Vert/Rouge | ... | N/A (intraday) | ... | 🔼/🔽 |
+| D1 | ±X% | Vert/Rouge | ... | **Tenkan plat ≥ 2j ?** | ... | 🔼/🔽 |
+| W1 | ±X% | Vert/Rouge | ... | **Tenkan plat ≥ 2sem ?** | ... | 🔼/🔽 |
+| MN | ±X% | Vert/Rouge | ... | **Tenkan plat ≥ 2mois ?** | ... | 🔼/🔽 |
 
 - **5/5 TF aligné** = trade de conviction maximale
 - **4/5 TF aligné** = très fiable
@@ -665,6 +796,32 @@ fév-mai 2025. Le marché « se souvient » de ce niveau DEUX FOIS.
 - USDCAD Top nuage W1 1.41663 = Tenkan MN plat jui-oct 2025 (4 mois !)
 - DXY Tenkan W1 101.27 = plat mai 2025 (niveau fantôme rejeté le 13/07/2026)
 
+### 13. Omission des Tenkan D1 historiques — flat lines passées ignorées (CORRIGÉ le 14/07/2026)
+**Symptôme :** Un scan recommandait EURJPY BUY à 185.300 avec SL à 185.039 et TP à 185.822.
+Aucun obstacle n'était signalé. En réalité, deux Tenkan D1 plats historiques (185.299 et
+185.307, juin 2026) formaient une résistance IMMÉDIATE à moins de 2 pips de l'entrée.
+Le trade serait entré DANS une résistance.
+
+**Cause :** Le script de scan Diamond (v1) ne vérifiait QUE les Kijun plats actuels
+et les Kumo. Les Tenkan D1 historiques (mémoire institutionnelle) n'étaient pas inclus.
+
+**Impact :** Tout trade peut buter sur un niveau fantôme invisible dans le scan.
+Une flat line passée (même 2 jours seulement) garde une mémoire institutionnelle qui
+agit comme aimant/répulsif.
+
+**Fix (14/07/2026) :**
+1. Ajout de l'Étape 3b — Détection SYSTÉMATIQUE des flat lines passées/présentes/futures
+2. Le scan Diamond v2 inclut désormais `detect_tenkan_flat_history()` sur D1
+3. Tout obstacle détecté entre prix et TP déclenche un avertissement
+4. La pénalité de score (−1) s'applique si un flat est à moins de 10 pips du prix
+5. Le seuil de détection est SCALÉ par type d'instrument (JPY vs non-JPY)
+
+**Règle :** Ne JAMAIS recommander un trade sans avoir vérifié les Tenkan plats historiques
+sur D1 (et W1/MN pour les niveaux structurels). Si le prix est à moins de 5 pips d'un
+niveau historique, attendre la cassure confirmée avant d'entrer.
+
+**Fichiers concernés :** `diamond-analysis-skill.md` (cette section), scripts de scan Diamond.
+
 ### 10. Discord — ne pas utiliser `discord_notifier.py` pour un embed personnalisé
 **Problème :** `discord_notifier.py --json` appelle `build_scan_embed()` qui attend
 des clés spécifiques (`scanned`, `trades`, `setups`...). Un embed brut sera ignoré.
@@ -720,7 +877,13 @@ Ne jamais présenter un trade comme une certitude.
 
 - [ ] Scan Asian fait sur ≥ 8 symboles
 - [ ] Ichimoku complet vérifié (Tenkan, Kijun, SA, SB, nuage)
-- [ ] Flat lines analysées (Kijun, Tenkan, SA, SB, SSB)
+- [ ] Flat lines analysées (Kijun, Tenkan, SA, SB, SSB) — PRÉSENTES
+- [ ] **Flat lines PASSÉES vérifiées systématiquement (Étape 3b)** ⚠️
+- [ ]   → Tenkan D1 historique (plats ≥ 2j proches du prix ou entre prix et TP ?)
+- [ ]   → Tenkan W1 historique (plats ≥ 2sem proches du prix ?)
+- [ ]   → Tenkan MN historique (plats ≥ 2mois proches du prix ? Double mémoire avec Kijun ?)
+- [ ]   → Tenkan H4 historique (optionnel — intraday, vérifier si flat ≥ 10b proche)
+- [ ] **Flat lines FUTURES surveillées** (Kijun/Tenkan en formation, 3-7 barres stables ?)
 - [ ] Kijun plat ≥ 10B vérifié manuellement (global max-min)
 - [ ] SSB proches (< 5 pips) identifiées
 - [ ] DXY consulté (pour les paires USD)
@@ -739,3 +902,4 @@ Ne jamais présenter un trade comme une certitude.
 - [ ] Aucun sensationnalisme (« cassure imminente », « DOJI PARFAIT », etc.)
 - [ ] RR affiché avec comparaison au meilleur trade du jour
 - [ ] Discord : embed direct HTTP, pas via discord_notifier.py pour du contenu personnalisé
+- [ ] **Aucun trade recommandé avec obstacle Tenkan/SSB non résolu entre prix et TP** ⚠️
