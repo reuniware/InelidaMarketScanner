@@ -482,7 +482,7 @@ Il peut se trouver 20 pips sous le dernier support SSB, sans aucun niveau techni
 **Action :** Cartographier TOUS les SSB entre prix et TP1. Adapter la stratégie :
 TP partiels sur les SSB proches + runner vers le fib.
 
-### 10. Fake-out Tenkan W1 — micro-cassure puis rejet
+### 9. Fake-out Tenkan W1 — micro-cassure puis rejet
 **Piège :** Le prix peut franchir un niveau historique (Tenkan W1 plat) de quelques centièmes
 de pourcent (+0.04%), donnant l'illusion d'une cassure confirmée, puis être rejeté dans les
 heures qui suivent. C'est un **fake-out** classique sur les niveaux à mémoire institutionnelle.
@@ -502,7 +502,7 @@ Tant que la bougie W1 n'est pas fermée (dimanche), tout franchissement est prov
 3. Si DXY fake-out → toutes les paires USD vont corriger dans le sens inverse
 4. En cas de doute, attendre London (08h UTC) pour laisser le marché trancher
 
-### 9. Discord — ne pas utiliser `discord_notifier.py` pour un embed personnalisé
+### 10. Discord — ne pas utiliser `discord_notifier.py` pour un embed personnalisé
 **Problème :** `discord_notifier.py --json` appelle `build_scan_embed()` qui attend
 des clés spécifiques (`scanned`, `trades`, `setups`...). Un embed brut sera ignoré.
 **Solution :** Envoyer directement en HTTP :
@@ -562,8 +562,7 @@ Ne jamais présenter un trade comme une certitude.
 - [ ] SSB proches (< 5 pips) identifiées
 - [ ] DXY consulté (pour les paires USD)
 - [ ] DXY Tenkan W1 historique vérifié (niveaux plats anciens proches du prix ?)
-- [ ] DXY fake-out checké (micro-cassure < 0.1% au-dessus d'un niveau W1 historique = non confirmé) (niveaux plats anciens proches du prix ?)
-- [ ] DXY fake-out checké (micro-cassure < 0.1% non confirmée en clôture W1 ?)
+- [ ] DXY fake-out checké (micro-cassure < 0.1% au-dessus d'un niveau W1 historique = non confirmé)
 - [ ] Nuage H4 visible checké (risque de pullback ? SL positionné correctement vs top ?)
 - [ ] SSB entre prix et TP1 cartographiées (combien d'obstacles ? TP partiels nécessaires ?)
 - [ ] W1 nuage VISIBLE vérifié (pas la valeur future)
