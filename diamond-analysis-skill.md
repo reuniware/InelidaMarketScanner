@@ -482,6 +482,26 @@ Il peut se trouver 20 pips sous le dernier support SSB, sans aucun niveau techni
 **Action :** Cartographier TOUS les SSB entre prix et TP1. Adapter la stratégie :
 TP partiels sur les SSB proches + runner vers le fib.
 
+### 10. Fake-out Tenkan W1 — micro-cassure puis rejet
+**Piège :** Le prix peut franchir un niveau historique (Tenkan W1 plat) de quelques centièmes
+de pourcent (+0.04%), donnant l'illusion d'une cassure confirmée, puis être rejeté dans les
+heures qui suivent. C'est un **fake-out** classique sur les niveaux à mémoire institutionnelle.
+
+**Exemple DXY (13/07/2026) :**
+- 22h55 UTC : DXY 101.31, AU-DESSUS du Tenkan W1 101.27 (+0.04%) → faux signal haussier
+- 02h59 UTC : DXY 101.20, EN-DESSOUS du Tenkan W1 101.27 (−0.06%) → rejet confirmé
+- Conséquence : toutes les paires USD ont pullback, invalidant les SELLS EURUSD/AUDUSD/GBPUSD
+
+**Mécanisme :** Un niveau W1 historique attire le prix comme un aimant. Le franchir
+en intraday ne suffit pas — il faut une **clôture W1** au-dessus pour confirmer.
+Tant que la bougie W1 n'est pas fermée (dimanche), tout franchissement est provisoire.
+
+**Action :**
+1. Ne jamais valider un biais USD sur une micro-cassure DXY (< 0.1% au-dessus du niveau)
+2. Attendre la clôture W1 pour confirmer un franchissement de niveau W1
+3. Si DXY fake-out → toutes les paires USD vont corriger dans le sens inverse
+4. En cas de doute, attendre London (08h UTC) pour laisser le marché trancher
+
 ### 9. Discord — ne pas utiliser `discord_notifier.py` pour un embed personnalisé
 **Problème :** `discord_notifier.py --json` appelle `build_scan_embed()` qui attend
 des clés spécifiques (`scanned`, `trades`, `setups`...). Un embed brut sera ignoré.
@@ -542,6 +562,8 @@ Ne jamais présenter un trade comme une certitude.
 - [ ] SSB proches (< 5 pips) identifiées
 - [ ] DXY consulté (pour les paires USD)
 - [ ] DXY Tenkan W1 historique vérifié (niveaux plats anciens proches du prix ?)
+- [ ] DXY fake-out checké (micro-cassure < 0.1% au-dessus d'un niveau W1 historique = non confirmé) (niveaux plats anciens proches du prix ?)
+- [ ] DXY fake-out checké (micro-cassure < 0.1% non confirmée en clôture W1 ?)
 - [ ] Nuage H4 visible checké (risque de pullback ? SL positionné correctement vs top ?)
 - [ ] SSB entre prix et TP1 cartographiées (combien d'obstacles ? TP partiels nécessaires ?)
 - [ ] W1 nuage VISIBLE vérifié (pas la valeur future)
