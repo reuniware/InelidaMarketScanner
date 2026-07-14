@@ -398,7 +398,137 @@ mt5.shutdown()
 
 ---
 
-## 🔬 Matrice d'alignement Ichimoku
+### Étape 7 : Analyse Mensuelle (MN) — Mémoire institutionnelle
+
+Le timeframe mensuel est le plus structurel. Un Kijun MN ou un Tenkan MN plat historique
+peut agir comme support/résistance pendant des **années**. C'est le timeframe de la
+mémoire institutionnelle profonde.
+
+```bash
+cd IchimokuSword
+python -c "
+import MetaTrader5 as mt5, numpy as np
+from datetime import datetime, timezone
+
+mt5.initialize()
+SYM = 'USDCAD'  # changer ici
+mt5.symbol_select(SYM, True)
+tick = mt5.symbol_info_tick(SYM)
+price = float(tick.bid)
+
+rates = mt5.copy_rates_from_pos(SYM, mt5.TIMEFRAME_MN1, 0, 100)
+highs = np.array([float(r[2]) for r in rates])
+lows = np.array([float(r[3]) for r in rates])
+closes = np.array([float(r[4]) for r in rates])
+timestamps = [int(r[0]) for r in rates]
+last = len(rates) - 1
+UTC = timezone.utc
+
+# Ichimoku MN actuel
+tk = (np.max(highs[-9:]) + np.min(lows[-9:])) / 2.0
+kj = (np.max(highs[-26:]) + np.min(lows[-26:])) / 2.0
+sa = (tk + kj) / 2.0
+sb = (np.max(highs[-52:]) + np.min(lows[-52:])) / 2.0
+
+# Nuage visible (26 mois en arrière)
+if last >= 26:
+    idx_vis = last - 26
+    tk_vis = (np.max(highs[idx_vis-8:idx_vis+1]) + np.min(lows[idx_vis-8:idx_vis+1])) / 2.0
+    kj_vis = (np.max(highs[idx_vis-25:idx_vis+1]) + np.min(lows[idx_vis-25:idx_vis+1])) / 2.0
+    sa_vis = (tk_vis + kj_vis) / 2.0
+    sb_vis = (np.max(highs[idx_vis-51:idx_vis+1]) + np.min(lows[idx_vis-51:idx_vis+1])) / 2.0
+    vtop, vbot = max(sa_vis, sb_vis), min(sa_vis, sb_vis)
+    vcolor = 'VERT' if sa_vis > sb_vis else 'ROUGE'
+
+print(f'{SYM} BID: {price:.5f}')
+print(f'MN: Tenkan={tk:.5f} Kijun={kj:.5f} SA={sa:.5f} SB={sb:.5f}')
+print(f'Nuage visible: {vbot:.5f}-{vtop:.5f} {vcolor}')
+
+for name, val in [('Tenkan', tk), ('Kijun', kj)]:
+    dist_pct = (price - val) / val * 100
+    print(f'Prix vs {name}: {dist_pct:+.3f}%')
+
+# 12 derniers mois vs Kijun MN
+print()
+print('12 derniers mois vs Kijun MN:')
+for i in range(max(0, last-11), last+1):
+    c = closes[i]
+    dt = datetime.fromtimestamp(timestamps[i], UTC)
+    vs = 'AU-DESSUS' if c > kj else 'EN-DESSOUS'
+    m = ' <-- EN COURS' if i == last else ''
+    print(f'  {dt.strftime(\"%Y-%m\")}: {c:.5f} {vs}{m}')
+
+# Tenkan MN historique - plats proches du prix
+print()
+print('Tenkan MN plats historiques proches du prix:')
+prev_tk = None
+for i in range(8, len(rates)):
+    t = (np.max(highs[i-8:i+1]) + np.min(lows[i-8:i+1])) / 2.0
+    dt = datetime.fromtimestamp(timestamps[i], UTC)
+    dist = (price - t) / t * 100
+    if prev_tk is not None and abs(t - prev_tk) < 0.01 and abs(dist) < 5.0:
+        marker = 'PLAT' if abs(t - prev_tk) < 0.005 else 'quasi-plat'
+        print(f'  {dt.strftime(\"%m/%Y\")}: Tenkan={t:.5f} | ecart={dist:+.2f}% ({marker})')
+    prev_tk = t
+
+# Transition nuage MN
+if 'sa_vis' in dir() and 'sa' in dir():
+    if (sa_vis > sb_vis) != (sa > sb):
+        print()
+        print('!!! TRANSITION NUAGE MN !!!')
+        print(f'Visible: {vcolor} -> Futur: {\"VERT\" if sa > sb else \"ROUGE\"}')
+
+# SSB MN proches
+print()
+print('SSB MN proches (< 1%):')
+for i in range(52, len(rates)):
+    ssb = (np.max(highs[i-51:i+1]) + np.min(lows[i-51:i+1])) / 2.0
+    if abs(price - ssb) / price < 0.01:
+        d = (price - ssb) / price * 100
+        print(f'  SSB {ssb:.5f} | {d:+.3f}%')
+
+mt5.shutdown()
+"
+```
+
+**Ce qu'on cherche :**
+- **Kijun MN vs prix** : combien de mois consécutifs au-dessus ou en-dessous ?
+  Une cassure du Kijun MN après 10 mois en-dessous = signal haussier structurel majeur
+- **Tenkan MN plats historiques** : un Tenkan resté figé 3+ mois crée un niveau
+  qui reste actif pendant des années. Si ce niveau = Kijun actuel = double mémoire
+- **Transition nuage MN** : rouge→vert ou vert→rouge = changement de tendance séculaire
+- **SSB MN** : extrêmement rares proches du prix, mais quand c'est le cas = niveau ultime
+
+**⚠️ Règle :** Ne jamais trader contre le Kijun MN. Si le prix est AU-DESSUS du Kijun MN,
+privilégier les BUYS. Si EN-DESSOUS, privilégier les SELLS. Le Kijun MN est le juge de paix
+ultime.
+
+---
+
+### Étape 7b : Détection de compression multi-TF
+
+Quand le prix est coincé entre un support MN (Kijun) et une résistance W1 (SSB/top nuage),
+c'est une **zone de compression institutionnelle**. Le marché va trancher — souvent
+violemment.
+
+**Exemple USDCAD (13/07/2026) :**
+```
+Top nuage W1 + Tenkan MN plat : 1.41663 ← RESISTANCE
+SSB W1 :                         1.41372 ← RESISTANCE
+PRIX :                           1.41316 ← COMPRESSION (53 pips)
+KIJUN MN + Tenkan MN plat :     1.41061 ← SUPPORT
+```
+
+**Comment lire une compression :**
+1. Mesurer l'écart entre le support le plus proche et la résistance la plus proche
+2. Si écart < 100 pips : cassure imminente (jours/semaines)
+3. Si écart > 200 pips : range potentiel (semaines/mois)
+4. Identifier le catalyseur : DXY pour les paires USD, données économiques, etc.
+5. Préparer les DEUX scénarios (BUY si cassure hausse, SELL si cassure baisse)
+
+---
+
+## 🔬 Matrice d'alignement Ichimoku (5 TFs)
 
 Pour chaque trade, construire cette matrice :
 
@@ -408,10 +538,12 @@ Pour chaque trade, construire cette matrice :
 | H4 | ±X% | Vert/Rouge | ... | ... | 🔼/🔽 |
 | D1 | ±X% | Vert/Rouge | ... | ... | 🔼/🔽 |
 | W1 | ±X% | Vert/Rouge | ... | ... | 🔼/🔽 |
+| MN | ±X% | Vert/Rouge | ... | ... | 🔼/🔽 |
 
-- **4/4 TF aligné** = trade le plus fiable
-- **3/4 TF aligné** = acceptable
-- **2/4 TF aligné** = conflit, risque élevé
+- **5/5 TF aligné** = trade de conviction maximale
+- **4/5 TF aligné** = très fiable
+- **3/5 TF aligné** = acceptable
+- **≤ 2/5 TF aligné** = conflit, éviter
 
 ---
 
@@ -502,6 +634,37 @@ Tant que la bougie W1 n'est pas fermée (dimanche), tout franchissement est prov
 3. Si DXY fake-out → toutes les paires USD vont corriger dans le sens inverse
 4. En cas de doute, attendre London (08h UTC) pour laisser le marché trancher
 
+### 11. Compression multi-TF — zone de décision imminente
+**Piège :** Quand le prix est compressé entre un support MN (ex: Kijun MN) et une résistance
+W1 (ex: SSB), le marché peut sembler « calme » alors qu'il accumule de l'énergie pour un
+mouvement violent. Ne pas confondre range et absence de direction.
+
+**Exemple USDCAD (13/07/2026) :**
+- Support : Kijun MN 1.41061 (double mémoire : Tenkan MN plat 4 mois en 2025)
+- Résistance : SSB W1 1.41372 + Top nuage W1 1.41663 (Tenkan MN plat 4 mois aussi !)
+- Écart total : 53 pips seulement → cassure imminente
+
+**Action :**
+1. Cartographier TOUS les niveaux MN et W1 dans la zone
+2. Mesurer l'écart support/résistance
+3. Préparer les DEUX scénarios avec SL/TP des deux côtés
+4. Ne pas prendre position tant que la compression n'est pas résolue
+
+### 12. Double mémoire institutionnelle — Tenkan MN plat = Kijun actuel
+**Piège :** Un niveau peut avoir un poids DOUBLE sans que ce soit visible sur un seul
+indicateur. Exemple : le Kijun MN actuel à 1.41061 était aussi le Tenkan MN plat de
+fév-mai 2025. Le marché « se souvient » de ce niveau DEUX FOIS.
+
+**Comment le détecter :**
+1. Calculer le Kijun MN actuel
+2. Scanner l'historique Tenkan MN pour trouver des périodes où il était plat à ce même niveau
+3. Si trouvé → le niveau a une double mémoire = résistance/support 2× plus fort
+
+**Exemples documentés :**
+- USDCAD Kijun MN 1.41061 = Tenkan MN plat fév-mai 2025 (4 mois !)
+- USDCAD Top nuage W1 1.41663 = Tenkan MN plat jui-oct 2025 (4 mois !)
+- DXY Tenkan W1 101.27 = plat mai 2025 (niveau fantôme rejeté le 13/07/2026)
+
 ### 10. Discord — ne pas utiliser `discord_notifier.py` pour un embed personnalisé
 **Problème :** `discord_notifier.py --json` appelle `build_scan_embed()` qui attend
 des clés spécifiques (`scanned`, `trades`, `setups`...). Un embed brut sera ignoré.
@@ -563,11 +726,15 @@ Ne jamais présenter un trade comme une certitude.
 - [ ] DXY consulté (pour les paires USD)
 - [ ] DXY Tenkan W1 historique vérifié (niveaux plats anciens proches du prix ?)
 - [ ] DXY fake-out checké (micro-cassure < 0.1% au-dessus d'un niveau W1 historique = non confirmé)
+- [ ] Kijun MN checké (position vs prix, combien de mois au-dessus ou en-dessous ?)
+- [ ] Tenkan MN historique vérifié (plats ≥ 2 mois proches du prix ? Double mémoire avec Kijun ?)
+- [ ] Nuage MN checké (transition de couleur ? prix dans/hors nuage ?)
+- [ ] Compression multi-TF détectée (écart entre support MN et résistance W1 < 100 pips ?)
 - [ ] Nuage H4 visible checké (risque de pullback ? SL positionné correctement vs top ?)
 - [ ] SSB entre prix et TP1 cartographiées (combien d'obstacles ? TP partiels nécessaires ?)
 - [ ] W1 nuage VISIBLE vérifié (pas la valeur future)
 - [ ] Bougies W1 récentes inspectées (fausse cassure ? doji confirmé ?)
-- [ ] Alignement TF compté (X/4 baissier ou haussier)
+- [ ] Alignement TF compté (X/5 baissier ou haussier — MN inclus)
 - [ ] Deux scénarios présentés (aligné + alternatif)
 - [ ] Aucun sensationnalisme (« cassure imminente », « DOJI PARFAIT », etc.)
 - [ ] RR affiché avec comparaison au meilleur trade du jour
