@@ -854,6 +854,7 @@ niveau historique, attendre la cassure confirmée avant d'entrer.
 ### 10. Discord — ne pas utiliser `discord_notifier.py` pour un embed personnalisé
 **Problème :** `discord_notifier.py --json` appelle `build_scan_embed()` qui attend
 des clés spécifiques (`scanned`, `trades`, `setups`...). Un embed brut sera ignoré.
+
 **Solution :** Envoyer directement en HTTP :
 ```python
 import json, urllib.request
@@ -866,10 +867,18 @@ url = [l.split('=',1)[1].strip() for l in text.split('\n') if l.startswith('DISC
 payload = {"embeds": [{"title": "...", "description": "...", "color": 0x2ECC71}]}
 data = json.dumps(payload, ensure_ascii=False).encode('utf-8')
 req = urllib.request.Request(url, data=data,
-    headers={"Content-Type": "application/json; charset=utf-8"},
+    headers={
+        "Content-Type": "application/json; charset=utf-8",
+        "User-Agent": "InelidaMarketScanner/1.0"  # ⚠️ OBLIGATOIRE — 403 sinon
+    },
     method="POST")
 urllib.request.urlopen(req, timeout=15)
 ```
+
+**⚠️ Piège supplémentaire (16/07/2026) :** Discord rejette les requêtes sans
+`User-Agent` avec un **HTTP 403 Forbidden**. Sans ce header, on croit que le
+webhook est invalide alors que le vrai problème est juste le header manquant.
+Le `discord_notifier.py` l'a déjà (`InelidaMarketScanner/1.0`) — toujours l'inclure.
 
 ---
 
