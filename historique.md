@@ -243,5 +243,32 @@ Si doute sur une donnée, je le précise. Si MT5 et TradingView divergent, je de
 
 ---
 
+### ⏰ Fin de session (~18h Paris) — EURUSD stop sur Fib +2.618
+
+**Observation clé (correctif) :** EURUSD a descendu et s'est arrêté exactement sur
+l'**extension +2.618** avec **base sur l'Asian High** (ICT style), PAS sur un Fib -2.618
+(bear extension depuis le bas).
+
+**Ma première analyse était fausse :** j'ai calculé un `AL + (-2.618) × range` (= 1.14199)
+au lieu de `AH − (2.618 × range)` (= 1.14350/1.14369).
+
+```
+AH = 1.14745
+AL = 1.14594
+Range = 15.1 pips
+
+Extension +2.618 (base sur AH): 1.14350 (MT5) / 1.14369 (TradingView)
+Low H1 18h UTC: 1.14364
+
+=> Confluence parfaite: le prix a stoppé pile sur le Fib ICT +2.618
+```
+
+**Leçon :** Toujours préciser la méthode de calcul du Fib :
+- **Extension** (base sur AH/AL, projetée dans la direction opposée)
+- **Retracement** (base entre deux points)
+- Ne pas confondre Fib -2.618 (bear extension depuis le bas) avec Ext +2.618 (base sur le haut)
+
+---
+
 > **Prochaine session :** à remplir avec la date, le contexte, les setups, les analyses, et les résultats.
 

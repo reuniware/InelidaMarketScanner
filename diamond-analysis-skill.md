@@ -976,6 +976,40 @@ je le précise. Pas d'affirmations fausses avec assurance.
 
 ---
 
+### Fib ICT — Méthode de calcul (base sur le haut/bas, pas AL + n×range)
+
+**Piège (découvert le 16/07/2026) :** J'ai confondu l'extension +2.618 avec base
+sur le haut (ICT standard) avec un Fib -2.618 bear extension (AL + n×range).
+
+**Bonne méthode — Extension ICT avec base sur le HAUT :**
+```
+Ah haussier = AH + 2.618 × range  (projeté vers le HAUT)
+Ext baissier = AH − 2.618 × range  (projeté vers le BAS)
+```
+
+**Mauvaise méthode (que j'ai utilisée par erreur) :**
+```
+# FAUX : ceci est une extension BEAR depuis le bas, pas un +2.618 ICT
+lvl = AL + (-2.618) × range
+```
+
+**Exemple EURUSD (16/07/2026) :**
+```
+AH = 1.14745  |  AL = 1.14594  |  Range = 15.1p
+
+BON : Ext +2.618 (base AH) = 1.14745 − 2.618 × 0.00151 = 1.14350
+FAUX : Fib -2.618 (base AL) = 1.14594 − 2.618 × 0.00151 = 1.14199
+
+Low réel : 1.14364 → le BON calcul est à 0.5 pip du low. Le FAUX est à 20p.
+```
+
+**Règle :**
+- Extension ICT = base sur le point de départ du mouvement (AH pour bear, AL pour bull)
+- Fib standard = base AL + n×range (bear) ou AH + n×range (bull)
+- Les deux sont différents. Toujours préciser : "Ext +2.618 base AH" ou "Fib -2.618 base AL".
+
+---
+
 ### --discord flag — Publication automatique sur Discord
 
 ```bash
