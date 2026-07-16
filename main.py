@@ -1280,10 +1280,12 @@ def _render_diamond_detail(r, lines: list):
     bias_icon = "🔺" if r.bias == "BULL" else "🔻"
 
     horizon_str = f"  |  {CYAN}Horizon: {r.horizon}{RESET}" if r.horizon else ""
+    kj_d1_str = f"  |  ΔKjD1: {r.d_kj_d1:+.1f}p" if r.kj_d1 > 0 else ""
     lines.append(f"  {BOLD}{quality_icon} {MAGENTA}{r.symbol}{RESET}  "
                  f"{bias_icon} {r.bias}  "
                  f"Score: {r.score}/{r.max_score}  |  Align: {r.alignment}/5  |  "
-                 f"ΔKj4: {r.d_kj4:+.1f}p  |  "
+                 f"ΔKj4: {r.d_kj4:+.1f}p"
+                 f"{kj_d1_str}  |  "
                  f"RR: {r.rr:.1f}x"
                  f"{horizon_str}")
     lines.append(f"    {GRAY}Critères:{RESET} {' '.join(r.criteria)}")
@@ -1411,6 +1413,24 @@ def _render_diamond_detail(r, lines: list):
             lines.append(
                 f"    {DIM}{label}:{RESET} {_fmt_price(sb_l)} ({sb_d:.1f}p)"
             )
+
+    # FVG H1 (bearish gap — e.g. 18h-20h Paris)
+    if r.fvg_h1_bear_top > 0 and r.fvg_h1_bear_bot > 0:
+        gap_pips = abs(r.fvg_h1_bear_top - r.fvg_h1_bear_bot) * r.fvg_h1_bear_pip_factor
+        mit = "MITIGE" if r.fvg_h1_bear_mitigated else "NON MITIGE"
+        pos_col = GREEN if r.fvg_h1_bear_price_pos == "ABOVE" else (RED if r.fvg_h1_bear_price_pos == "BELOW" else YELLOW)
+        lines.append(
+            f"    {RED}FVG Bear {r.fvg_h1_bear_date}:{RESET} {_fmt_price(r.fvg_h1_bear_bot)}-{_fmt_price(r.fvg_h1_bear_top)} "
+            f"({gap_pips:.0f}p) [{mit}] [{pos_col}{r.fvg_h1_bear_price_pos}{RESET}]"
+        )
+    if r.fvg_h1_bull_top > 0 and r.fvg_h1_bull_bot > 0:
+        gap_pips = abs(r.fvg_h1_bull_top - r.fvg_h1_bull_bot) * r.fvg_h1_bull_pip_factor
+        mit = "MITIGE" if r.fvg_h1_bull_mitigated else "NON MITIGE"
+        pos_col = GREEN if r.fvg_h1_bull_price_pos == "ABOVE" else (RED if r.fvg_h1_bull_price_pos == "BELOW" else YELLOW)
+        lines.append(
+            f"    {GREEN}FVG Bull {r.fvg_h1_bull_date}:{RESET} {_fmt_price(r.fvg_h1_bull_bot)}-{_fmt_price(r.fvg_h1_bull_top)} "
+            f"({gap_pips:.0f}p) [{mit}] [{pos_col}{r.fvg_h1_bull_price_pos}{RESET}]"
+        )
 
     # Compression (Etape 7b)
     if r.compression_zone:

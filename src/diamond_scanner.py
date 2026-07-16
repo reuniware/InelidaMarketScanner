@@ -148,6 +148,25 @@ class DiamondResult:
     compression_pips: float = 0.0
     compression_zone: str = ""
 
+    # Distance Kijun D1 (confluence ICT x Ichimoku)
+    d_kj_d1: float = 0.0     # distance prix vs Kijun D1 en pips
+
+    # FVG H1 recent — bearish (gap down, low[i] > high[i+2])
+    fvg_h1_bear_top: float = 0.0
+    fvg_h1_bear_bot: float = 0.0
+    fvg_h1_bear_mitigated: bool = False
+    fvg_h1_bear_price_pos: str = "N/A"  # "ABOVE", "BELOW", "INSIDE"
+    fvg_h1_bear_date: str = ""          # "15/07 18h" format
+    fvg_h1_bear_pip_factor: float = 10000.0
+
+    # FVG H1 recent — bullish (gap up, high[i] < low[i+2])
+    fvg_h1_bull_top: float = 0.0
+    fvg_h1_bull_bot: float = 0.0
+    fvg_h1_bull_mitigated: bool = False
+    fvg_h1_bull_price_pos: str = "N/A"  # "ABOVE", "BELOW", "INSIDE"
+    fvg_h1_bull_date: str = ""
+    fvg_h1_bull_pip_factor: float = 10000.0
+
     # Trade setup
     sl: float = 0.0
     tp: float = 0.0
@@ -438,6 +457,96 @@ class DiamondScanner:
                     results.append((sb, dist))
         return sorted(results, key=lambda x: x[1])
 
+    # ── FVG H1 detection (bearish + bullish gaps) ──
+
+    def _detect_fvg_h1(
+        self, highs: List[float], lows: List[float],
+        timestamps: List[int], price: float, sym: str
+    ) -> Tuple[float, float, bool, str, str, float,
+               float, float, bool, str, str, float]:
+        """Detecte les FVGs H1 bearish (low[i] > high[i+2]) et bullish (high[i] < low[i+2]).
+
+        Cherche dans les 3 derniers jours (72 barres).
+
+        Returns 12 valeurs:
+            bear_top, bear_bot, bear_mitigated, bear_pos, bear_date, bear_pip_factor,
+            bull_top, bull_bot, bull_mitigated, bull_pos, bull_date, bull_pip_factor
+        """
+        n = len(highs)
+        if n < 6:
+            return (0.0, 0.0, False, "N/A", "", 10000.0,
+                    0.0, 0.0, False, "N/A", "", 10000.0)
+
+        thresh = 0.03 if ('JPY' in sym or sym == 'XAUUSD') else 0.0005
+        tolerance = thresh / 2.0
+        pip_factor = 10.0 if sym == 'XAUUSD' else (100.0 if 'JPY' in sym else 10000.0)
+
+        best_bear: Optional[Tuple[int, float, float, str, int]] = None
+        best_bull: Optional[Tuple[int, float, float, str, int]] = None
+
+        for i in range(2, min(n, 72)):
+            dt_i = datetime.fromtimestamp(timestamps[i], UTC)
+            dt_i2 = datetime.fromtimestamp(timestamps[i - 2], UTC)
+            prev_h = dt_i2.hour
+
+            # Priority: yesterday's 18h-20h Paris (16-18 UTC) gets 10, yesterday gets 5
+            priority = 0
+            if prev_h == 16 and dt_i.hour == 18:
+                priority = 10
+            elif dt_i.day != datetime.now(UTC).day:
+                priority = 5
+
+            # Bearish FVG: low[i-2] > high[i]
+            if lows[i - 2] > highs[i] and (lows[i - 2] - highs[i]) > thresh:
+                label = dt_i2.strftime("%d/%m %Hh")
+                if best_bear is None or priority > best_bear[0]:
+                    best_bear = (priority, lows[i - 2], highs[i], label, i)
+
+            # Bullish FVG: high[i-2] < low[i]
+            if highs[i - 2] < lows[i] and (lows[i] - highs[i - 2]) > thresh:
+                label = dt_i2.strftime("%d/%m %Hh")
+                if best_bull is None or priority > best_bull[0]:
+                    best_bull = (priority, lows[i], highs[i - 2], label, i)
+
+        # ── Resolve bearish FVG ──
+        bear_top, bear_bot, bear_mitigated, bear_pos, bear_date = 0.0, 0.0, False, "N/A", ""
+        if best_bear is not None:
+            bear_top, bear_bot = best_bear[1], best_bear[2]
+            bear_date = best_bear[3]
+            fvg_idx = best_bear[4]
+            bear_mitigated = False
+            for k in range(fvg_idx + 1, n):
+                if highs[k] >= bear_bot - tolerance:
+                    bear_mitigated = True
+                    break
+            if not bear_mitigated and price >= bear_bot - tolerance:
+                bear_mitigated = True
+            if bear_bot > 0:
+                if price > bear_top: bear_pos = "ABOVE"
+                elif price < bear_bot: bear_pos = "BELOW"
+                else: bear_pos = "INSIDE"
+
+        # ── Resolve bullish FVG ──
+        bull_top, bull_bot, bull_mitigated, bull_pos, bull_date = 0.0, 0.0, False, "N/A", ""
+        if best_bull is not None:
+            bull_top, bull_bot = best_bull[1], best_bull[2]
+            bull_date = best_bull[3]
+            fvg_idx = best_bull[4]
+            bull_mitigated = False
+            for k in range(fvg_idx + 1, n):
+                if lows[k] <= bull_top + tolerance:
+                    bull_mitigated = True
+                    break
+            if not bull_mitigated and price <= bull_top + tolerance:
+                bull_mitigated = True
+            if bull_bot > 0:
+                if price > bull_top: bull_pos = "ABOVE"
+                elif price < bull_bot: bull_pos = "BELOW"
+                else: bull_pos = "INSIDE"
+
+        return (bear_top, bear_bot, bear_mitigated, bear_pos, bear_date, pip_factor,
+                bull_top, bull_bot, bull_mitigated, bull_pos, bull_date, pip_factor)
+
     # ── Etape 7b : Compression multi-TF ──
 
     def _detect_compression(self, r: DiamondResult, sym: str) -> Tuple[float, str]:
@@ -610,9 +719,36 @@ class DiamondScanner:
                     double_memory = True
                     break
 
-        # ═══ Scoring (12 criteres max) ═══════════════════════════════════════
+        d_kj4 = self._pips(sym, price, kj4)
+
+        # ═══ Kijun D1 distance ═══════════════════════════════════════════
+        d_kj_d1 = self._pips(sym, price, kd1)
+
+        # ═══ FVG H1 detection (e.g. 18h-20h Paris bearish gap) ════════════
+        fvg_top, fvg_bot, fvg_mitigated, fvg_pos, fvg_date, fvg_pip_factor, \
+            fvg_bull_top, fvg_bull_bot, fvg_bull_mitigated, fvg_bull_pos, fvg_bull_date, fvg_bull_pip_factor = self._detect_fvg_h1(
+            h1_h, h1_l, h1_t, price, sym
+        )
+
+        # ═══ Bias/Direction (computed BEFORE scoring) ════════════════════
+        bias = "FLAT"
+        direction = 0
+        mn_bullish = mn_available and kjmn > 0 and price > kjmn
+        mn_bearish = mn_available and kjmn > 0 and price < kjmn
+        if d_kj4 > 5 and kumo4 == "ABOVE":
+            if mn_bearish:
+                bias = "FLAT"
+            else:
+                bias, direction = "BULL", 1
+        elif d_kj4 < -5 and kumo4 == "BELOW":
+            if mn_bullish:
+                bias = "FLAT"
+            else:
+                bias, direction = "BEAR", -1
+
+        # ═══ Scoring (15 criteres max avec FVG bear+bull+KjD1) ═══════════
         score = 0
-        max_score = 12 if mn_available else 10
+        max_score = 15 if mn_available else 13
         crit: List[str] = []
         warnings: List[str] = []
         alignment = 0
@@ -637,10 +773,32 @@ class DiamondScanner:
         if mn_available:
             if kumomn == "ABOVE": score += 1; crit.append("MNKu"); alignment += 1
             if tkxmn == "BULL": score += 1; crit.append("MNTK")
-
-        d_kj4 = self._pips(sym, price, kj4)
+        # Kijun D1 (1 critere) — confluence ICT x Ichimoku
+        if kd1 > 0 and direction != 0:
+            if (direction == 1 and price > kd1) or (direction == -1 and price < kd1):
+                score += 1; crit.append("KjD1"); alignment += 1
+        # FVG H1 (1 critere) — mitigated FVG acting as S/R
+        if fvg_mitigated and fvg_pos in ("BELOW", "ABOVE") and direction != 0:
+            if (direction == -1 and fvg_pos == "BELOW") or (direction == 1 and fvg_pos == "ABOVE"):
+                score += 1; crit.append("FVG")
+        if fvg_bull_mitigated and fvg_bull_pos in ("BELOW", "ABOVE") and direction != 0:
+            if (direction == 1 and fvg_bull_pos == "ABOVE") or (direction == -1 and fvg_bull_pos == "BELOW"):
+                score += 1; crit.append("FVGb")
 
         # ── Warnings (Etape 3b — TOUS les TFs) ──
+        # FVG H1 warnings (bearish + bullish)
+        if fvg_top > 0 and fvg_bot > 0:
+            gap = self._pips(sym, fvg_top, fvg_bot)
+            mit = "MITIGE" if fvg_mitigated else "NON MITIGE"
+            warnings.append(
+                f"FVG BEAR {fvg_date}: {fvg_bot:.5f}-{fvg_top:.5f} ({abs(gap):.1f}p) [{mit}] [{fvg_pos}]"
+            )
+        if fvg_bull_top > 0 and fvg_bull_bot > 0:
+            gap = self._pips(sym, fvg_bull_top, fvg_bull_bot)
+            mit = "MITIGE" if fvg_bull_mitigated else "NON MITIGE"
+            warnings.append(
+                f"FVG BULL {fvg_bull_date}: {fvg_bull_bot:.5f}-{fvg_bull_top:.5f} ({abs(gap):.1f}p) [{mit}] [{fvg_bull_pos}]"
+            )
         # Tenkan flats proches (H1/H4/D1/W1/MN)
         for flats, label, threshold, unit in [
             (tenkan_flat_h1, "TenkanH1", 5, "b"),
@@ -715,27 +873,12 @@ class DiamondScanner:
             if cf_flat and label in ("H4", "D1", "W1", "MN"):
                 warnings.append(f"KUMO FLAT {label}: Senkou B projete plat → magnet")
 
-        # ── Bias: Kijun MN is the ultimate judge (Etape 7) ──
-        # Default: use H4 Kijun + Kumo
-        bias = "FLAT"
-        direction = 0
-
-        # MN overrides if available
-        mn_bullish = mn_available and kjmn > 0 and price > kjmn
-        mn_bearish = mn_available and kjmn > 0 and price < kjmn
-
-        if d_kj4 > 5 and kumo4 == "ABOVE":
-            if mn_bearish:
-                bias = "FLAT"  # H4 says BULL but MN says BEAR → conflict
-                warnings.append(f"CONFLIT MN: Prix SOUS Kijun MN {kjmn:.5f}")
-            else:
-                bias, direction = "BULL", 1
-        elif d_kj4 < -5 and kumo4 == "BELOW":
-            if mn_bullish:
-                bias = "FLAT"  # H4 says BEAR but MN says BULL → conflict
+        # ── MN conflict warning (bias already computed above) ──
+        if bias == "FLAT":
+            if direction == 0 and mn_bullish and d_kj4 < -5 and kumo4 == "BELOW":
                 warnings.append(f"CONFLIT MN: Prix SUR Kijun MN {kjmn:.5f}")
-            else:
-                bias, direction = "BEAR", -1
+            elif direction == 0 and mn_bearish and d_kj4 > 5 and kumo4 == "ABOVE":
+                warnings.append(f"CONFLIT MN: Prix SOUS Kijun MN {kjmn:.5f}")
 
         # ── Quality thresholds (v2: 8/12 GOOD, 10/12 STRONG) ──
         good_threshold = max_score - 4   # 8 for 12, 6 for 10
@@ -799,6 +942,13 @@ class DiamondScanner:
             kijun_flats_h1=kijun_flats_h1, kijun_flats_h4=kijun_flats_h4, kijun_flats_d1=kijun_flats_d1,
             kijun_flats_w1=kijun_flats_w1, kijun_flats_mn=kijun_flats_mn,
             months_vs_kj_mn=months_vs_kj, double_memory=double_memory,
+            d_kj_d1=d_kj_d1,
+            fvg_h1_bear_top=fvg_top, fvg_h1_bear_bot=fvg_bot,
+            fvg_h1_bear_mitigated=fvg_mitigated, fvg_h1_bear_price_pos=fvg_pos,
+            fvg_h1_bear_date=fvg_date, fvg_h1_bear_pip_factor=fvg_pip_factor,
+            fvg_h1_bull_top=fvg_bull_top, fvg_h1_bull_bot=fvg_bull_bot,
+            fvg_h1_bull_mitigated=fvg_bull_mitigated, fvg_h1_bull_price_pos=fvg_bull_pos,
+            fvg_h1_bull_date=fvg_bull_date, fvg_h1_bull_pip_factor=fvg_bull_pip_factor,
             sl=sl, tp=tp, rr=rr, horizon=horizon,
             criteria=crit, warnings=warnings,
         )
