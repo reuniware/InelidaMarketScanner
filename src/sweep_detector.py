@@ -794,8 +794,14 @@ def detect_asian_range_for_symbol(
     asian_low = min(b["low"] for b in asian_bars)
     last_asian_time = max(b["time"] for b in asian_bars)
 
-    post_bars = [b for b in bars if b["time"] > last_asian_time]
-    post_bars = post_bars[:max_bars_after]
+    # 🔧 CORRECTION BUG: scanner TOUTES les barres du jour (y compris intra-asian)
+    # pour les sweeps, pas seulement les barres apres la session asiatique.
+    # Avant: seules les barres > last_asian_time (08:00 UTC) etaient scannees.
+    # Un sweep intra-session a 07:45 UTC (9h45 Paris) etait ignore.
+    # Maintenant: on scanne depuis la premiere barre asiatique du jour.
+    first_asian_time = min(b["time"] for b in asian_bars)
+    all_day_bars = [b for b in bars if b["time"] >= first_asian_time]
+    all_day_bars = all_day_bars[:max_bars_after]
 
     high_swept = False
     low_swept = False
@@ -810,7 +816,7 @@ def detect_asian_range_for_symbol(
     low_swept_session: Optional[str] = None
     low_swept_label: Optional[str] = None
 
-    for b in post_bars:
+    for b in all_day_bars:
         if not high_swept and _bar_sweeps_Asian_high(b, asian_high):
             high_swept = True
             high_swept_at = b["time"]
@@ -830,9 +836,8 @@ def detect_asian_range_for_symbol(
 
     # --- Fibonacci level sweep detection ---
     # Pour chaque niveau ICT (+1.618, +2.0, ... +4.0 et negatifs), on cherche le
-    # PREMIER bar post-Asian qui le sweep, puis on garde le PLUS PROFOND (celui
-    # qui s est avere le plus loin de la range). Sweep = wick + rejet (meme
-    # definition ICT que les sweeps Asian High/Low).
+    # PREMIER bar (intra-asian inclus) qui le sweep, puis on garde le PLUS PROFOND.
+    # Sweep = wick + rejet (meme definition ICT que les sweeps Asian High/Low).
     range_size = asian_high - asian_low
     # Base Fibonacci configurable : "AH" = extensions depuis le haut (ICT agressif),
     # "AL" = extensions depuis le swing low (fib standard). Defaut = "AH" (prouve 74% WR).
@@ -860,7 +865,7 @@ def detect_asian_range_for_symbol(
         bull_hits = []
         for n in _FIB_LEVELS_BULL:
             lvl = bull_base + n * range_size
-            for b in post_bars:
+            for b in all_day_bars:
                 if b["high"] > lvl and b["close"] < lvl:
                     bull_hits.append((n, b["time"], b["close"]))
                     break
@@ -875,7 +880,7 @@ def detect_asian_range_for_symbol(
         bear_hits = []
         for n in _FIB_LEVELS_BEAR:
             lvl = bear_base + n * range_size   # n est negatif -> lvl < bear_base
-            for b in post_bars:
+            for b in all_day_bars:
                 if b["low"] < lvl and b["close"] > lvl:
                     bear_hits.append((n, b["time"], b["close"]))
                     break
