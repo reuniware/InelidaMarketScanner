@@ -882,6 +882,123 @@ Le `discord_notifier.py` l'a déjà (`InelidaMarketScanner/1.0`) — toujours l'
 
 ---
 
+### SL Proximity Safety Net — Protection contre les SL trop proches
+
+Ajouté après l'erreur US500 du 16/07/2026 (trade greenlighté STRONG à +3 pts du SL,
+soit 5.4% du range SL→TP).
+
+**Règle :**
+```python
+if direction != 0 and sl > 0 and tp > 0:
+    total_range = abs(tp - sl)
+    dist_to_sl = abs(price - sl)
+    if total_range > 0:
+        sl_pct = dist_to_sl / total_range * 100
+        if sl_pct < 10:
+            quality = "WAIT"     # forcé WAIT quel que soit le score
+            warnings.append(f"SL CRITIQUE: {dist_to_sl:.1f}p du SL")
+        elif sl_pct < 20:
+            if quality == "STRONG": quality = "GOOD"  # dégradé
+            warnings.append(f"SL PROCHE: {dist_to_sl:.1f}p du SL")
+```
+
+**Seuils :**
+| % du range SL→TP | Action |
+|:---:|:---|
+| < 10% | Forcé **WAIT** + warning "SL CRITIQUE" |
+| 10-20% | **STRONG** dégradé en **GOOD** + warning "SL PROCHE" |
+| ≥ 20% | Aucun changement |
+
+**Exemple US500 (16/07/2026) :**
+- Prix : 7 540.85 | SL : 7 537.62 | TP : 7 596.80
+- Dist SL : 3.2 pts | Range : 59 pts | % du range : **5.4%**
+- Résultat : aurait été forcé **WAIT** au lieu de STRONG
+
+---
+
+### Smart TP — Calcul du TP basé sur des niveaux techniques réels
+
+Remplace l'ancienne formule `tp = price + (risk * 2.0) / pip_factor * direction` (RR=2.0 fixe)
+par une collecte des niveaux techniques réels.
+
+**Niveaux collectés :**
+- Kijun H1, H4, D1, W1
+- Tenkan H1, H4, D1, W1
+- FVG bear tops (H1, H4, D1)
+- FVG bull tops (H1, H4, D1)
+- SSB H4, D1
+- Nuages W1, MN (top/bot)
+
+**Algorithme :**
+1. Filtrer par direction : BULL → niveaux au-dessus du prix, BEAR → niveaux en-dessous
+2. Trier par distance croissante
+3. Sélectionner le plus proche avec RR ≥ 1.5
+4. Si aucun avec RR ≥ 1.5, prendre le plus proche (même RR < 1.5)
+5. Si aucun niveau trouvé, fallback RR = 2.0
+
+**Affichage :** `TP: 162.22 (FVG H1 Bear)` — la source du TP est toujours affichée.
+
+---
+
+### 5 Règles d'Analyse (post-bilan 16/07/2026)
+
+#### 1. Données brutes avant interprétation
+```
+AVANT : "🟢 US500 = Trade OK en vie"
+APRÈS : "US500 = 7 540 | SL = 7 537 | +3 pts = 5% du range | Danger"
+```
+
+#### 2. Distance au SL = métrique numéro 1
+Pas le score, pas la qualité STRONG/GOOD. Le **% du range SL→TP** est la première
+chose à afficher pour tout setup.
+
+```
+Symbole   Score   Qualité   Prix         SL         Dist. SL   % Range
+US500     15/17   STRONG    7 540.85    7 537.62   +3.2 pts   5%
+EURUSD    13/22   WAIT      1.14450     1.14298    +15.2 p    34%
+```
+
+#### 3. Narratif interdit — faits seulement
+❌ "Trade en vie" • "Stable" • "Renforcé"  
+✅ Chiffres bruts : distances, % du range, risque
+
+#### 4. Vérification croisée systématique
+| Check | Règle |
+|:---|---:|
+| Distance SL > 20% du range ? | Sinon → dégradé WAIT |
+| DXY cohérent avec le trade ? | DXY haussier → EUR baissier |
+| Trendline vérifiée sur toutes les TF ? | Pas juste H1, check D1 |
+| Cotation MT5 = TradingView ? | Demander confirmation si doute |
+
+#### 5. Incertitude = je le dis
+Si doute sur une donnée, divergence MT5/TradingView, ou calcul incertain →
+je le précise. Pas d'affirmations fausses avec assurance.
+
+---
+
+### --discord flag — Publication automatique sur Discord
+
+```bash
+python main.py diamond --discord
+python main.py diamond --symbols EURUSD USDJPY --discord
+```
+
+**Ce que l'embed contient :**
+- DXY (prix, Kijun H1, position au-dessus/en-dessous)
+- Tableau des symboles scannés (score, biais, qualité)
+- Setups actifs avec SL/TP/ΔKj4 et critères
+- Avertissements (mémoire institutionnelle, FVGs, S/R)
+- Résumé (STRONG/GOOD/WAIT, BULL/BEAR)
+
+**Webhook :** lit `.env` (DISCORD_WEBHOOK_URL) ou variable d'environnement.
+
+**Dégradation gracieuse :**
+- Pas de webhook → message console jaune, scan continue
+- Webhook invalide → message console rouge, scan continue
+- Erreur réseau → message console, scan continue
+
+---
+
 ## 🎨 Conventions d'affichage
 
 ### Couleurs Discord

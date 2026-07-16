@@ -1023,12 +1023,22 @@ Exemple : `inelida_report_2026-06-24_1600.pdf`
 
 ### 15.1 Méthode de publication (IMPORTANT)
 
-**NE JAMAIS utiliser de script Python inline avec `urllib.request` pour poster sur Discord.**
-Les scripts inline échouent systématiquement avec HTTP 403 (Cloudflare/WAF bloque
-les requêtes sans User-Agent cohérent).
+**⚠️ ATTENTION (Mise à jour 16/07/2026) :** Avant le 16/07, la règle était de ne JAMAIS utiliser
+`urllib.request` directement — uniquement `discord_notifier.py`. Depuis l'ajout du flag
+`--discord` dans `main.py cmd_diamond`, les envois directs sont supportés avec le bon
+`User-Agent`.
 
-**Toujours utiliser `discord_notifier.py` :**
+**Méthode 1 — Flag `--discord` (recommandé pour Diamond Scan) :**
+```bash
+python main.py diamond --discord
+python main.py diamond --symbols EURUSD USDJPY --discord
+```
+- Poste directement un embed formaté avec DXY, symboles, setups, warnings
+- Webhook depuis `.env` ou `DISCORD_WEBHOOK_URL` env var
+- `User-Agent: InelidaDiamondScanner/1.0` (évite le 403)
+- **Dégradation gracieuse :** si webhook absent ou erreur, le scan continue
 
+**Méthode 2 — `discord_notifier.py` (pour tout contenu personnalisé) :**
 ```bash
 # Écrire le JSON dans un fichier temporaire
 python -c "
@@ -1047,8 +1057,25 @@ python discord_notifier.py \
 rm tmp_discord.json
 ```
 
-**Pourquoi ça marche :** `discord_notifier.py` définit `User-Agent: InelidaMarketScanner/1.0`
-et `Content-Type: application/json; charset=utf-8` que les scripts inline oublient.
+**Pourquoi ça marche :** les deux méthodes définissent `User-Agent: Inelida*Scanner/1.0`
+et `Content-Type: application/json; charset=utf-8` que les scripts inline oubliaient.
+
+**Piège (16/07/2026) :** Discord rejette les requêtes sans `User-Agent` avec un
+**HTTP 403 Forbidden**. Sans ce header, on croit que le webhook est invalide alors
+que le vrai problème est juste le header manquant.
+
+**Méthode 3 — Appel direct (pour scripts) :**
+```python
+import json, urllib.request
+payload = json.dumps({"embeds": [...]}, ensure_ascii=False).encode("utf-8")
+req = urllib.request.Request(webhook_url, data=payload,
+    headers={
+        "Content-Type": "application/json; charset=utf-8",
+        "User-Agent": "InelidaMarketScanner/1.0",  # OBLIGATOIRE
+    },
+    method="POST")
+resp = urllib.request.urlopen(req, timeout=15)
+# HTTP 204 = OK
 
 ### 15.2 Webhook URL
 
@@ -1116,6 +1143,86 @@ def _fmt(v):
 ```bash
 python discord_notifier.py --webhook "<URL>" --test
 ```
+
+---
+
+### 12.13 SL Proximity Safety Net — ne pas greenlighter un trade à 3 pts du SL
+
+**Piège (découvert le 16/07/2026) :** Un trade avec score 15/17 STRONG a été
+présenté comme "OK en vie" alors qu'il était à **3.2 pts du SL (5.4% du range)**.
+Le score mesurait l'alignement Ichimoku, pas la distance au SL.
+
+**Règle :** tout setup doit afficher `Dist. SL` en pips/points ET `% du range SL→TP`
+AVANT toute interprétation. Le % du range est la vraie température du trade.
+
+**Filet de sécurité (implémenté 16/07/2026) :**
+- < 10% du range → forcé WAIT + warning "SL CRITIQUE"
+- 10-20% → STRONG dégradé en GOOD + warning "SL PROCHE"
+- ≥ 20% → aucun changement
+
+**Exemple US500 (16/07/2026) :**
+- Prix : 7 540.85 | SL : 7 537.62 | Range SL→TP : 59 pts
+- Dist. SL : 3.2 pts → **5.4% du range** → forcé WAIT
+
+---
+
+### 12.14 Trendline D1 vs H1 — toujours vérifier les deux
+
+**Piège (découvert le 16/07/2026) :** J'ai tracé une trendline USDJPY avec les highs H1
+(13/07 23h Paris → 15/07 12h Paris : 162.478 → 162.302). La trendline passait à ~162.15,
+mais le user voyait un rejet à ~162.40 sur TradingView.
+
+**Cause :** Il fallait utiliser les **highs D1** (01/07 → 14/07 : 162.838 → 162.470).
+La trendline D1 est plus fiable car elle capture la structure de plus haut niveau.
+
+**Règle :** Toujours tracer les trendlines long terme (≥ 1 semaine) avec les données D1,
+pas H1. La H1 est trop bruitée pour les niveaux structurels.
+
+---
+
+### 12.15 Timezone MT5 — le serveur peut avoir +3h d'avance
+
+**Piège (découvert le 16/07/2026) :** MT5 timestamps montraient 17:10 alors qu'il était
+16:24 Paris (14:24 UTC). Soit un décalage de +3h entre le serveur MT5 et l'heure UTC.
+
+**Règle :** Toujours convertir les timestamps MT5 en UTC, puis en heure locale.
+Ne jamais utiliser l'heure brute du timestamp pour décrire un événement en temps réel.
+
+---
+
+## 18. Règles d'Analyse (post-bilan 16/07/2026)
+
+### 18.1 5 règles applicables à toute analyse
+
+#### 1. Données brutes avant interprétation
+```
+AVANT : "🟢 US500 = Trade OK en vie"
+APRÈS : "US500 = 7 540 | SL = 7 537 | +3 pts = 5% du range | Danger"
+```
+
+#### 2. Distance au SL = métrique numéro 1
+Pas le score, pas la qualité STRONG/GOOD. Le **% du range SL→TP** est la première
+chose à afficher pour tout setup. Toujours dans ce format :
+```
+Symbole   Score   Qualité   Prix         SL         Dist. SL   % Range
+US500     15/17   STRONG    7 540.85    7 537.62   +3.2 pts   5%
+```
+
+#### 3. Narratif interdit — faits seulement
+❌ "Trade en vie" / "Stable" / "Renforcé"  
+✅ `Dist. SL = X pts (Y%)` / `Prix à 1.1445, TK H4 cassée depuis 2h` / `Risque : DXY monte`
+
+#### 4. Vérification croisée systématique
+| Check | Règle |
+|:---|---:|
+| Distance SL > 20% du range ? | Sinon → dégradé WAIT |
+| DXY cohérent avec le trade ? | DXY haussier → EUR baissier |
+| Trendline vérifiée sur D1 aussi ? | Pas juste H1 |
+| Timezone MT5 correcte ? | MT5 = UTC+? |
+
+#### 5. Incertitude = je le dis
+Si doute sur une donnée, divergence MT5/TradingView, ou calcul incertain →
+le préciser explicitement. Pas d'affirmations fausses avec assurance.
 
 ---
 

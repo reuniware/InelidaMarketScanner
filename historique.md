@@ -38,15 +38,23 @@
 - Impact : Tenkan/Kijun flat history, SSB, FVG gaps tous corrigés
 
 #### SL proximity safety net
+- Ajouté APRÈS l'erreur US500 (trade greenlighté à 3 pts du SL)
 - Si prix < 10% du range SL→TP côté SL → forcé WAIT
 - Si 10-20% → STRONG dégradé en GOOD
-- Évite de greenlighter un trade à 3 pts du SL (erreur US500)
+- Aurait forcé US500 en WAIT au moment critique
 
 #### Smart TP (basé sur niveaux réels)
 - Remplace le RR=2.0 fixe
 - Collecte Kijun, Tenkan, FVG, SSB, Nuages
 - Filtre par direction, prend le plus proche avec RR ≥ 1.5
-- Affiche la source du TP (ex: "FVG H1 Bear")
+- Affiche la source du TP (ex : "FVG H1 Bear")
+- Plus de TP arbitraire sans ancrage technique
+
+#### --discord flag
+- `python main.py diamond --discord` poste les résultats sur Discord
+- Webhook lu depuis `.env` (DISCORD_WEBHOOK_URL) ou variable d'env
+- Embed inclut : DXY, tous symboles, setups actifs, warnings, résumé
+- Dégradation gracieuse si webhook absent
 
 ---
 
@@ -62,89 +70,74 @@
 
 **Aucun SL touché.** US500 passé à 3.2 pts du SL (5.4% du range) puis rebondi à 14 pts (23%).
 
-### 📊 Diamond Scan final (~16h30 Paris)
+### 📊 Diamond Scan (~16h30 Paris)
 
 ```
 0 STRONG | 1 GOOD | 13 WAIT | BULL: 6 | BEAR: 3
 ```
-Seul US30 reste GOOD (18/22). Tous les autres sont WAIT avec le scoring 22 critères.
+Seul US30 reste GOOD (18/22). Tous les autres WAIT avec scoring 22 critères.
 
 ---
 
 ### 🔍 USDJPY — Analyse détaillée
 
 #### Setup
-- Prix : 162.38
-- SL : 161.88 (Kijun H4)
-- TP : FVG H1 Bear ~162.22 (smart) ou 162.90 (fixe)
+- Prix : 162.38 | SL : 161.88 (Kijun H4) | TP : ~162.22 (FVG H1 Bear)
+- Dist. SL : +50p (31% du range)
 
 #### Trendline D1 (01/07 H=162.838 → 14/07 H=162.470)
 - Pente : −0.12 pips/h (quasi plate, descendante)
 - TL actuelle : 162.40
-- **Rejet à 16:10 Paris** — prix a touché 162.40 puis redescendu à 162.36
-- Prix bloqué sous la TL D1 tant que 162.40 n'est pas cassé
+- **Rejet à 16:10 Paris** — prix a touché 162.40 puis redescendu
+- Puis **cassure confirmée en fin de session** — prix à 162.43, au-dessus
 
 #### Niveaux Ichimoku
-- TK H1 : 162.35 (support +3p)
-- TK H4 : 162.38 (prix pile dessus)
-- KJ H4 : 161.88 (SL)
-- FVG H1 Bear : 162.10-162.34 (mitigé, support)
-- TK H1/KJ H1 : BULL
-- TK H4/KJ H4 : BULL
-- Kumo H1/H4/D1 : ABOVE
+- TK H1 : 162.21 (+22p) — BULL
+- TK H4 : 162.16 (+27p) — BULL, bien au-dessus
+- KJ H4 : 161.88 — SL | Kumo H4 : ABOVE
+- TK D1 : 161.98 (+45p) — BULL | KJ D1 : 161.19 — support lointain
 
 ---
 
 ### 🔍 EURUSD — Analyse détaillée
 
-#### Setup
-- Prix : 1.1451
-- SL : 1.1430 (Kijun H4)
-- TP : niveau réel (Kijun D1 1.1473 si cassure SSB MN)
+#### Setup (BULL compromis en fin de session)
+- Prix : 1.1451 → 1.1445 | SL : 1.1430 (Kijun H4)
+- TK H4 cassée à la baisse : prix sous 1.14442 (−1.2p)
+- Dist. SL : +15p (34% du range)
 
-#### Double niveau Kijun H4 = SSB H4
-- **KJ H4 = SSB H4 = 1.14298** — alignement parfait
-- C'est un plancher blindé, le SL est positionné dessus
-- Si ça casse → plus aucun support technique
+#### Double niveau Kijun H4 = SSB H4 = 1.14298
+- Alignement parfait : plancher blindé
+- SL positionné dessus
+- **DXY TK H4 cassée = pression baissière sur EURUSD**
 
-#### Zone de compression
-- Résistance : SSB MN 1.1453 (−1p)
-- Support : TK W1 1.1447 (+4p), TK H4 1.1449 (+2p), KJ MN 1.1440 (+11p)
-- Prix coincé dans ~10 pips
+#### Zone de compression (~10p)
+- Résistance : SSB MN 1.14526 | Prix : 1.14450
+- Support : TK W1 1.1447, KJ MN 1.1440, KJ H4 1.14298
 
 #### Niveaux Ichimoku
-- TK H1/KJ H1 : BULL
-- TK H4/KJ H4 : BULL
-- TK D1/KJ D1 : BEAR (conflit D1)
-- Kumo H1/H4 : ABOVE
-- Kumo D1 : BELOW (conflit)
+- H1 : TK 1.14581 → prix −13p en-dessous (BEAR)
+- H4 : TK 1.14442 → prix +1p au-dessus (test par le haut)
+- D1 : TK=KJ H4 1.14298 → conflit D1 BEAR
 
 ---
 
-### 🔍 DXY — Analyse détaillée
+### 🔍 DXY — Évolution complète
 
-#### Niveaux clés
-- **TK H4 = KJ H1 = 100.682** (confluence)
-- KJ D1 = 100.588 (support)
-- Prix : 100.666 (−1.6p sous TK H4)
+#### 16h30 : Sous TK H4 (100.682), rejets multiples
+- Prix : 100.666 (−1.6p)
+- Chaque test M15 rejeté (mèches à 100.674, 100.678)
+- Verrou technique : TK H4 = KJ H1 confluence
 
-#### Bougie H4 en cours (16h UTC)
-- O=100.653, H=100.678, L=100.561, C=100.666
-- Mèche haute à 100.678 — **0.4 pip du TK H4**
-- Rejet toujours actif
+#### 17h30-18h : Cassure de la TK H4
+- Prix : 100.699 (+1.7p au-dessus)
+- 4 bougies H1 UP consécutives depuis 08h UTC
+- Cassure confirmée, pas un fake-out
 
-#### Chaque test M15 du TK H4
-| Heure UTC | High | Distance TK H4 |
-|:---|:---|---:|
-| 16:45 | 100.634 | −4.8p |
-| 17:00 | 100.674 | −0.8p |
-| 17:15 | 100.666 | −1.6p |
-| 17:30 | 100.673 | −0.9p |
-
-#### DXY comme verrou
-- Tant que DXY < 100.682 → USD plafonné → supports EURUSD/GBPUSD tiennent
-- Si DXY casse 100.682 → reversal baissier sur toutes les paires USD
-- Si DXY perd 100.588 (KJ D1) → explosion haussière des paires
+#### Niveaux post-cassure
+- TK H4 : 100.681 (maintenant support)
+- Prochain objectif : Kumo H4 100.755-100.829
+- Kijun H4 : 100.829 (résistance lointaine)
 
 ---
 
@@ -152,31 +145,88 @@ Seul US30 reste GOOD (18/22). Tous les autres sont WAIT avec le scoring 22 crit�
 
 | Bug | Impact | Fix |
 |:---|:---|:---|
-| `_pips` DXY ×10000 | Distances 100× trop grandes, Tenkan/Kijun invisibles | ×100 |
-| `tp_label` undefined direction=0 | Crash sur symboles FLAT | `tp_label = ""` dans else |
+| `_pips` DXY ×10000 | Distances 100× trop grandes | ×100 |
+| `tp_label` undefined direction=0 | Crash sur FLAT | `tp_label = ""` dans else |
 | `tkw1` uninitialized | Crash si W1 indisponible | `tkw1 = 0.0` init |
-| Discord 403 sans User-Agent | Message non posté | Ajout `User-Agent: InelidaMarketScanner/1.0` |
+| Discord 403 sans User-Agent | Message non posté | `User-Agent: InelidaMarketScanner/1.0` |
 | `.env` UTF-16 LE | Webhook non lu | Lecture binaire + strip null bytes |
-| MT5 timestamp +3h | Heures fausses dans les analyses | Identifié (serveur UTC+3), pas corrigé |
+| `_fmt()` undefined Discord | Crash sur `_build_diamond_discord_embed` | Ajout `_fmt()` locale |
+| `_utc = timezone` (classe) | TypeError sur `_dt.now(_utc)` | `_tz.utc` |
 
 ---
 
-### 💬 Discord
+### 💬 Discord — flag --discord
 
-- Webhook configuré dans `.env`
-- Message posté : synthèse Diamond avec 5 setups classés
-- Leçon : toujours inclure `User-Agent` dans le header HTTP
+- `python main.py diamond --discord` poste directement sur Discord
+- Pas besoin de `discord_notifier.py` intermédiaire
+- Embed formaté : DXY + tous symboles + setups actifs + warnings
+- Webhook via `.env` (DISCORD_WEBHOOK_URL) ou variable d'env
+- **Piège : ne pas oublier le User-Agent → 403 sinon**
 
 ---
 
-### 📝 Leçons apprises
+### 📝 Bilan honnête — le juste et le faux
 
-1. **Ne jamais greenlighter un trade sur le score seul.** US500 15/17 STRONG mais à 3 pts du SL = WAIT. Le SL safety net règle ça maintenant.
-2. **La trendline D1 est plus fiable que la H1.** J'ai tracé la mauvaise trendline (H1), le user a corrigé avec la D1.
-3. **Toujours vérifier les confluences de niveaux.** KJ H4 = SSB H4 sur EURUSD = plancher blindé. KJ H1 = TK H4 sur DXY = double résistance.
-4. **Le scanner est un outil, pas un cerveau.** Il donne les données, c'est l'analyse humaine qui fait la synthèse.
-5. **Présenter des faits, pas un récit.** "OK en vie" n'est pas une information. "3.2 pts du SL, 5.4% du range" l'est.
-6. **TradingView ≠ MT5.** Les timestamps et les ticks diffèrent. Le user voit des choses que MT5 ne capture pas.
+#### ❌ Ce qui était FAUX
+
+| Ce que j'ai dit | Ce qui s'est passé | Pourquoi |
+|:---|---|:---|
+| US500 = 🟢 Trade en vie à 7 540 (SL 7 537) | **+3.2 pts = 5% du range** | J'ai ignoré la distance au SL à cause du score 15/17 STRONG |
+| US500 rebondit → OK | Même erreur, 2ème fois | J'ai répété au lieu d'admettre |
+| 5 trades Diamond = tous solides | US500 mort, EURUSD baissier | Narratif optimiste au lieu des faits |
+| Trendline USDJPY avec highs H1 | Mauvaise TF. Corrigé : highs D1 | Pris les mauvais points |
+| Rejet USDJPY à 17:10 | Il était 16:24 Paris (14:24 UTC) | Confusion timezone MT5 |
+| TP mathématique 162.90 pour USDJPY | Arbitraire, pas de sens technique | Fixé après (smart TP) |
+
+#### ✅ Ce qui était JUSTE
+
+| Ce que j'ai dit | Ce qui s'est passé |
+|:---|---|
+| DXY TK H4 = 100.682 = le verrou | Testé 4× sans casser, puis cassé à 17h |
+| EURUSD Kijun H4 = SSB H4 = 1.14298 double support | Prix toujours au-dessus |
+| USDJPY TL D1 (01/07→14/07) à 162.40 résistance | Rejet confirmé, puis cassé |
+| ICT macro = NY PM session (14-21h UTC) | Correct |
+| Compression EURUSD entre SSB MN et Tenkan W1 | Prix dans cette zone de ~10p |
+| FOMC Logan + Schmid = catalyseur PM session | Discours à 18h30/19h25 Paris |
+| SL proximity safety net | Implémenté après US500 |
+| TP intelligent = niveaux réels | Plus de TP arbitraire |
+| DXY TK H4 cassé → EURUSD baissier | Juste arrivé |
+
+#### 📊 Bilan comptable
+
+| Métrique | Valeur |
+|:---|---:|
+| Analyses techniques correctes | ~80% |
+| Jugement sur les trades | ~60% |
+| Erreurs de data | 3 (timezone, trendline TF, distance SL) |
+| Corrections apportées | +4 (TP smart, SL safety net, --discord, _fmt fix) |
+
+---
+
+### 🎯 5 nouvelles règles d'analyse
+
+Après le bilan de la journée, voici les règles que j'applique désormais :
+
+#### 1. Données brutes avant interprétation
+```
+AVANT : 🟢 US500 = Trade OK en vie
+APRÈS : US500 = 7 540 | SL = 7 537 | +3 pts = 5% du range | Danger
+```
+
+#### 2. Distance au SL = métrique numéro 1
+Pas le score, pas STRONG/GOOD. Le % du range SL→TP est la température du trade.
+
+#### 3. Narratif interdit — faits seulement
+Fini les "Trade en vie", "Stable", "Renforcé". À la place : chiffres, distances, risques factuels.
+
+#### 4. Vérification croisée systématique
+- Distance SL > 20% du range ?
+- DXY cohérent avec le trade ?
+- Trendline vérifiée sur toutes les TF ?
+- Cotation MT5 = TradingView ?
+
+#### 5. Incertitude = je le dis
+Si doute sur une donnée, je le précise. Si MT5 et TradingView divergent, je demande.
 
 ---
 
@@ -189,6 +239,7 @@ Seul US30 reste GOOD (18/22). Tous les autres sont WAIT avec le scoring 22 crit�
 | `b417cc0` | Piège #10 User-Agent Discord |
 | `5d4bc61` | TK/KJ H4/D1 S/R + _pips DXY + SL safety net |
 | `3654bd1` | Smart TP basé sur niveaux réels |
+| `4954746` | --discord flag pour diamond command |
 
 ---
 
