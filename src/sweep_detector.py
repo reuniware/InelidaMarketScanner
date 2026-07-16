@@ -168,6 +168,7 @@ def detect_sweeps_for_symbol(
     fractal_n: Optional[int] = None,
     lookback: Optional[int] = None,
     sensitivity: Optional[int] = None,
+    _mt5c: Optional[MT5Connector] = None,
 ) -> List[SweepEvent]:
     """
     Charge les bougies d un symbole, detecte swing points et ramene les sweeps
@@ -182,10 +183,9 @@ def detect_sweeps_for_symbol(
         logger.warning("Timeframe inconnu pour sweeps: %s", tf_name)
         return []
 
-    mt5c = MT5Connector()
+    mt5c = _mt5c if _mt5c is not None else MT5Connector()
     if not mt5c.ensure_connected():
         return []
-
     mt5c.select_symbol(symbol)
 
     total_bars = max(lb + sens + 2 * f_n + 5, 60)
@@ -279,12 +279,17 @@ def scan_market_watch_for_sweeps(
     all_events: List[SweepEvent] = []
     for sym in symbols:
         try:
-            evs = detect_sweeps_for_symbol(sym, tf_name, f_n, lb, sens)
+            evs = detect_sweeps_for_symbol(sym, tf_name, f_n, lb, sens, _mt5c=mt5c)
             if evs:
                 logger.info("[SWEEP] %s: %d evenement(s).", sym, len(evs))
                 all_events.extend(evs)
         except Exception as e:
             logger.debug("Sweep scan failed pour %s: %s", sym, e)
+        finally:
+            try:
+                mt5.symbol_select(sym, False)
+            except Exception:
+                pass
 
     # Sauvegarde automatique en DB (import lazy pour eviter l'import circulaire)
     if save_to_db and all_events and DB.auto_save_sweeps:
@@ -371,6 +376,7 @@ def detect_daily_levels_for_symbol(
     symbol: str,
     scan_tf: str = "H1",
     lookback_days: int = 3,
+    _mt5c: Optional[MT5Connector] = None,
 ) -> Optional[LevelSweepResult]:
     """Détecte PDH/PDL (Previous Day High/Low) + sweeps.
 
@@ -382,7 +388,7 @@ def detect_daily_levels_for_symbol(
         logger.warning("Timeframe inconnu pour daily scan: %s", scan_tf)
         return None
 
-    mt5c = MT5Connector()
+    mt5c = _mt5c if _mt5c is not None else MT5Connector()
     if not mt5c.ensure_connected():
         return None
     mt5c.select_symbol(symbol)
@@ -482,6 +488,7 @@ def detect_weekly_levels_for_symbol(
     symbol: str,
     scan_tf: str = "D1",
     lookback_weeks: int = 3,
+    _mt5c: Optional[MT5Connector] = None,
 ) -> Optional[LevelSweepResult]:
     """Détecte PWH/PWL (Previous Week High/Low) + sweeps.
 
@@ -493,7 +500,7 @@ def detect_weekly_levels_for_symbol(
         logger.warning("Timeframe inconnu pour weekly scan: %s", scan_tf)
         return None
 
-    mt5c = MT5Connector()
+    mt5c = _mt5c if _mt5c is not None else MT5Connector()
     if not mt5c.ensure_connected():
         return None
     mt5c.select_symbol(symbol)
@@ -609,13 +616,18 @@ def scan_market_watch_levels(
     for sym in symbols:
         try:
             if level_type == "daily":
-                r = detect_daily_levels_for_symbol(sym, scan_tf)
+                r = detect_daily_levels_for_symbol(sym, scan_tf, _mt5c=mt5c)
             else:
-                r = detect_weekly_levels_for_symbol(sym, scan_tf)
+                r = detect_weekly_levels_for_symbol(sym, scan_tf, _mt5c=mt5c)
             if r is not None:
                 results.append(r)
         except Exception as e:
             logger.debug("%s scan failed pour %s: %s", level_type, sym, e)
+        finally:
+            try:
+                mt5.symbol_select(sym, False)
+            except Exception:
+                pass
 
     return results, symbols
 

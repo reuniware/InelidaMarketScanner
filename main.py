@@ -310,11 +310,16 @@ def cmd_asian(args):
 
     date_str = session_date or _dt.utcfromtimestamp(time.time()).strftime("%Y-%m-%d")
 
+    # Filtre --swept-only
+    display_results = all_results
+    if getattr(args, 'swept_only', False):
+        display_results = [r for r in all_results if r.asian_high_swept or r.asian_low_swept]
+
     if args.json and not args.execute:
-        print(json.dumps(asians_to_dicts(all_results), indent=2, ensure_ascii=False))
+        print(json.dumps(asians_to_dicts(display_results), indent=2, ensure_ascii=False))
     elif all_results:
         print(render_asian_ranges(
-            all_results, scanned_count=scanned_count,
+            display_results, scanned_count=scanned_count,
             session_date=date_str, timeframe=timeframe,
         ))
         n_swept = sum(
@@ -1521,6 +1526,8 @@ def build_parser() -> argparse.ArgumentParser:
                          help="Override --limit.")
     p_asian.add_argument("--scan-all", action="store_true",
                          help="Scan TOUS les symboles disponibles chez le broker (visible + non-visibles).")
+    p_asian.add_argument("--swept-only", action="store_true",
+                         help="N'affiche que les symboles avec AH ou AL sweep (filtre les non-sweep).")
     # Flags d'execution (alias pratique pour 'trade execute' inline).
     p_asian.add_argument("--execute", action="store_true",
                          help="Apres le scan, envoyer les Trade Ideas au broker "
