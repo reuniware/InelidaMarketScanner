@@ -270,5 +270,76 @@ Low H1 18h UTC: 1.14364
 
 ---
 
+### 🔄 Rétrospective complète de la journée
+
+> Voir le fichier dédié `retrospective_20260716.md` pour la version exhaustive.
+
+#### Chronologie des événements
+
+| Heure UTC | Événement |
+|:---|---:|
+| 08:00-09:00 | Premiers sweeps : US30 (08:30), US500 (08:15), US100 (08:15) |
+| 08:55 | USDJPY sweep AH |
+| 09:35 | XAUUSD sweep AL (jamais repris) |
+| 10:00-11:00 | Vague de sweeps : EURUSD AH (10:50), GBPUSD AL (11:50), DXY AL (10:20) |
+| 10:05 | USDJPY sweep AL → **double sweep en 1h10** |
+| 12:00 | Premier Diamond scan — 5 setups détectés |
+| 12:35 | DXY sweep AH → **double sweep complet** |
+| 13:55 | EURUSD sweep AL → **double sweep complet** |
+| 14:30 | **Retail Sales US : +0.9%** (attendu +0.2%) → USD fort |
+| 15:00 | USDJPY breakout → 162.29 |
+| 16:10 | DXY **casse TK H4** (100.682) après 4 rejets |
+| 17:30 | EURUSD **casse TK H4** à la baisse |
+| 18:00 | EURUSD s'arrête pile sur **Ext +2.618** = 1.14369 |
+
+#### Bilan prédictions vs réalité
+
+**❌ Ce qui était FAUX (8 erreurs) :**
+
+| Erreur | Cause racine |
+|:---|---|
+| US500 STRONG BULL → SL à 3.2 pts (5%) | Biais de confirmation : score ≠ risque |
+| Narratif « trade en vie » sans chiffres | Optimisme non factuel |
+| Timezone MT5 vs Paris (rejet annoncé 17:10 au lieu de 16:24) | Précipitation |
+| Méthode Fib : -2.618 au lieu de +2.618 base AH | Mauvaise formule |
+| Trendline USDJPY sur H1 au lieu de D1 | TF mal choisie |
+| TP arbitraire 162.90 pour USDJPY | Pas de sens technique |
+| Direction BULL déclarée avant confirmation | Précipitation |
+
+**✅ Ce qui était JUSTE (12 prédictions) :**
+
+- DXY TK H4 = 100.682 = verrou technique, cassé à 16:10 ✅
+- EURUSD Kijun H4 = SSB H4 = 1.14298 double support tenu ✅
+- USDJPY TL D1 (01/07→14/07) à 162.40 = résistance rejetée puis cassée ✅
+- EURUSD Ext +2.618 base AH = 1.14369 → stoppé à 0.05 pips près ✅
+- DXY TK H4 cassé → EURUSD baissier ✅
+- Retail Sales US +0.9% → USD fort ✅
+- Compression EURUSD entre SSB MN et TK W1 (~10p) ✅
+- SL proximity safety net (implémenté après US500) ✅
+- Smart TP = niveaux réels (plus d'arbitraire) ✅
+
+**📊 Bilan comptable :**
+
+| Métrique | Valeur |
+|:---|---:|
+| Analyses techniques correctes | ~80% |
+| Prédictions de direction | ~70% |
+| Jugement sur les trades | ~60% |
+| Erreurs de données | 3 |
+| Erreurs d'interprétation | 2 |
+| Bugs corrigés dans le code | 9 |
+
+#### Leçons apprises
+
+| Règle | Application |
+|:---|---|
+| 1. Données brutes avant interprétation | Chiffres avant mots |
+| 2. Distance au SL = métrique n°1 | % du range SL→TP, pas le score |
+| 3. Narratif interdit | Faits seulement |
+| 4. Vérification croisée systématique | 2 TFs min, TV + MT5 |
+| 5. Incertitude = le dire | Si doute, le préciser |
+
+---
+
 > **Prochaine session :** à remplir avec la date, le contexte, les setups, les analyses, et les résultats.
 

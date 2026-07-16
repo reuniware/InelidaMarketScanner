@@ -274,7 +274,7 @@ def render_asian_ranges(
     header = (
         f"{BOLD}{'Symbole':<{sym_w}}  {'AsianHigh':>11}  {'AsianLow':>11}  "
         f"{'Now':>11}  {'Spread':>8}  {'AH Swp':>10}  {'AL Swp':>10}  "
-        f"{'Session':>20}  {'Target':>14}  {'Fib':>14}  {'Fib Swp':>22}  {'Bars':>5}"
+        f"{'Swept H@':>20}  {'Swept L@':>20}  {'Target':>14}  {'Fib':>14}  {'Fib Swp':>22}  {'Bars':>5}"
         f"  {'Trade':>14}  {'Plan':>26}  {'RR':>8}{RESET}"
     )
     lines.append(header)
@@ -301,18 +301,21 @@ def render_asian_ranges(
         # d'ANSI escape (couleur + RESET), pour que la longueur brute de la chaine
         # coloree soit constante et que le padding `:>22` produise des colonnes
         # visuellement alignees.
-        if r.asian_high_swept and r.asian_low_swept:
-            # Les deux swept -> DIM (gris) avec texte compile H/L
-            session = (
-                f"{DIM}H:{r.high_swept_session_label or '?'}/"
-                f"L:{r.low_swept_session_label or '?'}{RESET}"
-            )
-        elif r.asian_high_swept:
-            session = f"{RED}H:{r.high_swept_session_label or '?'}{RESET}"
-        elif r.asian_low_swept:
-            session = f"{GREEN}L:{r.low_swept_session_label or '?'}{RESET}"
+        # Timestamps des sweeps (format HH:MM UTC)
+        if r.asian_high_swept and r.high_swept_at:
+            h_time = time.strftime("%H:%M", time.gmtime(r.high_swept_at))
+            swept_h = f"{RED}{h_time}{RESET}"
+        elif r.asian_high_breached:
+            swept_h = f"{DIM}touch{RESET}"
         else:
-            session = f"{GRAY}-{RESET}"
+            swept_h = f"{GRAY}---{RESET}"
+        if r.asian_low_swept and r.low_swept_at:
+            l_time = time.strftime("%H:%M", time.gmtime(r.low_swept_at))
+            swept_l = f"{GREEN}{l_time}{RESET}"
+        elif r.asian_low_breached:
+            swept_l = f"{DIM}touch{RESET}"
+        else:
+            swept_l = f"{GRAY}---{RESET}"
 
         if r.direction_target == "BOTH":
             target_col = f"{YELLOW}{r.direction_target_label}{RESET}"
@@ -371,7 +374,8 @@ def render_asian_ranges(
             f"{_pad_cell(spread_col, 8)}  "
             f"{_pad_cell(ah_status, 10)}  "
             f"{_pad_cell(al_status, 10)}  "
-            f"{_pad_cell(session, 20)}  "
+            f"{_pad_cell(swept_h, 20)}  "
+            f"{_pad_cell(swept_l, 20)}  "
             f"{_pad_cell(target_col, 14)}  "
             f"{_pad_cell(fib_col, 14)}  "
             f"{_pad_cell(fib_swept_col, 22)}  "

@@ -207,8 +207,12 @@ class DiamondResult:
     sl: float = 0.0
     tp: float = 0.0
     rr: float = 0.0
-    tp_label: str = ""      # Source du TP (ex: "Kj D1", "FVG H1 Bear")
+    tp_label: str = ""      # Source du TP (ex: "Ext +2.618 AH", "Kj D1", "FVG H1 Bear")
     horizon: str = ""       # "Intraday", "Session", "Swing", "Position"
+
+    # Asian Range (ICT extensions pour le TP)
+    asian_high: float = 0.0
+    asian_low: float = 0.0
 
     # Metadata
     criteria: List[str] = field(default_factory=list)
@@ -646,10 +650,21 @@ class DiamondScanner:
 
         candidates: List[Tuple[float, str]] = []  # (level, label)
 
-        # ICT Extensions (base sur l'Asian Range)
+        # ICT Retracements + Extensions (base sur l'Asian Range)
         if asian_high > 0 and asian_low > 0:
             asi_range = asian_high - asian_low
             if asi_range > 0:
+                # Retracements Fibo (targets courts, intra-range)
+                for n_str, n in [("0.5", 0.5), ("0.618", 0.618), ("0.786", 0.786)]:
+                    # Bear retracement (retour vers le range depuis AH)
+                    ret_bear = asian_high - n * asi_range
+                    if direction == -1 and ret_bear < price:
+                        candidates.append((ret_bear, f"Ret {n_str} AH"))
+                    # Bull retracement (retour vers le range depuis AL)
+                    ret_bull = asian_low + n * asi_range
+                    if direction == 1 and ret_bull > price:
+                        candidates.append((ret_bull, f"Ret {n_str} AL"))
+                # Extensions ICT (targets longs, au-dela du range)
                 for n_str, n in [("+1.272", 1.272), ("+1.618", 1.618), ("+2.0", 2.0),
                                  ("+2.272", 2.272), ("+2.618", 2.618), ("+3.0", 3.0),
                                  ("+3.618", 3.618)]:
@@ -1178,6 +1193,7 @@ class DiamondScanner:
         else:
             sl = tp = rr = 0.0
             tp_label = ""
+            asian_high, asian_low = self._detect_asian_range(sym)
             quality = "WAIT"
 
         # ── Horizon de trading ──
@@ -1241,6 +1257,7 @@ class DiamondScanner:
             fvg_d1_bull_top=fvg_d1_bull_top, fvg_d1_bull_bot=fvg_d1_bull_bot,
             fvg_d1_bull_mitigated=fvg_d1_bull_mitigated, fvg_d1_bull_price_pos=fvg_d1_bull_pos,
             fvg_d1_bull_date=fvg_d1_bull_date, fvg_d1_bull_pip_factor=fvg_d1_bull_pip_factor,
+            asian_high=asian_high, asian_low=asian_low,
             sl=sl, tp=tp, rr=rr, tp_label=tp_label, horizon=horizon,
             criteria=crit, warnings=warnings,
         )

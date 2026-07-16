@@ -1443,6 +1443,18 @@ def _render_diamond_detail(r, lines: list):
                  f"{tk_h4_str}  |  "
                  f"RR: {r.rr:.1f}x"
                  f"{horizon_str}")
+    # Asian Range (ICT extensions)
+    if r.asian_high > 0 and r.asian_low > 0:
+        asi_range = abs(r.asian_high - r.asian_low)
+        asi_range_pips = asi_range * (100 if hasattr(r, 'symbol') and ('JPY' in r.symbol or 'DXY' in r.symbol) else 10000)
+        ext_label = r.tp_label if 'Ext' in r.tp_label else ""
+        line = (f"    {GRAY}Asian Range:{RESET} AH={_fmt_price(r.asian_high)}  "
+                f"AL={_fmt_price(r.asian_low)}  "
+                f"Range={asi_range_pips:.1f}p")
+        if ext_label:
+            line += f"  {CYAN}▶ {ext_label}{RESET}"
+        lines.append(line)
+
     lines.append(f"    {GRAY}Critères:{RESET} {' '.join(r.criteria)}")
 
     if r.bias != "FLAT":
