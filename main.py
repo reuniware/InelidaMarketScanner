@@ -1431,6 +1431,19 @@ def _build_diamond_discord_embed(results, symbols_count: int) -> dict:
             detail += f" | Horizon: {r.horizon}"
         detail += f"\n> Criteres: {' '.join(r.criteria[:8])}"
 
+        # Sweep AH/AL + LH/LL
+        sweep_sp = []
+        if r.asian_high_swept:
+            sweep_sp.append(f"AH ✅ ({r.asian_high_swept_session or '?'})")
+        if r.asian_low_swept:
+            sweep_sp.append(f"AL ✅ ({r.asian_low_swept_session or '?'})")
+        if r.london_high_swept:
+            sweep_sp.append(f"LH ✅ ({r.london_high_swept_session or '?'})")
+        if r.london_low_swept:
+            sweep_sp.append(f"LL ✅ ({r.london_low_swept_session or '?'})")
+        if sweep_sp:
+            detail += f"\n> 🏹 {' | '.join(sweep_sp)}"
+
         if r.warnings:
             detail += f"\n> ⚠️ {' | '.join(r.warnings[:3])}"
         if r.compression_zone:
@@ -1679,6 +1692,32 @@ def _render_diamond_detail(r, lines: list):
         if ext_label:
             line += f"  {CYAN}▶ {ext_label}{RESET}"
         lines.append(line)
+        # Sweep status
+        sweep_parts = []
+        if r.asian_high_swept:
+            hs = r.asian_high_swept_session or "?"
+            sweep_parts.append(f"{RED}AH sweepé{RESET} ({hs})")
+        if r.asian_low_swept:
+            ls = r.asian_low_swept_session or "?"
+            sweep_parts.append(f"{GREEN}AL sweepé{RESET} ({ls})")
+        if sweep_parts:
+            lines.append(f"    {GRAY}Sweeps:{RESET} {' | '.join(sweep_parts)}")
+    # London Range (LH/LL sweeps by NY)
+    if r.london_high > 0 and r.london_low > 0:
+        london_range_pips = abs(r.london_high - r.london_low) * (100 if hasattr(r, 'symbol') and ('JPY' in r.symbol or 'DXY' in r.symbol) else 10000)
+        line = (f"    {GRAY}London Range:{RESET} LH={_fmt_price(r.london_high)}  "
+                f"LL={_fmt_price(r.london_low)}  "
+                f"Range={london_range_pips:.1f}p")
+        lines.append(line)
+        lh_parts = []
+        if r.london_high_swept:
+            lh_s = r.london_high_swept_session or "?"
+            lh_parts.append(f"{RED}LH sweepé{RESET} ({lh_s})")
+        if r.london_low_swept:
+            ll_s = r.london_low_swept_session or "?"
+            lh_parts.append(f"{GREEN}LL sweepé{RESET} ({ll_s})")
+        if lh_parts:
+            lines.append(f"    {GRAY}Sweeps L:{RESET} {' | '.join(lh_parts)}")
 
     lines.append(f"    {GRAY}Critères:{RESET} {' '.join(r.criteria)}")
 

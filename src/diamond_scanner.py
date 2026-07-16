@@ -215,6 +215,24 @@ class DiamondResult:
     asian_high: float = 0.0
     asian_low: float = 0.0
 
+    # Asian Range sweep detection (ICT liquidez sweep)
+    asian_high_swept: bool = False
+    asian_low_swept: bool = False
+    asian_high_swept_at: float = 0.0     # epoch UTC
+    asian_low_swept_at: float = 0.0      # epoch UTC
+    asian_high_swept_session: str = ""   # "Asian", "London", "NY", etc.
+    asian_low_swept_session: str = ""
+
+    # London Range (LH/LL sweeps by NY)
+    london_high: float = 0.0
+    london_low: float = 0.0
+    london_high_swept: bool = False
+    london_low_swept: bool = False
+    london_high_swept_at: float = 0.0
+    london_low_swept_at: float = 0.0
+    london_high_swept_session: str = ""
+    london_low_swept_session: str = ""
+
     # Metadata
     criteria: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
@@ -296,23 +314,59 @@ class DiamondScanner:
             return None
         return [(int(x[0]), float(x[2]), float(x[3]), float(x[4])) for x in r]
 
-    def _detect_asian_range(self, sym: str) -> Tuple[float, float]:
+    @staticmethod
+    def _session_for_epoch(epoch: float) -> str:
+        """Determine la session ICT pour un epoch UTC.
+        
+        ICT session windows (UTC):
+          - Asian  : 00:00 - 08:00
+          - London : 08:00 - 13:00
+          - NY Open: 13:00 - 16:00
+          - NY     : 16:00 - 21:00
+          - Off    : 21:00 - 00:00
+        """
+        h = (int(epoch) // 3600) % 24
+        if 0 <= h < 8:
+            return "Asian"
+        if 8 <= h < 13:
+            return "London"
+        if 13 <= h < 16:
+            return "NY Open"
+        if 16 <= h < 21:
+            return "NY"
+        return "Off"
+
+    @staticmethod
+    def _bar_sweeps_high(b: tuple, level: float) -> bool:
+        """Sweep ICT : mèche au-dessus + close en-dessous du niveau."""
+        return b[1] > level and b[3] < level
+
+    @staticmethod
+    def _bar_sweeps_low(b: tuple, level: float) -> bool:
+        """Sweep ICT : mèche en-dessous + close au-dessus du niveau."""
+        return b[2] < level and b[3] > level
+
+    def _detect_asian_range(self, sym: str, h1_data: Optional[List] = None) -> Tuple[float, float]:
         """Detecte l'Asian High et Asian Low sur H1 (session 00:00-08:00 UTC).
 
         🔧 Filtre par session_date pour ne pas inclure les barres asiatiques
         du jour precedent (24 dernieres H1 peuvent deborder sur hier).
 
+        Si h1_data est fourni (deja charge par _scan_symbol), on l'utilise
+        pour eviter un second appel a MT5.
+
         Returns:
             (AH, AL) — les deux a 0.0 si pas assez de barres.
         """
         session_date = _time.strftime("%Y-%m-%d", _time.gmtime())
-        h1 = self._get_rates(sym, mt5.TIMEFRAME_H1, 32)
-        if h1 is None:
+        if h1_data is None:
+            h1_data = self._get_rates(sym, mt5.TIMEFRAME_H1, 32)
+        if h1_data is None:
             return (0.0, 0.0)
 
         ah = None
         al = None
-        for bar in h1:
+        for bar in h1_data:
             dt = datetime.fromtimestamp(bar[0], UTC)
             bar_date = dt.strftime("%Y-%m-%d")
             if bar_date == session_date and dt.hour >= 0 and dt.hour < 8:
@@ -322,6 +376,110 @@ class DiamondScanner:
                 if al is None or l < al:
                     al = l
         return (ah or 0.0, al or 0.0)
+
+    def _detect_asian_sweeps(self, h1_data: List, asian_high: float, asian_low: float, session_date: str) -> Tuple[bool, bool, float, float, str, str]:
+        """Detecte les sweeps AH/AL sur les barres H1 deja chargees.
+
+        Scanne depuis la premiere barre asiatique du jour (00:00 UTC)
+        jusqu'a la fin des donnees, pour detecter les sweeps ICT :
+        - AH swept : high > AH ET close < AH
+        - AL swept : low < AL ET close > AL
+
+        Returns:
+            (ah_swept, al_swept, ah_at, al_at, ah_session, al_session)
+        """
+        ah_swept = False
+        al_swept = False
+        ah_at = 0.0
+        al_at = 0.0
+        ah_session = ""
+        al_session = ""
+
+        if asian_high <= 0 or asian_low <= 0:
+            return (False, False, 0.0, 0.0, "", "")
+
+        for bar in h1_data:
+            dt = datetime.fromtimestamp(bar[0], UTC)
+            bar_date = dt.strftime("%Y-%m-%d")
+            if bar_date != session_date:
+                continue
+            if not ah_swept and self._bar_sweeps_high(bar, asian_high):
+                ah_swept = True
+                ah_at = float(bar[0])
+                ah_session = self._session_for_epoch(bar[0])
+            if not al_swept and self._bar_sweeps_low(bar, asian_low):
+                al_swept = True
+                al_at = float(bar[0])
+                al_session = self._session_for_epoch(bar[0])
+            if ah_swept and al_swept:
+                break
+
+        return (ah_swept, al_swept, ah_at, al_at, ah_session, al_session)
+
+    # ── London Range (LH/LL) detection ──
+
+    def _detect_london_range(self, h1_data: List) -> Tuple[float, float]:
+        """Detecte le London High et London Low sur H1 (session 08:00-13:00 UTC).
+
+        Returns:
+            (LH, LL) — les deux a 0.0 si pas assez de barres.
+        """
+        if not h1_data:
+            return (0.0, 0.0)
+        session_date = _time.strftime("%Y-%m-%d", _time.gmtime())
+        lh = None
+        ll = None
+        for bar in h1_data:
+            dt = datetime.fromtimestamp(bar[0], UTC)
+            bar_date = dt.strftime("%Y-%m-%d")
+            if bar_date == session_date and 8 <= dt.hour < 13:
+                h, l = bar[1], bar[2]
+                if lh is None or h > lh:
+                    lh = h
+                if ll is None or l < ll:
+                    ll = l
+        return (lh or 0.0, ll or 0.0)
+
+    def _detect_london_sweeps(self, h1_data: List, london_high: float, london_low: float, session_date: str) -> Tuple[bool, bool, float, float, str, str]:
+        """Detecte les sweeps LH/LL sur les barres H1 apres 13:00 UTC (NY).
+
+        Scanne les barres NY (>= 13:00 UTC) pour detecter les sweeps ICT :
+        - LH swept : high > LH ET close < LH
+        - LL swept : low < LL ET close > LL
+
+        Returns:
+            (lh_swept, ll_swept, lh_at, ll_at, lh_session, ll_session)
+        """
+        lh_swept = False
+        ll_swept = False
+        lh_at = 0.0
+        ll_at = 0.0
+        lh_session = ""
+        ll_session = ""
+
+        if london_high <= 0 or london_low <= 0:
+            return (False, False, 0.0, 0.0, "", "")
+
+        for bar in h1_data:
+            dt = datetime.fromtimestamp(bar[0], UTC)
+            bar_date = dt.strftime("%Y-%m-%d")
+            if bar_date != session_date:
+                continue
+            # Only scan NY session bars (>= 13:00 UTC)
+            if dt.hour < 13:
+                continue
+            if not lh_swept and self._bar_sweeps_high(bar, london_high):
+                lh_swept = True
+                lh_at = float(bar[0])
+                lh_session = self._session_for_epoch(bar[0])
+            if not ll_swept and self._bar_sweeps_low(bar, london_low):
+                ll_swept = True
+                ll_at = float(bar[0])
+                ll_session = self._session_for_epoch(bar[0])
+            if lh_swept and ll_swept:
+                break
+
+        return (lh_swept, ll_swept, lh_at, ll_at, lh_session, ll_session)
 
     def _kj(self, highs: List[float], lows: List[float]) -> float:
         return (max(highs[-26:]) + min(lows[-26:])) / 2.0
@@ -796,6 +954,19 @@ class DiamondScanner:
         h4_t = [x[0] for x in h4]
         d1_t = [x[0] for x in d1]
 
+        # ═══ Asian Range + Sweep detection (H1 deja charge) ═══════════════
+        session_date = _time.strftime("%Y-%m-%d", _time.gmtime())
+        asian_high, asian_low = self._detect_asian_range(sym, h1_data=h1)
+        ah_swept, al_swept, ah_at, al_at, ah_sess, al_sess = self._detect_asian_sweeps(
+            h1, asian_high, asian_low, session_date
+        )
+
+        # ═══ London Range + Sweep detection ══════════════════════════════
+        london_high, london_low = self._detect_london_range(h1)
+        lh_swept, ll_swept, lh_at, ll_at, lh_sess, ll_sess = self._detect_london_sweeps(
+            h1, london_high, london_low, session_date
+        )
+
         # ── Ichimoku H1/H4/D1 ──
         kj1, kj4, kd1 = self._kj(h1_h, h1_l), self._kj(h4_h, h4_l), self._kj(d1_h, d1_l)
         tk1, tk4, td1 = self._tk(h1_h, h1_l), self._tk(h4_h, h4_l), self._tk(d1_h, d1_l)
@@ -946,9 +1117,9 @@ class DiamondScanner:
             else:
                 bias, direction = "BEAR", -1
 
-        # ═══ Scoring (22 criteres max avec TK4/TKd1/Kj4/KjD1) ═══════════
+        # ═══ Scoring (25 criteres max avec TK4/TKd1/Kj4/KjD1 + Asian Sweep) ═══════════
         score = 0
-        max_score = 22 if mn_available else 20
+        max_score = 27 if mn_available else 25
         crit: List[str] = []
         warnings: List[str] = []
         alignment = 0
@@ -1017,6 +1188,27 @@ class DiamondScanner:
         if fvg_d1_bull_mitigated and fvg_d1_bull_pos in ("BELOW", "ABOVE") and direction != 0:
             if (direction == 1 and fvg_d1_bull_pos == "ABOVE") or (direction == -1 and fvg_d1_bull_pos == "BELOW"):
                 score += 1; crit.append("FVGbD1")
+        # Asian Sweep (2 criteres) — liquidez ICT sweep AH/AL
+        if ah_swept:
+            score += 1; crit.append(f"AH{ah_sess or ''}")
+        if al_swept:
+            score += 1; crit.append(f"AL\u00e9{al_sess or ''}")
+        if ah_swept and al_swept:
+            score += 1; crit.append("BOTH")
+            alignment += 1
+        elif ah_swept or al_swept:
+            alignment += 1
+
+        # London Sweep (2 criteres) — LH/LL sweeps par NY
+        if lh_swept:
+            score += 1; crit.append(f"LH{lh_sess or ''}")
+        if ll_swept:
+            score += 1; crit.append(f"LL\u00e9{ll_sess or ''}")
+        if lh_swept and ll_swept:
+            score += 1; crit.append("BOTHL")
+            alignment += 1
+        elif lh_swept or ll_swept:
+            alignment += 1
 
         # ── Warnings (Etape 3b — TOUS les TFs) ──
         # Tenkan/Kijun barrier warnings (when price near but NOT aligned)
@@ -1161,7 +1353,6 @@ class DiamondScanner:
             if cloud_w1_top > 0: clouds.append((cloud_w1_top, cloud_w1_bot, 'W1'))
             if cloud_mn_top > 0: clouds.append((cloud_mn_top, cloud_mn_bot, 'MN'))
             # Detecter l'Asian Range pour les extensions ICT
-            asian_high, asian_low = self._detect_asian_range(sym)
             tp, risk, rr, tp_label = self._compute_tp(
                 sym, price, sl, direction, kijun_dict, tenkan_dict,
                 fvgs_bear, fvgs_bull, ssb_list, clouds,
@@ -1199,7 +1390,6 @@ class DiamondScanner:
         else:
             sl = tp = rr = 0.0
             tp_label = ""
-            asian_high, asian_low = self._detect_asian_range(sym)
             quality = "WAIT"
 
         # ── Horizon de trading ──
@@ -1264,6 +1454,13 @@ class DiamondScanner:
             fvg_d1_bull_mitigated=fvg_d1_bull_mitigated, fvg_d1_bull_price_pos=fvg_d1_bull_pos,
             fvg_d1_bull_date=fvg_d1_bull_date, fvg_d1_bull_pip_factor=fvg_d1_bull_pip_factor,
             asian_high=asian_high, asian_low=asian_low,
+            asian_high_swept=ah_swept, asian_low_swept=al_swept,
+            asian_high_swept_at=ah_at, asian_low_swept_at=al_at,
+            asian_high_swept_session=ah_sess, asian_low_swept_session=al_sess,
+            london_high=london_high, london_low=london_low,
+            london_high_swept=lh_swept, london_low_swept=ll_swept,
+            london_high_swept_at=lh_at, london_low_swept_at=ll_at,
+            london_high_swept_session=lh_sess, london_low_swept_session=ll_sess,
             sl=sl, tp=tp, rr=rr, tp_label=tp_label, horizon=horizon,
             criteria=crit, warnings=warnings,
         )
