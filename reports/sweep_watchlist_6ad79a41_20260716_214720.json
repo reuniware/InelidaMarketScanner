@@ -1,0 +1,228 @@
+{
+  "type": "sweep_watchlist",
+  "session_id": "6ad79a41",
+  "created_at": "2026-07-16 21:47:20 UTC",
+  "count": 7,
+  "entries": [
+    {
+      "symbol": "USDJPY",
+      "direction": "BEAR",
+      "target": 161.979,
+      "target_label": "LL",
+      "price": 162.351,
+      "distance_pips": 37.2,
+      "obstacles": [
+        {
+          "level": 162.2605,
+          "label": "Kj H1",
+          "dist_pips": -9.0
+        },
+        {
+          "level": 162.2165,
+          "label": "Tk H4",
+          "dist_pips": -13.5
+        },
+        {
+          "level": 162.0145,
+          "label": "Kj H4",
+          "dist_pips": -33.7
+        },
+        {
+          "level": 161.991,
+          "label": "Tk D1",
+          "dist_pips": -36.0
+        },
+        {
+          "level": 161.2845,
+          "label": "Kj D1",
+          "dist_pips": -106.7
+        }
+      ]
+    },
+    {
+      "symbol": "GBPUSD",
+      "direction": "BULL",
+      "target": 1.35422,
+      "target_label": "LH",
+      "price": 1.34732,
+      "distance_pips": 69.0,
+      "obstacles": [
+        {
+          "level": 1.34745,
+          "label": "SSB D1",
+          "dist_pips": 1.2
+        },
+        {
+          "level": 1.34883,
+          "label": "Tk H1",
+          "dist_pips": 15.1
+        },
+        {
+          "level": 1.34898,
+          "label": "Tk H4",
+          "dist_pips": 16.6
+        },
+        {
+          "level": 1.35018,
+          "label": "Kj H1",
+          "dist_pips": 28.6
+        }
+      ]
+    },
+    {
+      "symbol": "GBPJPY",
+      "direction": "BULL",
+      "target": 219.525,
+      "target_label": "LH",
+      "price": 218.737,
+      "distance_pips": 78.8,
+      "obstacles": [
+        {
+          "level": 219.0315,
+          "label": "Tk H1",
+          "dist_pips": 29.4
+        },
+        {
+          "level": 219.1355,
+          "label": "Kj H1",
+          "dist_pips": 39.9
+        }
+      ]
+    },
+    {
+      "symbol": "EURUSD",
+      "direction": "BULL",
+      "target": 1.14762,
+      "target_label": "LH",
+      "price": 1.14412,
+      "distance_pips": 35.0,
+      "obstacles": [
+        {
+          "level": 1.14431,
+          "label": "SSB H1",
+          "dist_pips": 1.9
+        },
+        {
+          "level": 1.14442,
+          "label": "SSB H1",
+          "dist_pips": 3.0
+        },
+        {
+          "level": 1.14451,
+          "label": "Tk H1",
+          "dist_pips": 3.9
+        },
+        {
+          "level": 1.14529,
+          "label": "Tk H4",
+          "dist_pips": 11.7
+        },
+        {
+          "level": 1.14537,
+          "label": "Kj H1",
+          "dist_pips": 12.5
+        },
+        {
+          "level": 1.14732,
+          "label": "Kj D1",
+          "dist_pips": 32.0
+        }
+      ]
+    },
+    {
+      "symbol": "DXY.cash",
+      "direction": "BEAR",
+      "target": 100.424,
+      "target_label": "LL",
+      "price": 100.721,
+      "distance_pips": 29.7,
+      "obstacles": [
+        {
+          "level": 100.6815,
+          "label": "Tk H4",
+          "dist_pips": -4.0
+        },
+        {
+          "level": 100.658,
+          "label": "Tk H1",
+          "dist_pips": -6.3
+        },
+        {
+          "level": 100.588,
+          "label": "Kj D1",
+          "dist_pips": -13.3
+        },
+        {
+          "level": 100.5825,
+          "label": "Kj H1",
+          "dist_pips": -13.9
+        }
+      ]
+    },
+    {
+      "symbol": "US500.cash",
+      "direction": "BULL",
+      "target": 7588.65,
+      "target_label": "LH",
+      "price": 7524.55,
+      "distance_pips": 641000.0,
+      "obstacles": [
+        {
+          "level": 7537.625,
+          "label": "Kj H4",
+          "dist_pips": 130750.0
+        },
+        {
+          "level": 7537.95,
+          "label": "Tk H1",
+          "dist_pips": 134000.0
+        },
+        {
+          "level": 7546.725,
+          "label": "Tk H4",
+          "dist_pips": 221750.0
+        },
+        {
+          "level": 7546.725,
+          "label": "Kj H1",
+          "dist_pips": 221750.0
+        }
+      ]
+    },
+    {
+      "symbol": "USDCHF",
+      "direction": "BEAR",
+      "target": 0.80551,
+      "target_label": "LL",
+      "price": 0.80868,
+      "distance_pips": 31.7,
+      "obstacles": [
+        {
+          "level": 0.80859,
+          "label": "SSB H1",
+          "dist_pips": 0.9
+        },
+        {
+          "level": 0.80845,
+          "label": "Tk H1",
+          "dist_pips": -2.3
+        },
+        {
+          "level": 0.80693,
+          "label": "Kj H1",
+          "dist_pips": -17.4
+        },
+        {
+          "level": 0.80653,
+          "label": "Tk H4",
+          "dist_pips": -21.5
+        },
+        {
+          "level": 0.80306,
+          "label": "Kj D1",
+          "dist_pips": -56.2
+        }
+      ]
+    }
+  ]
+}

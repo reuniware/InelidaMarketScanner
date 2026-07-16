@@ -1344,8 +1344,154 @@ def cmd_track(args):
             print(f"{RED}Impossible de fermer le trade #{trade_id}.{RESET}")
         return 0
 
+    # ── Sweep Watchlist ─────────────────────────────────────────────────
+    if action == "watch":
+        """Sauvegarde les niveaux London LH/LL a surveiller."""
+        symbols = resolve_watchlist(args.symbols)
+        if not symbols:
+            print(f"{YELLOW}Aucun symbole. Specifie --symbols.{RESET}")
+            return 1
+
+        scanner = DiamondScanner(symbols)
+        if not scanner.initialize():
+            print(f"{RED}Connexion MT5 impossible.{RESET}")
+            return 2
+        try:
+            results = scanner.scan_all()
+            watch_data = tracker.save_sweep_watchlist(results)
+            entries = watch_data.get("entries", [])
+            count = watch_data.get("count", 0)
+
+            print(f"{BOLD}{CYAN}═══════════════════════════════════════{RESET}")
+            print(f"{BOLD}{CYAN}  🎯 SWEEP WATCHLIST — Niveaux London a surveiller{RESET}")
+            print(f"{BOLD}{CYAN}═══════════════════════════════════════{RESET}")
+            print(f"")
+            print(f"  {GRAY}Session:{RESET} {watch_data.get('session_id', '?')}")
+            now_str = _dt.now(_tz.utc).strftime("%Y-%m-%d %H:%M UTC")
+            print(f"  {GRAY}Cree le:{RESET} {now_str}")
+            print(f"")
+
+            if count == 0:
+                print(f"  {YELLOW}Aucun symbole avec un seul sweep London.{RESET}")
+                print(f"  {GRAY}Il faut exactement 1 des 2 niveaux (LH ou LL) sweepe par NY.{RESET}")
+            else:
+                # Header
+                print(f"  {'Symbole':<10} {'Dir':>5} {'Cible':>8} {'Target':>12} {'Dist':>6} {'Obstacles'}")
+                print(f"  {GRAY}{'-'*65}{RESET}")
+                for e in entries:
+                    dir_icon = f"{GREEN}BULL{RESET}" if e["direction"] == "BULL" else f"{RED}BEAR{RESET}"
+                    obs = e.get("obstacles", [])
+                    obs_str = ", ".join([f"{o['label']}@{o['dist_pips']:+.0f}p" for o in obs[:3]])
+                    if not obs_str:
+                        obs_str = f"{GRAY}aucun{RESET}"
+                    print(
+                        f"  {MAGENTA}{e['symbol']:<10}{RESET} "
+                        f"{dir_icon:>13} "
+                        f"{e['target_label']:>8} "
+                        f"{e['target']:>12.5f} "
+                        f"{e['distance_pips']:>5.0f}p "
+                        f"{obs_str}"
+                    )
+
+                print(f"")
+                print(f"  {GREEN}{count} niveau(x) a surveiller. JSON exporte.{RESET}")
+                json_path = watch_data.get("json_path", "")
+                if json_path:
+                    print(f"  {GRAY}Fichier: {json_path}{RESET}")
+                print(f"")
+                print(f"  {GRAY}Demain, utilise 'track verify --session {watch_data.get('session_id', '?')}'{RESET}")
+                print(f"  {GRAY}pour verifier quels niveaux ont ete sweeps.{RESET}")
+        finally:
+            scanner.shutdown()
+        return 0
+
+    if action == "verify":
+        """Verifie les niveaux d'une watchlist contre les prix actuels."""
+        session_id = args.session
+        if not session_id:
+            print(f"{RED}Specifie --session <id> (ex: abcd1234).{RESET}")
+            print(f"  {GRAY}Utilise 'track watchlist' pour voir les sessions disponibles.{RESET}")
+            return 1
+
+        symbols = resolve_watchlist(args.symbols)
+        if not symbols:
+            print(f"{YELLOW}Aucun symbole specifie.{RESET}")
+            return 1
+
+        scanner = DiamondScanner(symbols)
+        if not scanner.initialize():
+            print(f"{RED}Connexion MT5 impossible.{RESET}")
+            return 2
+        try:
+            results = scanner.scan_all()
+            verify_data = tracker.verify_sweep_watchlist(session_id, results)
+
+            if "error" in verify_data:
+                print(f"{RED}Erreur: {verify_data['error']}{RESET}")
+                return 1
+
+            print(f"{BOLD}{CYAN}═══════════════════════════════════════{RESET}")
+            print(f"{BOLD}{CYAN}  ✅ VERIFICATION SWEEP WATCHLIST{RESET}")
+            print(f"{BOLD}{CYAN}═══════════════════════════════════════{RESET}")
+            print(f"")
+            print(f"  {GRAY}Session:{RESET} {session_id}")
+            print(f"  {GRAY}Verifie le:{RESET} {verify_data.get('verified_at', '?')}")
+            print(f"")
+
+            if verify_data.get("count", 0) == 0:
+                print(f"  {YELLOW}{verify_data.get('message', 'Aucune entree PENDING')}{RESET}")
+            else:
+                print(f"  {GREEN}{verify_data['hits']} HIT{RESET} | {YELLOW}{verify_data['pending']} PENDING{RESET} | {GRAY}{verify_data['unknown']} UNKNOWN{RESET}")
+                print(f"")
+                print(f"  {'Symbole':<10} {'Target':>12} {'Status':>10} {'Message'}")
+                print(f"  {GRAY}{'-'*65}{RESET}")
+                for v in verify_data.get("results", []):
+                    if v["status"] == "HIT":
+                        st = f"{GREEN}HIT{RESET}"
+                    elif v["status"] == "PENDING":
+                        st = f"{YELLOW}PENDING{RESET}"
+                    else:
+                        st = f"{GRAY}UNKNOWN{RESET}"
+                    print(
+                        f"  {MAGENTA}{v['symbol']:<10}{RESET} "
+                        f"{v['target']:>12.5f} "
+                        f"{st:>18} "
+                        f"{v.get('message', '')}"
+                    )
+
+                json_path = verify_data.get("json_path", "")
+                if json_path:
+                    print(f"  \n{GRAY}Rapport exporte : {json_path}{RESET}")
+        finally:
+            scanner.shutdown()
+        return 0
+
+    if action == "watchlist":
+        """Liste les sessions de watchlist enregistrees."""
+        watchlists = tracker.list_sweep_watchlists(limit=args.limit or 10)
+        if not watchlists:
+            print(f"{YELLOW}Aucune watchlist enregistree.{RESET}")
+            print(f"  {GRAY}Utilise 'track watch' pour en creer une.{RESET}")
+            return 0
+
+        print(f"{BOLD}{CYAN}═══ Sweep Watchlists enregistrees ═══{RESET}")
+        print(f"  {'Session':<12} {'Entrees':>8} {'Pending':>8} {'HIT':>5} {'Missed':>7} {'Cree le'}")
+        for w in watchlists:
+            created = w.get("created_at", "?")[:19] if w.get("created_at") else "?"
+            print(
+                f"  {w['session_id']:<12} "
+                f"{w['entries_count']:>8} "
+                f"{w.get('pending_count', 0):>8} "
+                f"{GREEN}{w.get('hit_count', 0):>5}{RESET} "
+                f"{w.get('missed_count', 0):>7} "
+                f"{created}"
+            )
+        print(f"")
+        print(f"  {GRAY}Pour verifier : track verify --session <id> --symbols ...{RESET}")
+        return 0
+
     print(f"{RED}Action inconnue : {action}{RESET}")
-    print(f"Actions: save, update, report, history, sessions, close")
+    print(f"Actions: save, update, report, history, sessions, close, watch, verify, watchlist")
     return 1
 
 
@@ -1601,6 +1747,18 @@ def _render_diamond_results(results: list, scanned_symbols: list):
                 return f"{DIM}{val:>3}b{RESET}"
             return f"{GRAY}  0{RESET}"
 
+        def _london_swp(r_lo) -> str:
+            """Indicateur de sweep London (LH/LL) pour le tableau principal."""
+            if r_lo.london_high <= 0 or r_lo.london_low <= 0:
+                return f"{GRAY}--{RESET}"
+            if r_lo.london_high_swept and r_lo.london_low_swept:
+                return f"{YELLOW}H+L{RESET}"
+            if r_lo.london_high_swept:
+                return f"{RED}LH{RESET}"
+            if r_lo.london_low_swept:
+                return f"{GREEN}LL{RESET}"
+            return f"{GRAY}--{RESET}"
+
         lines.append(
             f"{MAGENTA}{r.symbol:<10}{RESET} "
             f"{_pad_cell(sc_col, 6)} "
@@ -1652,19 +1810,6 @@ def _render_diamond_results(results: list, scanned_symbols: list):
     )
 
     print("\n".join(lines))
-
-
-def _london_swp(r) -> str:
-    """Indicateur de sweep London (LH/LL) pour le tableau principal."""
-    if r.london_high <= 0 or r.london_low <= 0:
-        return f"{GRAY}--{RESET}"
-    if r.london_high_swept and r.london_low_swept:
-        return f"{YELLOW}H+L{RESET}"
-    if r.london_high_swept:
-        return f"{RED}LH{RESET}"
-    if r.london_low_swept:
-        return f"{GREEN}LL{RESET}"
-    return f"{GRAY}--{RESET}"
 
 
 def _kc_mini(val: str) -> str:
@@ -2099,7 +2244,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_track.add_argument(
         "track_action",
-        choices=["save", "update", "report", "history", "sessions", "close"],
+        choices=["save", "update", "report", "history", "sessions", "close",
+                 "watch", "verify", "watchlist"],
         help="Action a executer",
     )
     _add_common(p_track)
@@ -2107,6 +2253,8 @@ def build_parser() -> argparse.ArgumentParser:
                          help="ID du trade (pour history/close)")
     p_track.add_argument("--reason", default="MANUAL",
                          help="Raison de fermeture (pour close)")
+    p_track.add_argument("--session", default=None,
+                         help="Session ID pour verify/watchlist (ex: abcd1234)")
     p_track.add_argument("--limit", type=int, default=20,
                          help="Nombre max de trades/sessions a afficher")
 

@@ -183,6 +183,34 @@ CREATE INDEX IF NOT EXISTS idx_snapshots_trade
 
 CREATE INDEX IF NOT EXISTS idx_snapshots_trade_latest
     ON diamond_snapshots(trade_id, timestamp DESC);
+
+-- London Sweep Watchlist (niveaux LH/LL a surveiller)
+
+CREATE TABLE IF NOT EXISTS sweep_watchlist (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id      TEXT    NOT NULL,
+    symbol          TEXT    NOT NULL,
+    direction       TEXT    NOT NULL,         -- 'BULL' (vers LH) / 'BEAR' (vers LL)
+    target_level    REAL    NOT NULL,         -- niveau cible (LH ou LL)
+    target_label    TEXT    NOT NULL,         -- 'LH' / 'LL'
+    current_price   REAL    NOT NULL,         -- prix au moment de l'enregistrement
+    distance_pips   REAL    NOT NULL,         -- distance en pips du prix a la cible
+    status          TEXT    NOT NULL DEFAULT 'PENDING',  -- 'PENDING' / 'HIT' / 'MISSED' / 'CANCELLED'
+    obstacles_json  TEXT,                     -- JSON: liste des obstacles Ichimoku
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+    verified_at     TEXT,                     -- date de verification
+    verified_price  REAL,                     -- prix au moment de la verification
+    verified_result TEXT                       -- description du resultat
+);
+
+CREATE INDEX IF NOT EXISTS idx_watchlist_session
+    ON sweep_watchlist(session_id);
+
+CREATE INDEX IF NOT EXISTS idx_watchlist_status
+    ON sweep_watchlist(status);
+
+CREATE INDEX IF NOT EXISTS idx_watchlist_symbol
+    ON sweep_watchlist(symbol);
 """
 
 

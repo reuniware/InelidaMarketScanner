@@ -18,7 +18,9 @@ Usage:
     history = tracker.get_history(...) # détail d'un trade
 """
 
+import json
 import logging
+import os
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -167,7 +169,7 @@ def _pip_factor(sym: str) -> float:
 
 
 def _sl_range_pct(price: float, sl: float, tp: float) -> float:
-    """Calcule la position du prix en % du range SL→TP.
+    """Calcule la position du prix en % du range SL->TP.
     0% = au SL, 100% = au TP."""
     total = abs(tp - sl)
     if total == 0: return 50.0
@@ -176,7 +178,7 @@ def _sl_range_pct(price: float, sl: float, tp: float) -> float:
 
 def _check_close(price: float, sl: float, tp: float, bias: str) -> Optional[Tuple[str, float]]:
     """Vérifie si le prix a touché SL ou TP.
-    
+
     Returns:
         (reason, level) ou None si toujours en vie.
     """
@@ -187,6 +189,56 @@ def _check_close(price: float, sl: float, tp: float, bias: str) -> Optional[Tupl
         if price >= sl: return ("SL_HIT", sl)
         if price <= tp: return ("TP_HIT", tp)
     return None
+
+
+def _pips(sym: str, price: float, level: float) -> float:
+    """Distance en pips (helper module-level)."""
+    return _pips_from_price(sym, price, level)
+
+
+# ─── Obstacle helper ────────────────────────────────────────────────────
+
+def _build_obstacles(sym: str, price: float, direction: int, r: DiamondResult) -> str:
+    """Construit la liste des obstacles Ichimoku entre le prix et la cible.
+    
+    Pour BULL (direction=1, vers LH) : obstacles sont les niveaux AU-DESSUS du prix.
+    Pour BEAR (direction=-1, vers LL) : obstacles sont les niveaux EN-DESSOUS du prix.
+    
+    Returns:
+        JSON string de la liste [{level, label, dist_pips}].
+    """
+    obstacles = []
+    pip_factor = 100.0 if ('JPY' in sym or 'DXY' in sym or 'XAUUSD' in sym) else 10000.0
+    
+    # Tenkan levels
+    for label, tk in [("Tk H1", r.tk_h1), ("Tk H4", r.tk_h4), ("Tk D1", r.tk_d1)]:
+        if tk > 0:
+            dist = (tk - price) * pip_factor
+            if direction == 1 and dist > 0:  # BULL: obstacle above
+                obstacles.append({"level": round(tk, 5), "label": label, "dist_pips": round(dist, 1)})
+            elif direction == -1 and dist < 0:  # BEAR: obstacle below
+                obstacles.append({"level": round(tk, 5), "label": label, "dist_pips": round(dist, 1)})
+    
+    # Kijun levels
+    for label, kj in [("Kj H1", r.kj_h1), ("Kj H4", r.kj_h4), ("Kj D1", r.kj_d1)]:
+        if kj > 0:
+            dist = (kj - price) * pip_factor
+            if direction == 1 and dist > 0:
+                obstacles.append({"level": round(kj, 5), "label": label, "dist_pips": round(dist, 1)})
+            elif direction == -1 and dist < 0:
+                obstacles.append({"level": round(kj, 5), "label": label, "dist_pips": round(dist, 1)})
+    
+    # SSB levels (ssb_proximity is backward compat for ssb_h4, use ssb_h4)
+    for ssb_list, label in [(r.ssb_h1, "SSB H1"), (r.ssb_h4, "SSB H4"), (r.ssb_d1, "SSB D1")]:
+        for sb_l, sb_d in ssb_list[:2]:
+            if direction == 1 and sb_l > price:
+                obstacles.append({"level": round(sb_l, 5), "label": label, "dist_pips": round(sb_d, 1)})
+            elif direction == -1 and sb_l < price:
+                obstacles.append({"level": round(sb_l, 5), "label": label, "dist_pips": round(sb_d, 1)})
+    
+    # Sort by absolute distance
+    obstacles.sort(key=lambda x: abs(x["dist_pips"]))
+    return json.dumps(obstacles[:6], ensure_ascii=False)  # Limit to 6 obstacles
 
 
 # ─── Main Tracker ─────────────────────────────────────────────────────────
@@ -226,11 +278,11 @@ class TradeTracker:
 
     def save_setups(self, results: List[DiamondResult], session_id: Optional[str] = None) -> int:
         """Sauvegarde les setups actifs (BULL/BEAR non WAIT) d'un scan Diamond.
-        
+
         Args:
             results: Liste des DiamondResult du scan.
             session_id: Optionnel, pour grouper plusieurs scans.
-        
+
         Returns:
             Nombre de trades sauvegardés.
         """
@@ -330,12 +382,12 @@ class TradeTracker:
 
     def update_all(self, prices: Optional[Dict[str, float]] = None) -> int:
         """Met à jour tous les trades OPEN avec les prix actuels.
-        
+
         Args:
             prices: Dictionnaire {symbol: price} optionnel.
                     Si None, le tracker ne peut pas mettre à jour la distance
                     mais peut vérifier les SL/TP si price est fourni.
-        
+
         Returns:
             Nombre de trades mis à jour ou fermés.
         """
@@ -366,7 +418,7 @@ class TradeTracker:
             close_result = _check_close(price, sl, tp, bias)
 
             if close_result:
-                reason, _ = close_result
+                reason, level = close_result
                 risk_pips = abs(_pips_from_price(symbol, tp, sl)) if tp != sl else 1
                 pnl_pips = risk_pips if reason == "TP_HIT" else -risk_pips
                 pnl_pct = (pnl_pips / risk_pips * 100) if risk_pips != 0 else 0
@@ -450,7 +502,7 @@ class TradeTracker:
 
     def get_report(self, limit: int = 20) -> Dict[str, Any]:
         """Génère un rapport complet P&L.
-        
+
         Returns:
             Dictionnaire avec stats globales + liste des trades.
         """
@@ -648,3 +700,304 @@ class TradeTracker:
         except Exception as e:
             logger.error("Erreur close_trade(%d): %s", trade_id, e)
             return False
+
+    # ═══════════════════════════════════════════════════════════════════════
+    #  SWEEP WATCHLIST — niveaux LH/LL a surveiller
+    # ═══════════════════════════════════════════════════════════════════════
+
+    # ── Save: enregistre les niveaux LH/LL a surveiller ────────────────
+
+    def save_sweep_watchlist(self, results: List[DiamondResult],
+                             session_id: Optional[str] = None) -> Dict[str, Any]:
+        """Analyse les resultats Diamond et sauvegarde les symboles avec
+        un seul sweep London (LH ou LL), donc en direction de l'autre cote.
+
+        Pour chaque symbole identifie :
+          - Direction BULL si LL sweepe (target = LH)
+          - Direction BEAR si LH sweepe (target = LL)
+          - Calcule la distance en pips + obstacles Ichimoku entre prix et cible
+
+        Sauvegarde dans la DB + exporte un JSON timestampé dans reports/.
+
+        Args:
+            results: Liste des DiamondResult du scan.
+            session_id: Optionnel, pour grouper plusieurs watchlists.
+
+        Returns:
+            Dict avec session_id, count, entries (liste des symboles sauvegardes).
+        """
+        conn = self.db.conn
+        if conn is None:
+            logger.error("DB non disponible")
+            return {"error": "DB non disponible"}
+
+        sid = session_id or self._session_id()
+        saved = 0
+        entries = []
+
+        # Filtrer les symboles avec EXACTEMENT 1 sweep London
+        watchlist_candidates = [
+            r for r in results
+            if r.london_high > 0 and r.london_low > 0
+            and (r.london_high_swept != r.london_low_swept)  # XOR: exactement 1 sweep
+            and (r.london_high_swept or r.london_low_swept)
+        ]
+
+        if not watchlist_candidates:
+            logger.info("Aucun candidat sweep watchlist (0 symbole avec 1 seul sweep London)")
+            return {"session_id": sid, "count": 0, "entries": []}
+
+        for r in watchlist_candidates:
+            try:
+                # Determiner direction et cible
+                if r.london_high_swept and not r.london_low_swept:
+                    # LH sweepe → BEAR vers LL
+                    direction = "BEAR"
+                    target = r.london_low
+                    target_label = "LL"
+                    obst_dir = -1
+                elif r.london_low_swept and not r.london_high_swept:
+                    # LL sweepe → BULL vers LH
+                    direction = "BULL"
+                    target = r.london_high
+                    target_label = "LH"
+                    obst_dir = 1
+                else:
+                    continue  # Should not happen with XOR filter
+
+                # Distance en pips
+                dist = _pips(r.symbol, target, r.price)
+                if direction == "BEAR":
+                    dist = abs(dist)
+                else:
+                    dist = abs(dist)
+
+                # Obstacles JSON
+                obstacles = _build_obstacles(r.symbol, r.price, obst_dir, r)
+
+                conn.execute(
+                    """
+                    INSERT INTO sweep_watchlist (
+                        session_id, symbol, direction,
+                        target_level, target_label,
+                        current_price, distance_pips,
+                        obstacles_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (sid, r.symbol, direction,
+                     round(target, 5), target_label,
+                     round(r.price, 5), round(dist, 1),
+                     obstacles),
+                )
+                saved += 1
+                entries.append({
+                    "symbol": r.symbol,
+                    "direction": direction,
+                    "target": round(target, 5),
+                    "target_label": target_label,
+                    "price": round(r.price, 5),
+                    "distance_pips": round(dist, 1),
+                    "obstacles": json.loads(obstacles),
+                })
+
+            except Exception as e:
+                logger.error("Erreur sauvegarde watchlist %s: %s", r.symbol, e)
+
+        conn.commit()
+
+        # ── Export JSON timestampé vers reports/ ──
+        report_data = {
+            "type": "sweep_watchlist",
+            "session_id": sid,
+            "created_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC"),
+            "count": saved,
+            "entries": entries,
+        }
+
+        reports_dir = "reports"
+        os.makedirs(reports_dir, exist_ok=True)
+        ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+        json_path = os.path.join(reports_dir, f"sweep_watchlist_{sid}_{ts}.json")
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(report_data, f, indent=2, ensure_ascii=False)
+
+        logger.info("SweepWatchlist: %d entree(s) sauvegardee(s) (session %s, fichier %s)",
+                    saved, sid, json_path)
+        return {"session_id": sid, "count": saved, "entries": entries, "json_path": json_path}
+
+    # ── Verify: verifie les niveaux sauvegardes contre les prix actuels ──
+
+    def verify_sweep_watchlist(self, session_id: str,
+                               results: List[DiamondResult]) -> Dict[str, Any]:
+        """Verifie les entrees d'une watchlist sauvegardee contre les resultats
+        d'un scan actuel.
+
+        Pour chaque entree PENDING :
+          - Recupere le resultat actuel du symbole
+          - Verifie si le niveau cible (LH ou LL) est maintenant sweepe
+          - Met a jour le statut (HIT / MISSED / PENDING)
+
+        Args:
+            session_id: ID de la session de watchlist a verifier.
+            results: Resultats du scan Diamond actuel.
+
+        Returns:
+            Dict avec session_id, results (liste des verifications).
+        """
+        conn = self.db.conn
+        if conn is None:
+            return {"error": "DB non disponible"}
+
+        try:
+            cur = conn.execute(
+                "SELECT * FROM sweep_watchlist WHERE session_id = ? AND status = 'PENDING'",
+                (session_id,),
+            )
+            entries = [dict(r) for r in cur.fetchall()]
+        except Exception as e:
+            logger.error("Erreur lecture watchlist %s: %s", session_id, e)
+            return {"error": str(e)}
+
+        if not entries:
+            return {"session_id": session_id, "count": 0, "results": [],
+                    "message": "Aucune entree PENDING trouvee pour cette session"}
+
+        now_str = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
+        results_map = {r.symbol: r for r in results}
+        verified = []
+
+        for entry in entries:
+            symbol = entry["symbol"]
+            target = entry["target_level"]
+            target_label = entry["target_label"]
+            direction = entry["direction"]
+            current = results_map.get(symbol)
+
+            if current is None:
+                verified.append({
+                    "symbol": symbol,
+                    "target": target,
+                    "target_label": target_label,
+                    "direction": direction,
+                    "status": "UNKNOWN",
+                    "message": "Symbole non trouve dans le scan actuel",
+                })
+                continue
+
+            now_price = current.price
+            result_status = "PENDING"
+            result_msg = ""
+
+            # Verifier le sweep du niveau cible
+            if target_label == "LH" and current.london_high_swept:
+                result_status = "HIT"
+                result_msg = f"LH {target:.5f} now sweepe by NY! Price: {now_price:.5f}"
+            elif target_label == "LL" and current.london_low_swept:
+                result_status = "HIT"
+                result_msg = f"LL {target:.5f} now sweepe by NY! Price: {now_price:.5f}"
+            else:
+                # Calculer la progression
+                dist_pips = _pips(symbol, target, now_price)
+                if direction == "BEAR":
+                    dist_pips = abs(dist_pips)
+                else:
+                    dist_pips = abs(dist_pips)
+
+                if dist_pips < 1.0:
+                    result_status = "HIT"
+                    result_msg = f"Price {now_price:.5f} reached target {target:.5f}"
+                else:
+                    result_status = "PENDING"
+                    result_msg = f"Price {now_price:.5f}, target {target:.5f} ({dist_pips:.0f}p away)"
+
+            # Mettre a jour la DB
+            conn.execute(
+                """
+                UPDATE sweep_watchlist SET
+                    status = ?,
+                    verified_at = datetime('now'),
+                    verified_price = ?,
+                    verified_result = ?
+                WHERE id = ?
+                """,
+                (result_status, round(now_price, 5), result_msg, entry["id"]),
+            )
+
+            verified.append({
+                "symbol": symbol,
+                "target": target,
+                "target_label": target_label,
+                "direction": direction,
+                "original_price": entry["current_price"],
+                "current_price": now_price,
+                "status": result_status,
+                "message": result_msg,
+            })
+
+        conn.commit()
+
+        result = {
+            "session_id": session_id,
+            "verified_at": now_str,
+            "count": len(verified),
+            "hits": sum(1 for v in verified if v["status"] == "HIT"),
+            "pending": sum(1 for v in verified if v["status"] == "PENDING"),
+            "unknown": sum(1 for v in verified if v["status"] == "UNKNOWN"),
+            "results": verified,
+        }
+
+        # Export JSON
+        reports_dir = "reports"
+        os.makedirs(reports_dir, exist_ok=True)
+        ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+        json_path = os.path.join(reports_dir, f"sweep_verify_{session_id}_{ts}.json")
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, indent=2, ensure_ascii=False)
+        result["json_path"] = json_path
+
+        logger.info("SweepWatchlist verify: %d HIT, %d PENDING (session %s)",
+                    result["hits"], result["pending"], session_id)
+        return result
+
+    # ── List: liste les sessions de watchlist ─────────────────────────
+
+    def list_sweep_watchlists(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Liste les sessions de watchlist enregistrees."""
+        conn = self.db.conn
+        if conn is None:
+            return []
+        try:
+            cur = conn.execute(
+                """SELECT session_id,
+                          COUNT(*) as entries_count,
+                          SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END) as pending_count,
+                          SUM(CASE WHEN status = 'HIT' THEN 1 ELSE 0 END) as hit_count,
+                          SUM(CASE WHEN status = 'MISSED' THEN 1 ELSE 0 END) as missed_count,
+                          MIN(created_at) as created_at
+                   FROM sweep_watchlist
+                   GROUP BY session_id
+                   ORDER BY MIN(created_at) DESC
+                   LIMIT ?""",
+                (limit,),
+            )
+            return [dict(r) for r in cur.fetchall()]
+        except Exception as e:
+            logger.error("Erreur list_sweep_watchlists: %s", e)
+            return []
+
+    # ── Get: recupere les entrees d'une watchlist ─────────────────────
+
+    def get_sweep_watchlist(self, session_id: str) -> List[Dict[str, Any]]:
+        """Recupere toutes les entrees d'une watchlist."""
+        conn = self.db.conn
+        if conn is None:
+            return []
+        try:
+            cur = conn.execute(
+                "SELECT * FROM sweep_watchlist WHERE session_id = ? ORDER BY symbol",
+                (session_id,),
+            )
+            return [dict(r) for r in cur.fetchall()]
+        except Exception as e:
+            logger.error("Erreur get_sweep_watchlist: %s", e)
+            return []
