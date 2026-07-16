@@ -1293,9 +1293,12 @@ def _render_diamond_detail(r, lines: list):
     lines.append(f"    {GRAY}Critères:{RESET} {' '.join(r.criteria)}")
 
     if r.bias != "FLAT":
+        tp_detail = f"{GRAY}TP:{RESET} {_fmt_price(r.tp)}"
+        if r.tp_label:
+            tp_detail += f" {DIM}({r.tp_label}){RESET}"
         lines.append(f"    {GRAY}Kijun H4:{RESET} {_fmt_price(r.kj_h4)}  "
                      f"{GRAY}SL:{RESET} {_fmt_price(r.sl)}  "
-                     f"{GRAY}TP:{RESET} {_fmt_price(r.tp)}")
+                     f"{tp_detail}")
 
     # Tenkan/Kijun values par TF (niveaux exacts)
     tk_kj_parts = []

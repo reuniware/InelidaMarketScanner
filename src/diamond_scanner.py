@@ -207,6 +207,7 @@ class DiamondResult:
     sl: float = 0.0
     tp: float = 0.0
     rr: float = 0.0
+    tp_label: str = ""      # Source du TP (ex: "Kj D1", "FVG H1 Bear")
     horizon: str = ""       # "Intraday", "Session", "Swing", "Position"
 
     # Metadata
@@ -597,6 +598,81 @@ class DiamondScanner:
         return (bear_top, bear_bot, bear_mitigated, bear_pos, bear_date, pip_factor,
                 bull_top, bull_bot, bull_mitigated, bull_pos, bull_date, pip_factor)
 
+    # ── TP calculation based on real levels ──
+
+    def _compute_tp(
+        self, sym: str, price: float, sl: float, direction: int,
+        kijuns: dict, tenkans: dict, fvgs_bear: list, fvgs_bull: list,
+        ssbs: list, clouds: list
+    ) -> Tuple[float, float, float, str]:
+        """Calcule le TP optimal base sur les vrais niveaux techniques.
+
+        Collecte Kijun, Tenkan, FVG, SSB, et nuages. Filtre par direction.
+        Prend le niveau le plus proche qui donne RR >= 1.5.
+
+        Returns: (tp, risk, rr, tp_label)
+        """
+        pip_factor = 10.0 if sym == 'XAUUSD' else (100.0 if 'JPY' in sym else 10000.0)
+        risk = abs(price - sl) * pip_factor  # in pip units
+        min_tp_dist = risk * 1.5 / pip_factor  # minimum distance for RR>=1.5 (in price units)
+
+        candidates: List[Tuple[float, str]] = []  # (level, label)
+
+        # Kijuns (all TFs)
+        for label, kj in [("Kj H1", kijuns.get('h1', 0)), ("Kj H4", kijuns.get('h4', 0)),
+                          ("Kj D1", kijuns.get('d1', 0)), ("Kj W1", kijuns.get('w1', 0))]:
+            if kj > 0 and ((direction == 1 and kj > price) or (direction == -1 and kj < price)):
+                candidates.append((kj, label))
+
+        # Tenkans (all TFs)
+        for label, tk in [("Tk H1", tenkans.get('h1', 0)), ("Tk H4", tenkans.get('h4', 0)),
+                          ("Tk D1", tenkans.get('d1', 0)), ("Tk W1", tenkans.get('w1', 0))]:
+            if tk > 0 and ((direction == 1 and tk > price) or (direction == -1 and tk < price)):
+                candidates.append((tk, label))
+
+        # FVG levels (both bear and bull — just the relevant side)
+        for fvg_data in fvgs_bear + fvgs_bull:
+            if fvg_data[0] > 0 and fvg_data[1] > 0:
+                top, bot, label = fvg_data[0], fvg_data[1], fvg_data[2]
+                if direction == 1 and top > price:
+                    candidates.append((top, f"FVG {label}"))
+                elif direction == -1 and bot < price:
+                    candidates.append((bot, f"FVG {label}"))
+
+        # SSBs
+        for sb_l, sb_d, sb_label in ssbs:
+            if (direction == 1 and sb_l > price) or (direction == -1 and sb_l < price):
+                candidates.append((sb_l, f"SSB {sb_label}"))
+
+        # Clouds
+        for c_top, c_bot, c_label in clouds:
+            if c_top > 0:
+                if direction == 1 and c_top > price:
+                    candidates.append((c_top, f"Nuage {c_label}"))
+                elif direction == -1 and c_bot < price:
+                    candidates.append((c_bot, f"Nuage {c_label}"))
+
+        if not candidates:
+            # Fallback: fixed RR=2.0
+            tp = price + (risk * 2.0) / pip_factor * direction
+            return tp, risk, 2.0, "RR 2.0 (aucun niveau trouve)"
+
+        # Sort by distance from price (closest first)
+        candidates.sort(key=lambda x: abs(x[0] - price))
+
+        # Find first level that meets min RR >= 1.5
+        for level, label in candidates:
+            dist = abs(level - price) * pip_factor
+            rr = dist / risk if risk > 0 else 0
+            if rr >= 1.5:
+                return level, risk, round(rr, 1), label
+
+        # No level meets RR>=1.5 — take the closest one anyway
+        best_level, best_label = candidates[0]
+        dist = abs(best_level - price) * pip_factor
+        rr = dist / risk if risk > 0 else 0
+        return best_level, risk, round(rr, 1), f"{best_label} (RR {rr:.1f})"
+
     # ── Etape 7b : Compression multi-TF ──
 
     def _detect_compression(self, r: DiamondResult, sym: str) -> Tuple[float, str]:
@@ -694,6 +770,7 @@ class DiamondScanner:
 
         # ═══ Etape 5: W1 Analysis ═══════════════════════════════════════════
         kjw1 = 0.0
+        tkw1 = 0.0
         tkxw1 = "N/A"
         kumow1 = "N/A"
         cloud_w1_top = 0.0
@@ -1006,10 +1083,22 @@ class DiamondScanner:
 
         if direction != 0:
             sl = kj4
-            risk = abs(d_kj4)
-            pip_factor = 10 if sym == 'XAUUSD' else (100 if 'JPY' in sym else 10000)
-            tp = price + (risk * 2.0) / pip_factor * direction
-            rr = 2.0
+            # Compute TP from real technical levels (Kijun, Tenkan, FVG, SSB, cloud)
+            kijun_dict = {'h1': kj1, 'h4': kj4, 'd1': kd1, 'w1': kjw1}
+            tenkan_dict = {'h1': tk1, 'h4': tk4, 'd1': td1, 'w1': tkw1 if w1_available else 0.0}
+            fvgs_bear = [(fvg_top, fvg_bot, 'H1 Bear'), (fvg4_top, fvg4_bot, 'H4 Bear'),
+                         (fvg_d1_top, fvg_d1_bot, 'D1 Bear')]
+            fvgs_bull = [(fvg_bull_top, fvg_bull_bot, 'H1 Bull'), (fvg4_bull_top, fvg4_bull_bot, 'H4 Bull'),
+                         (fvg_d1_bull_top, fvg_d1_bull_bot, 'D1 Bull')]
+            ssb_list = [(sb_l, sb_d, f'H4 #{i}') for i, (sb_l, sb_d) in enumerate(ssb_h4[:3])]
+            ssb_list += [(sb_l, sb_d, f'D1 #{i}') for i, (sb_l, sb_d) in enumerate(ssb_d1[:2])]
+            clouds = []
+            if cloud_w1_top > 0: clouds.append((cloud_w1_top, cloud_w1_bot, 'W1'))
+            if cloud_mn_top > 0: clouds.append((cloud_mn_top, cloud_mn_bot, 'MN'))
+            tp, risk, rr, tp_label = self._compute_tp(
+                sym, price, sl, direction, kijun_dict, tenkan_dict,
+                fvgs_bear, fvgs_bull, ssb_list, clouds
+            )
             has_warnings = any("TenkanD1" in w for w in warnings)
             if score >= strong_threshold and not has_warnings:
                 quality = "STRONG"
@@ -1041,6 +1130,7 @@ class DiamondScanner:
                         if quality == "STRONG": quality = "GOOD"
         else:
             sl = tp = rr = 0.0
+            tp_label = ""
             quality = "WAIT"
 
         # ── Horizon de trading ──
@@ -1104,7 +1194,7 @@ class DiamondScanner:
             fvg_d1_bull_top=fvg_d1_bull_top, fvg_d1_bull_bot=fvg_d1_bull_bot,
             fvg_d1_bull_mitigated=fvg_d1_bull_mitigated, fvg_d1_bull_price_pos=fvg_d1_bull_pos,
             fvg_d1_bull_date=fvg_d1_bull_date, fvg_d1_bull_pip_factor=fvg_d1_bull_pip_factor,
-            sl=sl, tp=tp, rr=rr, horizon=horizon,
+            sl=sl, tp=tp, rr=rr, tp_label=tp_label, horizon=horizon,
             criteria=crit, warnings=warnings,
         )
 
