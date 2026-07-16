@@ -66,9 +66,9 @@ DEFAULT_WATCHLIST: List[str] = [
     "XAUUSD",
     "XAGUSD",
     # Indices
-    "US30",
-    "NAS100",
-    "SPX500",
+    "US30.cash",
+    "US100.cash",
+    "US500.cash",
     # Crypto (selon broker)
     "BTCUSD",
     "ETHUSD",
@@ -202,11 +202,22 @@ ELITE = EliteFilterConfig()
 ELITE_V1 = EliteV1FilterConfig()
 
 
+def _normalize_symbol(s: str) -> str:
+    """Normalise un symbole MT5 : uppercase sauf apres un point (.cash etc)."""
+    s = s.strip()
+    if not s:
+        return ""
+    if '.' in s:
+        base, ext = s.split('.', 1)
+        return f"{base.upper()}.{ext}"
+    return s.upper()
+
+
 def resolve_watchlist(cli_symbols: Optional[List[str]] = None) -> List[str]:
     """Resout la watchlist finale selon CLI > variable d'env > defaut."""
     if cli_symbols:
-        return [s.strip().upper() for s in cli_symbols if s.strip()]
+        return [ns for s in cli_symbols if (ns := _normalize_symbol(s))]
     env = os.environ.get("INELIDA_WATCHLIST")
     if env:
-        return [s.strip().upper() for s in env.split(",") if s.strip()]
+        return [ns for s in env.split(",") if (ns := _normalize_symbol(s))]
     return list(DEFAULT_WATCHLIST)

@@ -50,6 +50,21 @@ from src.trade_executor import (
     INELIDA_MAGIC,
     asian_to_decisions,
 )
+from src.diamond_scanner import (
+    DiamondScanner,
+    DiamondResult,
+    TenkanFlatMemory,
+    get_dxy_price,
+    get_dxy_kijun_h1,
+)
+from analyze_asian_bsl_ssl import (
+    scan_all_symbols,
+    render_all_results,
+    results_to_json,
+    analyze_symbol,
+    AsianSwingPoint,
+    SymbolAsianLiquidity,
+)
 
 
 def _setup_logging(verbose: bool):
@@ -1018,6 +1033,391 @@ def cmd_setups(args):
     return 0
 
 
+# ─── Asian Session BSL/SSL ───────────────────────────────────────────────────
+
+def cmd_asian_liquidity(args):
+    """
+    Scan les BSL (swing highs) et SSL (swing lows) crees pendant la session
+    asiatique (UTC 00:00-08:00) via Williams fractals (N=2).
+
+    Pour chaque symbole : détecte les swing points dans les barres M15 de
+    la session asiatique, verifie s'ils ont ete sweepes en post-Asian
+    (London/NY), et affiche un tableau detaille avec distances en pips.
+    """
+    _setup_logging(args.verbose)
+
+    session_date = getattr(args, 'session_date', None) or \
+        _dt.utcfromtimestamp(time.time()).strftime("%Y-%m-%d")
+
+    tf_name = getattr(args, 'tf', 'M15').upper()
+    scan_all = getattr(args, "scan_all", False)
+
+    if scan_all:
+        mt5c = MT5Connector()
+        if not mt5c.ensure_connected():
+            print(f"{RED}Connexion MT5 impossible.{RESET}")
+            return 2
+        symbols = mt5c.list_all_symbols()
+        print(f"{YELLOW}Scan de TOUS les symboles ({len(symbols)})...{RESET}")
+    else:
+        symbols = resolve_watchlist(args.symbols)
+
+    if not symbols:
+        print("Aucun symbole a analyser.")
+        return 1
+
+    results = scan_all_symbols(symbols, session_date, tf_name)
+
+    if args.json:
+        print(json.dumps(results_to_json(results), indent=2, ensure_ascii=False))
+    else:
+        print(render_all_results(results))
+
+    return 0
+
+
+# ─── Diamond Analysis ────────────────────────────────────────────────────────
+
+def cmd_diamond(args):
+    """
+    Scan Diamond Analysis complet : Ichimoku multi-TF (H1/H4/D1) + Etape 3b
+    (Tenkan D1 historique, SSB proximity) + scoring 8 criteres + trade setup.
+
+    Combine le scan ICT asiatique avec l'analyse Ichimoku complete et la
+    detection de memoire institutionnelle (flat lines passees).
+    """
+    _setup_logging(args.verbose)
+    symbols = resolve_watchlist(args.symbols)
+    if not symbols:
+        print("Aucune watchlist. Spécifie --symbols ou configure INELIDA_WATCHLIST.")
+        return 1
+
+    scanner = DiamondScanner(symbols)
+    if not scanner.initialize():
+        print(f"{RED}Connexion MT5 impossible pour Diamond Scanner.{RESET}")
+        return 2
+
+    try:
+        results = scanner.scan_all()
+        _render_diamond_results(results, symbols)
+    finally:
+        scanner.shutdown()
+    return 0
+
+
+def _render_diamond_results(results: list, scanned_symbols: list):
+    """Affichage complet du scan Diamond Analysis."""
+    lines: list = []
+    now_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+    lines.append(f"{BOLD}{CYAN}{'='*100}{RESET}")
+    lines.append(f"{BOLD}{CYAN}  💎 DIAMOND ANALYSIS — Scan Ichimoku Multi-TF + Memoire Institutionnelle (Etape 3b){RESET}")
+    lines.append(f"{BOLD}{CYAN}{'='*100}{RESET}")
+    lines.append(f"  {GRAY}UTC:{RESET} {now_str}  |  "
+                 f"{GRAY}Symboles scannes:{RESET} {len(scanned_symbols)}  |  "
+                 f"{GRAY}Setups Diamond:{RESET} {len(results)}")
+
+    # DXY info
+    dxy_price = get_dxy_price()
+    dxy_kj = get_dxy_kijun_h1()
+    if dxy_price:
+        dxy_line = f"  {GRAY}DXY:{RESET} {dxy_price:.3f}"
+        if dxy_kj:
+            dxy_line += f"  {GRAY}Kijun H1:{RESET} {dxy_kj:.3f}"
+            vs = "AU-DESSUS" if dxy_price > dxy_kj else "EN-DESSOUS"
+            dxy_color = GREEN if dxy_price > dxy_kj else RED
+            dxy_line += f"  {dxy_color}{vs}{RESET}"
+        lines.append(dxy_line)
+    lines.append("")
+
+    if not results:
+        lines.append(f"{YELLOW}  Aucun symbole scanne avec succes.{RESET}")
+        lines.append(f"{BOLD}{CYAN}{'='*100}{RESET}")
+        print("\n".join(lines))
+        return
+
+    # Table pour TOUS les resultats (actifs ET WAIT)
+    lines.append(f"{BOLD}{CYAN}═══ TOUS LES SYMBOLES SCANNES ═══{RESET}")
+
+    # Header
+    header = (
+        f"{BOLD}"
+        f"{'Symbole':<10} {'Score':>6} {'Biais':>6} {'Qualite':>8}  "
+        f"{'Prix':>10} {'Kj H1':>10} {'Kj H4':>10} {'Kj D1':>10}  "
+        f"{'T/Kx H1':>8} {'T/Kx H4':>8} {'T/Kx D1':>8}  "
+        f"{'Kumo H1':>8} {'Kumo H4':>8} {'Kumo D1':>8}  "
+        f"{'Flat H1':>8} {'Flat H4':>8}"
+        f"{RESET}"
+    )
+    lines.append(header)
+    lines.append(f"{GRAY}{'─'*100}{RESET}")
+
+    for r in results:
+        # Score color (relative to max_score)
+        score_pct = r.score / r.max_score if r.max_score > 0 else 0
+        if score_pct >= 0.75:
+            sc_col = f"{GREEN}{r.score}{RESET}"
+        elif score_pct >= 0.55:
+            sc_col = f"{YELLOW}{r.score}{RESET}"
+        elif score_pct >= 0.35:
+            sc_col = f"{DIM}{r.score}{RESET}"
+        else:
+            sc_col = f"{RED}{r.score}{RESET}"
+
+        # Bias color
+        if r.bias == "BULL":
+            bias_col = f"{GREEN}{r.bias}{RESET}"
+        elif r.bias == "BEAR":
+            bias_col = f"{RED}{r.bias}{RESET}"
+        else:
+            bias_col = f"{GRAY}{r.bias}{RESET}"
+
+        # Quality
+        if r.quality == "STRONG":
+            qual_col = f"{BOLD}{GREEN}STRONG{RESET}"
+        elif r.quality == "GOOD":
+            qual_col = f"{YELLOW}GOOD{RESET}"
+        else:
+            qual_col = f"{DIM}WAIT{RESET}"
+
+        # Kumo colors
+        def _kc(val):
+            if val == "ABOVE":
+                return f"{GREEN}ABOVE{RESET}"
+            elif val == "BELOW":
+                return f"{RED}BELOW{RESET}"
+            return f"{YELLOW}INSIDE{RESET}"
+
+        # T/K cross colors
+        def _tkc(val):
+            if val == "BULL":
+                return f"{GREEN}BULL{RESET}"
+            if val == "BEAR":
+                return f"{RED}BEAR{RESET}"
+            return f"{GRAY}N/A{RESET}"
+
+        def _ff(val):
+            if val >= 8:
+                return f"{GREEN}{val:>3}b{RESET}"
+            elif val >= 4:
+                return f"{YELLOW}{val:>3}b{RESET}"
+            elif val > 0:
+                return f"{DIM}{val:>3}b{RESET}"
+            return f"{GRAY}  0{RESET}"
+
+        lines.append(
+            f"{MAGENTA}{r.symbol:<10}{RESET} "
+            f"{_pad_cell(sc_col, 6)} "
+            f"{_pad_cell(bias_col, 6)} "
+            f"{_pad_cell(qual_col, 8)}  "
+            f"{_fmt_price(r.price):>10} {_fmt_price(r.kj_h1):>10} {_fmt_price(r.kj_h4):>10} {_fmt_price(r.kj_d1):>10}  "
+            f"{_pad_cell(_tkc(r.tkx_h1), 8)} {_pad_cell(_tkc(r.tkx_h4), 8)} {_pad_cell(_tkc(r.tkx_d1), 8)}  "
+            f"{_pad_cell(_kc(r.kumo_h1), 8)} {_pad_cell(_kc(r.kumo_h4), 8)} {_pad_cell(_kc(r.kumo_d1), 8)}  "
+            f"{_pad_cell(_ff(r.flat_h1), 8)} {_pad_cell(_ff(r.flat_h4), 8)}"
+        )
+
+    lines.append(f"{GRAY}{'─'*100}{RESET}")
+    lines.append("")
+
+    # ── Detail des setups actifs ──
+    active = [r for r in results if r.bias != "FLAT" and r.quality != "WAIT"]
+    if active:
+        lines.append(f"{BOLD}{CYAN}═══ SETUPS DIAMOND ACTIFS (BULL/BEAR + STRONG/GOOD) ═══{RESET}")
+        lines.append("")
+        for r in active:
+            _render_diamond_detail(r, lines)
+
+    # ── Warning section (tous les symboles avec avertissements) ──
+    warned = [r for r in results if r.warnings]
+    if warned:
+        lines.append(f"{BOLD}{YELLOW}═══ AVERTISSEMENTS (Etape 3b — Memoire institutionnelle) ═══{RESET}")
+        lines.append("")
+        for r in warned:
+            sym_warn = f"  {MAGENTA}{r.symbol:<10}{RESET} "
+            for w in r.warnings:
+                sym_warn += f"{YELLOW}[{w}]{RESET}  "
+            lines.append(sym_warn)
+        lines.append("")
+
+    lines.append(f"{BOLD}{CYAN}{'='*100}{RESET}")
+
+    # Summary
+    n_strong = sum(1 for r in results if r.quality == "STRONG")
+    n_good = sum(1 for r in results if r.quality == "GOOD")
+    n_wait = sum(1 for r in results if r.quality == "WAIT")
+    n_bull = sum(1 for r in results if r.bias == "BULL")
+    n_bear = sum(1 for r in results if r.bias == "BEAR")
+    lines.append(
+        f"{GREEN}{n_strong} STRONG{RESET} | "
+        f"{YELLOW}{n_good} GOOD{RESET} | "
+        f"{GRAY}{n_wait} WAIT{RESET} | "
+        f"BULL: {n_bull} | BEAR: {n_bear}"
+    )
+
+    print("\n".join(lines))
+
+
+def _kc_mini(val: str) -> str:
+    """Mini indicateur Kumo (1 char)."""
+    if val == "ABOVE": return f"{GREEN}▲{RESET}"
+    if val == "BELOW": return f"{RED}▼{RESET}"
+    if val == "INSIDE": return f"{YELLOW}◆{RESET}"
+    return f"{GRAY}?{RESET}"
+
+def _tkc_mini(val: str) -> str:
+    """Mini indicateur T/K cross."""
+    if val == "BULL": return f"{GREEN}TK▲{RESET}"
+    if val == "BEAR": return f"{RED}TK▼{RESET}"
+    return f"{GRAY}TK?{RESET}"
+
+def _render_diamond_detail(r, lines: list):
+    """Affiche le detail d'un setup Diamond actif (incluant W1/MN)."""
+    quality_icon = "STRONG" if r.quality == "STRONG" else "GOOD"
+    bias_icon = "🔺" if r.bias == "BULL" else "🔻"
+
+    horizon_str = f"  |  {CYAN}Horizon: {r.horizon}{RESET}" if r.horizon else ""
+    lines.append(f"  {BOLD}{quality_icon} {MAGENTA}{r.symbol}{RESET}  "
+                 f"{bias_icon} {r.bias}  "
+                 f"Score: {r.score}/{r.max_score}  |  Align: {r.alignment}/5  |  "
+                 f"ΔKj4: {r.d_kj4:+.1f}p  |  "
+                 f"RR: {r.rr:.1f}x"
+                 f"{horizon_str}")
+    lines.append(f"    {GRAY}Critères:{RESET} {' '.join(r.criteria)}")
+
+    if r.bias != "FLAT":
+        lines.append(f"    {GRAY}Kijun H4:{RESET} {_fmt_price(r.kj_h4)}  "
+                     f"{GRAY}SL:{RESET} {_fmt_price(r.sl)}  "
+                     f"{GRAY}TP:{RESET} {_fmt_price(r.tp)}")
+
+    # Tenkan/Kijun values par TF (niveaux exacts)
+    tk_kj_parts = []
+    for tf_name, tk_val, kj_val in [
+        ("H1", r.tk_h1, r.kj_h1),
+        ("H4", r.tk_h4, r.kj_h4),
+        ("D1", r.tk_d1, r.kj_d1),
+    ]:
+        if kj_val > 0:
+            tk_kj_parts.append(f"{GRAY}{tf_name}:{RESET} T={_fmt_price(tk_val)} K={_fmt_price(kj_val)}")
+    # W1/MN only if available
+    if r.kj_w1 > 0:
+        tk_kj_parts.append(f"{GRAY}W1:{RESET} T={_fmt_price(r.tk_w1)} K={_fmt_price(r.kj_w1)}")
+    if r.kj_mn > 0:
+        tk_kj_parts.append(f"{GRAY}MN:{RESET} T={_fmt_price(r.tk_mn)} K={_fmt_price(r.kj_mn)}")
+    if tk_kj_parts:
+        lines.append(f"    {GRAY}Niveaux:{RESET} {' | '.join(tk_kj_parts)}")
+
+    # W1/MN Kijun values
+    w1mn_parts = []
+    if r.kj_w1 > 0:
+        w1mn_parts.append(f"{GRAY}W1:{RESET} {_fmt_price(r.kj_w1)} "
+                          f"{_kc_mini(r.kumo_w1)} "
+                          f"{_tkc_mini(r.tkx_w1)}")
+    if r.kj_mn > 0:
+        mn_extra = ""
+        if r.months_vs_kj_mn > 0:
+            mn_extra = f" [AU-DESSUS {r.months_vs_kj_mn}mo]"
+        elif r.price < r.kj_mn:
+            mn_extra = " [EN-DESSOUS]"
+        w1mn_parts.append(f"{GRAY}MN:{RESET} {_fmt_price(r.kj_mn)} "
+                          f"{_kc_mini(r.kumo_mn)} "
+                          f"{_tkc_mini(r.tkx_mn)}"
+                          f"{mn_extra}")
+    if w1mn_parts:
+        lines.append(f"    {' | '.join(w1mn_parts)}")
+
+    # Clouds
+    cloud_parts = []
+    if r.cloud_w1_color != "N/A":
+        cloud_parts.append(f"{GRAY}Nuage W1:{RESET} {r.cloud_w1_color} "
+                           f"{_fmt_price(r.cloud_w1_bot)}-{_fmt_price(r.cloud_w1_top)}")
+    if r.cloud_mn_color != "N/A":
+        cloud_parts.append(f"{GRAY}Nuage MN:{RESET} {r.cloud_mn_color} "
+                           f"{_fmt_price(r.cloud_mn_bot)}-{_fmt_price(r.cloud_mn_top)}")
+    if cloud_parts:
+        lines.append(f"    {' | '.join(cloud_parts)}")
+
+    # Etape 3b : Tenkan flat history (TOUS les TFs)
+    tenkan_display = [
+        (r.tenkan_flat_h1, "Tenkan H1", "b", 2),
+        (r.tenkan_flat_h4, "Tenkan H4", "b", 2),
+        (r.tenkan_flats, "Tenkan D1", "j", 3),
+        (r.tenkan_flat_w1, "Tenkan W1", "sem", 1),
+        (r.tenkan_flat_mn, "Tenkan MN", "mois", 1),
+    ]
+    for flats, label, unit, max_show in tenkan_display:
+        for tf in flats[:max_show]:
+            d_icon = "R" if tf.direction == "RESISTANCE" else "S"
+            dm_tag = " [DOUBLE MEMOIRE]" if (label == "Tenkan MN" and r.double_memory) else ""
+            if label in ("Tenkan D1",):
+                lines.append(
+                    f"    {DIM}{label} hist:{RESET} {d_icon} "
+                    f"{_fmt_price(tf.level)} ({tf.dist_pips:+.0f}p, {tf.duration}{unit} "
+                    f"{tf.start_dt.strftime('%d/%m')}-{tf.end_dt.strftime('%d/%m')}) "
+                    f"{tf.direction}{dm_tag}"
+                )
+            else:
+                lines.append(
+                    f"    {DIM}{label} hist:{RESET} {_fmt_price(tf.level)} "
+                    f"({tf.dist_pips:+.0f}p, {tf.duration}{unit}) {tf.direction}{dm_tag}"
+                )
+
+    # Kumo FUTUR (TOUS les TFs)
+    fut_parts = []
+    for cf_top, cf_bot, cf_color, cf_flat, label in [
+        (r.cloud_fut_h1_top, r.cloud_fut_h1_bot, r.cloud_fut_h1_color, r.cloud_fut_h1_flat, "H1"),
+        (r.cloud_fut_h4_top, r.cloud_fut_h4_bot, r.cloud_fut_h4_color, r.cloud_fut_h4_flat, "H4"),
+        (r.cloud_fut_d1_top, r.cloud_fut_d1_bot, r.cloud_fut_d1_color, r.cloud_fut_d1_flat, "D1"),
+        (r.cloud_fut_w1_top, r.cloud_fut_w1_bot, r.cloud_fut_w1_color, r.cloud_fut_w1_flat, "W1"),
+        (r.cloud_fut_mn_top, r.cloud_fut_mn_bot, r.cloud_fut_mn_color, r.cloud_fut_mn_flat, "MN"),
+    ]:
+        if cf_color != "N/A":
+            flat_tag = " [PLAT]" if cf_flat else ""
+            fut_parts.append(
+                f"{GRAY}{label}:{RESET} {cf_color} "
+                f"{_fmt_price(cf_bot)}-{_fmt_price(cf_top)}{flat_tag}"
+            )
+    if fut_parts:
+        lines.append(f"    {GRAY}Kumo Futur (+26b):{RESET} {' | '.join(fut_parts)}")
+
+    # Kijun flat history (TOUS les TFs)
+    kijun_display = [
+        (r.kijun_flats_h1, "Kijun H1", "b"),
+        (r.kijun_flats_h4, "Kijun H4", "b"),
+        (r.kijun_flats_d1, "Kijun D1", "j"),
+        (r.kijun_flats_w1, "Kijun W1", "sem"),
+        (r.kijun_flats_mn, "Kijun MN", "mois"),
+    ]
+    for flats, label, unit in kijun_display:
+        for kf in flats[:1]:
+            lines.append(
+                f"    {DIM}{label} hist:{RESET} {_fmt_price(kf.level)} "
+                f"({kf.dist_pips:+.0f}p, {kf.duration}{unit}) {kf.direction}"
+            )
+
+    # SSB proximity (TOUS les TFs)
+    ssb_display = [
+        (r.ssb_h1, "SSB H1"),
+        (r.ssb_h4, "SSB H4"),
+        (r.ssb_d1, "SSB D1"),
+        (r.ssb_w1, "SSB W1"),
+        (r.ssb_mn, "SSB MN"),
+    ]
+    for ssb_list, label in ssb_display:
+        for sb_l, sb_d in ssb_list[:1]:
+            lines.append(
+                f"    {DIM}{label}:{RESET} {_fmt_price(sb_l)} ({sb_d:.1f}p)"
+            )
+
+    # Compression (Etape 7b)
+    if r.compression_zone:
+        lines.append(f"    {YELLOW}⚠ {r.compression_zone}{RESET}")
+
+    # Warnings
+    if r.warnings:
+        for w in r.warnings:
+            lines.append(f"    {YELLOW}⚠ {w}{RESET}")
+    lines.append("")
+
+
 # ─── Parser ──────────────────────────────────────────────────────────────────
 def _add_common(subparser: argparse.ArgumentParser) -> None:
     """Attache --verbose et --symbols à un subparser (pattern parents=[common])."""
@@ -1168,6 +1568,31 @@ def build_parser() -> argparse.ArgumentParser:
                           help="Filtre RR minimal (ex. 1.0 pour ne garder QUE les trades RR >= 1).")
     _add_common(p_setups)
 
+    # ── diamond ──────────────────────────────────────────────────────────
+    p_diamond = sub.add_parser(
+        "diamond",
+        help="Scan Diamond Analysis complet : Ichimoku multi-TF (H1/H4/D1) + "
+             "Etape 3b (Tenkan D1 historique, SSB) + scoring + trade setup.",
+    )
+    _add_common(p_diamond)
+
+    # ── asian-liquidity ───────────────────────────────────────────────────
+    p_asian_liq = sub.add_parser(
+        "asian-liquidity",
+        help="Scan BSL/SSL intra-Asian : swing points (Williams fractals) "
+             "crees pendant la session asiatique + statut de sweep post-Asian.",
+    )
+    p_asian_liq.add_argument("--tf", default="M15",
+                             choices=["M1", "M5", "M15", "M30", "H1"],
+                             help="Timeframe (defaut: M15)")
+    p_asian_liq.add_argument("--session-date", dest="session_date", default=None,
+                             help="Date YYYY-MM-DD (defaut: aujourd'hui UTC)")
+    p_asian_liq.add_argument("--scan-all", action="store_true",
+                             help="Scanner TOUS les symboles MT5 disponibles")
+    p_asian_liq.add_argument("--json", action="store_true",
+                             help="Sortie JSON au lieu du tableau ASCII")
+    _add_common(p_asian_liq)
+
     # ── db ─────────────────────────────────────────────────────────────────
     p_db = sub.add_parser(
         "db",
@@ -1208,7 +1633,9 @@ def main():
         "trade":     cmd_trade,
         "db":        cmd_db,
         "levels":    cmd_levels,
-        "setups":    cmd_setups,
+        "setups":          cmd_setups,
+        "diamond":         cmd_diamond,
+        "asian-liquidity": cmd_asian_liquidity,
     }
     try:
         return handlers[args.command](args)

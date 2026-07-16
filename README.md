@@ -122,6 +122,8 @@ GEMINI_API_KEY=ta_cle_ici
 | 🔍 **Scan multi-actifs** | Forex, Métaux, Indices, Crypto — tous les symboles disponibles chez le broker |
 | 🌏 **Session Asiatique** | Calcul du range AH/AL (00-08 UTC) + sweeps post-Asian + extensions Fibonacci ±1.618 à ±4.0 |
 | 🔷 **BSL/SSL Sweeps** | Détection Williams fractals (N=2) avec sweep detection sur M15 à H4 |
+| 💎 **Diamond Analysis** | Ichimoku multi-TF (H1/H4/D1/W1/MN) + mémoire institutionnelle (Tenkan/Kijun flat history) + scoring 12 critères |
+| 📈 **Backtest Asian** | Backtest 30 jours BSL/SSL asiatique → sweep London → continuation vers l'autre liquidité |
 | 🏛️ **Niveaux Daily/Weekly** | PDH/PDL / PWH/PWL avec sweeps, breaches et direction cible |
 | 🎯 **ICT FVG** | Stratégie complète en 5 étapes : DOL → Raid → FVG → Retracement → SL/TP |
 | 🏆 **Filtres ELITE** | Badges V1 et V2 basés sur des backtests (97.7-100% WR sur les trades filtrés) |
@@ -144,6 +146,8 @@ python main.py <commande> [options]
 | `watch` | Boucle temps réel (Ctrl+C) |
 | `asian` | Analyse range asiatique + Fibonacci + trades |
 | `sweeps` | Détection sweeps BSL/SSL |
+| `asian-liquidity` | Scan BSL/SSL session asiatique (Williams fractals) |
+| `diamond` | Diamond Analysis Ichimoku multi-TF + mémoire institutionnelle |
 | `levels` | Niveaux PDH/PDL + PWH/PWL |
 | `setups` | Setups directionnels filtrés |
 | `trade` | Liste ou exécute des ordres MT5 |
@@ -163,6 +167,15 @@ python main.py asian --timeframe H1 --symbols XAUUSD,EURUSD
 
 # Sweeps avec timeframe custom
 python main.py sweeps --timeframe M15 --lookback 100
+
+# Scan BSL/SSL asiatique (exhaustif)
+python main.py asian-liquidity --scan-all --tf M15
+
+# Diamond Analysis Ichimoku multi-TF
+python main.py diamond --symbols XAUUSD EURUSD GBPUSD
+
+# Backtest 30 jours Asian BSL/SSL → London continuation
+python backtest_asian_bsl_ssl.py --days 30
 
 # Trade exécution (DRY-RUN par défaut)
 python main.py trade execute --dry-run --lots 0.01
@@ -271,12 +284,15 @@ InelidaMarketScanner/
 ├── live_monitor.py           # Détecteur live de sweeps
 ├── live_ict_monitor.py       # Moniteur ICT FVG (1 symbole)
 ├── live_ict_monitor_global.py# Moniteur ICT FVG (multi-actifs)
+├── analyze_asian_bsl_ssl.py  # Scanner BSL/SSL session asiatique
+├── backtest_asian_bsl_ssl.py # Backtest Asian BSL/SSL → London continuation
 │
 ├── src/
 │   ├── config.py             # Configuration centralisée
 │   ├── mt5_connector.py      # Connexion MT5 (singleton)
 │   ├── market_scanner.py     # Scan tick + deltas
 │   ├── sweep_detector.py     # Détection sweeps + asian + Fibonacci + FVG
+│   ├── diamond_scanner.py    # Scanner Ichimoku multi-TF + mémoire institutionnelle
 │   ├── trade_executor.py     # Exécution d'ordres MT5
 │   ├── display.py            # Rendu console ANSI
 │   ├── database.py           # Base SQLite

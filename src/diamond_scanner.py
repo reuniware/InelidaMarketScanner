@@ -4,15 +4,20 @@ Diamond Analysis Scanner — Module permanent d'analyse multi-TF Ichimoku comple
 Integration systematique de l'Etape 3b : detection des flat lines passees, presentes
 et futures sur tous les timeframes (H1, H4, D1, W1, MN).
 
-Pipe #13 (14/07/2026) : les Tenkan D1 historiques sont desormais verifies automatiquement
-avant toute recommandation de trade.
+Etape 5 (W1) et Etape 7 (MN) ajoutees le 14/07/2026 :
+- Nuage VISIBLE (shift de 26 periodes, pas la valeur future)
+- Tenkan W1/MN historique (memoire institutionnelle)
+- Double memoire (Tenkan MN plat = Kijun MN actuel)
+- Compression multi-TF (Etape 7b)
+- Alignement 5/5 TFs
+- Scoring etendu a 12 criteres (incluant W1 et MN)
 
 Usage:
     from diamond_scanner import DiamondScanner
     scanner = DiamondScanner(symbols)
     results = scanner.scan_all()
     for r in results:
-        print(f"{r.symbol}: {r.score}/11 {r.bias}")
+        print(f"{r.symbol}: {r.score}/12 {r.bias} ({r.quality}) align={r.alignment}/5")
 """
 
 import logging
@@ -37,44 +42,117 @@ class TenkanFlatMemory:
     start_dt: datetime
     end_dt: datetime
     direction: str         # "RESISTANCE" ou "SUPPORT"
+    source: str = "D1"     # "D1", "W1", "MN"
 
 @dataclass
 class DiamondResult:
-    """Resultat d'analyse Diamond pour un symbole (8 criteres scores + Etape 3b)."""
+    """Resultat d'analyse Diamond pour un symbole (12 criteres max + Etape 3b + W1/MN)."""
     symbol: str
     price: float
     score: int
-    bias: str               # "BULL", "BEAR", "FLAT"
-    quality: str            # "STRONG", "GOOD", "WAIT"
+    max_score: int = 12    # 12 si MN dispo, 10 sinon
+    bias: str = "FLAT"     # "BULL", "BEAR", "FLAT"
+    quality: str = "WAIT"  # "STRONG", "GOOD", "WAIT"
+    alignment: int = 0     # 0-5 TFs alignes
 
-    # Kijun values
+    # Kijun values (TOUS les TFs)
     kj_h1: float = 0.0
     kj_h4: float = 0.0
     kj_d1: float = 0.0
+    kj_w1: float = 0.0
+    kj_mn: float = 0.0
     d_kj4: float = 0.0     # distance prix vs Kijun H4 en pips
+
+    # Tenkan values (TOUS les TFs)
+    tk_h1: float = 0.0
+    tk_h4: float = 0.0
+    tk_d1: float = 0.0
+    tk_w1: float = 0.0
+    tk_mn: float = 0.0
 
     # T/K crosses
     tkx_h1: str = "N/A"
     tkx_h4: str = "N/A"
     tkx_d1: str = "N/A"
+    tkx_w1: str = "N/A"
+    tkx_mn: str = "N/A"
 
-    # Kumo
+    # Kumo (position: ABOVE/BELOW/INSIDE)
     kumo_h1: str = "N/A"
     kumo_h4: str = "N/A"
     kumo_d1: str = "N/A"
+    kumo_w1: str = "N/A"
+    kumo_mn: str = "N/A"
+
+    # Nuage visible (top/bottom + couleur)
+    cloud_w1_top: float = 0.0
+    cloud_w1_bot: float = 0.0
+    cloud_w1_color: str = "N/A"
+    cloud_mn_top: float = 0.0
+    cloud_mn_bot: float = 0.0
+    cloud_mn_color: str = "N/A"
 
     # Flat bars (present)
     flat_h1: int = 0
     flat_h4: int = 0
 
-    # Memory (past) — Etape 3b
-    tenkan_flats: List[TenkanFlatMemory] = field(default_factory=list)
-    ssb_proximity: List[Tuple[float, float]] = field(default_factory=list)
+    # Memory (past) — Etape 3b : Tenkan flat history (TOUS les TFs)
+    tenkan_flat_h1: List[TenkanFlatMemory] = field(default_factory=list)
+    tenkan_flat_h4: List[TenkanFlatMemory] = field(default_factory=list)
+    tenkan_flats: List[TenkanFlatMemory] = field(default_factory=list)       # D1
+    tenkan_flat_w1: List[TenkanFlatMemory] = field(default_factory=list)
+    tenkan_flat_mn: List[TenkanFlatMemory] = field(default_factory=list)
+
+    # SSB proximity (TOUS les TFs)
+    ssb_h1: List[Tuple[float, float]] = field(default_factory=list)
+    ssb_h4: List[Tuple[float, float]] = field(default_factory=list)
+    ssb_proximity: List[Tuple[float, float]] = field(default_factory=list)   # backward compat (H4)
+    ssb_d1: List[Tuple[float, float]] = field(default_factory=list)
+    ssb_w1: List[Tuple[float, float]] = field(default_factory=list)
+    ssb_mn: List[Tuple[float, float]] = field(default_factory=list)
+
+    # Future Kumo projection (TOUS les TFs — 26 barres forward)
+    cloud_fut_h1_top: float = 0.0
+    cloud_fut_h1_bot: float = 0.0
+    cloud_fut_h1_color: str = "N/A"
+    cloud_fut_h1_flat: bool = False
+    cloud_fut_h4_top: float = 0.0
+    cloud_fut_h4_bot: float = 0.0
+    cloud_fut_h4_color: str = "N/A"
+    cloud_fut_h4_flat: bool = False
+    cloud_fut_d1_top: float = 0.0
+    cloud_fut_d1_bot: float = 0.0
+    cloud_fut_d1_color: str = "N/A"
+    cloud_fut_d1_flat: bool = False
+    cloud_fut_w1_top: float = 0.0
+    cloud_fut_w1_bot: float = 0.0
+    cloud_fut_w1_color: str = "N/A"
+    cloud_fut_w1_flat: bool = False
+    cloud_fut_mn_top: float = 0.0
+    cloud_fut_mn_bot: float = 0.0
+    cloud_fut_mn_color: str = "N/A"
+    cloud_fut_mn_flat: bool = False
+
+    # Kijun flat history (past — TOUS les TFs)
+    kijun_flats_h1: List[TenkanFlatMemory] = field(default_factory=list)
+    kijun_flats_h4: List[TenkanFlatMemory] = field(default_factory=list)
+    kijun_flats_d1: List[TenkanFlatMemory] = field(default_factory=list)
+    kijun_flats_w1: List[TenkanFlatMemory] = field(default_factory=list)
+    kijun_flats_mn: List[TenkanFlatMemory] = field(default_factory=list)
+
+    # MN specifics
+    months_vs_kj_mn: int = 0     # nb de mois consecutifs au-dessus/en-dessous
+    double_memory: bool = False  # Tenkan MN historique == Kijun MN actuel
+
+    # Compression (Etape 7b)
+    compression_pips: float = 0.0
+    compression_zone: str = ""
 
     # Trade setup
     sl: float = 0.0
     tp: float = 0.0
     rr: float = 0.0
+    horizon: str = ""       # "Intraday", "Session", "Swing", "Position"
 
     # Metadata
     criteria: List[str] = field(default_factory=list)
@@ -84,7 +162,7 @@ class DiamondResult:
 # ── Scanner ───────────────────────────────────────────────────────────
 
 class DiamondScanner:
-    """Scanner Diamond Analysis multi-symboles avec Etape 3b integree."""
+    """Scanner Diamond Analysis multi-symboles avec Etapes 3b, 5, 7, 7b integrees."""
 
     def __init__(self, symbols: Optional[List[str]] = None):
         self.symbols: List[str] = list(symbols or [])
@@ -109,7 +187,7 @@ class DiamondScanner:
             self._initialized = False
 
     def scan_all(self) -> List[DiamondResult]:
-        """Scan complet de tous les symboles avec Etape 3b."""
+        """Scan complet de tous les symboles avec Etapes 3b, 5, 7, 7b."""
         if not self._initialized:
             self.initialize()
 
@@ -135,6 +213,9 @@ class DiamondScanner:
         elif 'JPY' in sym: return (price - level) * 100
         else: return (price - level) * 10000
 
+    def _pct(self, price: float, level: float) -> float:
+        return (price - level) / level * 100.0 if level else 0.0
+
     def _get_price(self, sym: str) -> Optional[float]:
         mt5.symbol_select(sym, True)
         t = mt5.symbol_info_tick(sym)
@@ -143,6 +224,13 @@ class DiamondScanner:
     def _get_rates(self, sym: str, tf: int, n: int) -> Optional[List[Tuple[int, float, float, float]]]:
         r = mt5.copy_rates_from_pos(sym, tf, 0, n)
         if r is None or len(r) < n:
+            return None
+        return [(int(x[0]), float(x[2]), float(x[3]), float(x[4])) for x in r]
+
+    def _get_rates_min(self, sym: str, tf: int, min_bars: int, request_bars: int) -> Optional[List[Tuple[int, float, float, float]]]:
+        """Fetch bars; return None if < min_bars available even after requesting request_bars."""
+        r = mt5.copy_rates_from_pos(sym, tf, 0, request_bars)
+        if r is None or len(r) < min_bars:
             return None
         return [(int(x[0]), float(x[2]), float(x[3]), float(x[4])) for x in r]
 
@@ -163,6 +251,22 @@ class DiamondScanner:
         ct, cb = max(sa_v, sb_v), min(sa_v, sb_v)
         return "ABOVE" if price > ct else ("BELOW" if price < cb else "INSIDE")
 
+    def _kumo_visible(self, price: float, highs: List[float], lows: List[float]) -> Tuple[str, float, float, str]:
+        """Kumo VISIBLE (shift de 26 periodes, pas la valeur future).
+        Returns (position, cloud_top, cloud_bot, color)."""
+        n = len(highs)
+        if n < 78: return ("N/A", 0.0, 0.0, "N/A")
+        idx = n - 27  # -26 bars from end
+        if idx < 52: return ("N/A", 0.0, 0.0, "N/A")
+        tk_v = (max(highs[idx-8:idx+1]) + min(lows[idx-8:idx+1])) / 2.0
+        kj_v = (max(highs[idx-25:idx+1]) + min(lows[idx-25:idx+1])) / 2.0
+        sa_v = (tk_v + kj_v) / 2.0
+        sb_v = (max(highs[idx-51:idx+1]) + min(lows[idx-51:idx+1])) / 2.0
+        ct, cb = max(sa_v, sb_v), min(sa_v, sb_v)
+        color = "VERT" if sa_v > sb_v else "ROUGE"
+        pos = "ABOVE" if price > ct else ("BELOW" if price < cb else "INSIDE")
+        return (pos, ct, cb, color)
+
     def _flat_bars(self, highs: List[float], lows: List[float], max_bars: int = 100) -> int:
         if len(highs) < 27: return 0
         base = (max(highs[-26:]) + min(lows[-26:])) / 2.0
@@ -174,13 +278,92 @@ class DiamondScanner:
                 break
         return len(vals) - 1
 
-    # ── Etape 3b : Tenkan D1 historique ──
+    # ── Etape 3b : Kumo FUTUR (projection +26 barres) ──
+
+    def _kumo_future(self, highs: List[float], lows: List[float], sym: str = "") -> Tuple[float, float, str, bool]:
+        """Calcule le Kumo FUTUR projete 26 barres en avant.
+        Returns (cloud_top, cloud_bot, color, is_flat)."""
+        n = len(highs)
+        if n < 52:
+            return (0.0, 0.0, "N/A", False)
+
+        # Tenkan = (highest high + lowest low) / 2 sur 9 periodes
+        tk_now = (max(highs[-9:]) + min(lows[-9:])) / 2.0
+        # Kijun = idem sur 26 periodes
+        kj_now = (max(highs[-26:]) + min(lows[-26:])) / 2.0
+        # Senkou A = (Tenkan + Kijun) / 2, projete 26 barres forward
+        sa_fut = (tk_now + kj_now) / 2.0
+        # Senkou B = (highest high + lowest low) / 2 sur 52 periodes, projete 26 barres forward
+        sb_fut = (max(highs[-52:]) + min(lows[-52:])) / 2.0
+
+        ct, cb = max(sa_fut, sb_fut), min(sa_fut, sb_fut)
+        color = "VERT" if sa_fut > sb_fut else "ROUGE"
+
+        # Detection Kumo flat: Senkou B inchange depuis 3 barres
+        is_flat = False
+        if n >= 55:
+            sb_prev = (max(highs[-55:-3]) + min(lows[-55:-3])) / 2.0
+            # Use instrument-appropriate threshold (same pattern as Tenkan/Kijun detectors)
+            thresh = 0.03 if sym == 'XAUUSD' or ('JPY' in sym) else 0.0003
+            is_flat = abs(sb_fut - sb_prev) < thresh
+
+        return ct, cb, color, is_flat
+
+    # ── Etape 3b : Kijun flat history (zones d'equilibre historiques) ──
+
+    def _detect_kijun_flat_history(
+        self, highs: List[float], lows: List[float],
+        timestamps: List[int], sym: str, price: float,
+        max_pips: float = 80.0, source_label: str = "D1"
+    ) -> List[TenkanFlatMemory]:
+        """Detecte les Kijun plats historiques (zones d'equilibre majeures)."""
+        n = len(highs)
+        if n < 52:
+            return []
+
+        thresh = 0.03 if ('JPY' in sym or sym == 'XAUUSD') else 0.0003
+        prev_kj = None
+        current_flat: List[Tuple[datetime, float]] = []
+        all_flats: List[List[Tuple[datetime, float]]] = []
+
+        for i in range(25, n):
+            kj = (max(highs[i-25:i+1]) + min(lows[i-25:i+1])) / 2.0
+            dt = datetime.fromtimestamp(timestamps[i], UTC)
+            if prev_kj is not None:
+                if abs(kj - prev_kj) < thresh:
+                    current_flat.append((dt, kj))
+                else:
+                    if len(current_flat) >= 2:
+                        all_flats.append(current_flat)
+                    current_flat = [(dt, kj)]
+            else:
+                current_flat = [(dt, kj)]
+            prev_kj = kj
+        if len(current_flat) >= 2:
+            all_flats.append(current_flat)
+
+        relevant: List[TenkanFlatMemory] = []
+        for period in all_flats:
+            vals = [p[1] for p in period]
+            avg = sum(vals) / len(vals)
+            dist = self._pips(sym, price, avg)
+            if abs(dist) < max_pips and len(period) >= 2:
+                relevant.append(TenkanFlatMemory(
+                    level=avg, dist_pips=dist, duration=len(period),
+                    start_dt=period[0][0], end_dt=period[-1][0],
+                    direction="SUPPORT" if dist > 0 else "RESISTANCE",
+                    source=source_label,
+                ))
+        return sorted(relevant, key=lambda x: abs(x.dist_pips))
+
+    # ── Etape 3b : Tenkan flat history (generic TF) ──
 
     def _detect_tenkan_flat_history(
         self, highs: List[float], lows: List[float],
-        timestamps: List[int], sym: str, price: float
+        timestamps: List[int], sym: str, price: float,
+        max_pips: float = 80.0, source_label: str = "D1"
     ) -> List[TenkanFlatMemory]:
-        """Detecte les Tenkan D1 plats historiques proches du prix (memoire institutionnelle)."""
+        """Detecte les Tenkan plats historiques sur n'importe quel TF."""
         n = len(highs)
         if n < 30: return []
 
@@ -210,11 +393,12 @@ class DiamondScanner:
             vals = [p[1] for p in period]
             avg = sum(vals) / len(vals)
             dist = self._pips(sym, price, avg)
-            if abs(dist) < 80 and len(period) >= 2:
+            if abs(dist) < max_pips and len(period) >= 2:
                 relevant.append(TenkanFlatMemory(
                     level=avg, dist_pips=dist, duration=len(period),
                     start_dt=period[0][0], end_dt=period[-1][0],
-                    direction="SUPPORT" if dist > 0 else "RESISTANCE"
+                    direction="SUPPORT" if dist > 0 else "RESISTANCE",
+                    source=source_label,
                 ))
         return sorted(relevant, key=lambda x: abs(x.dist_pips))
 
@@ -222,14 +406,29 @@ class DiamondScanner:
 
     def _detect_ssb_near(
         self, highs: List[float], lows: List[float],
-        price: float, sym: str, max_pips: float = 5.0
+        price: float, sym: str, max_pips: float = 5.0, shift: int = 0
     ) -> List[Tuple[float, float]]:
-        """Trouve les SSB dans les max_pips du prix."""
+        """Trouve les SSB VISIBLES (décalés) dans les max_pips du prix.
+
+        Args:
+            shift: Décalage pour la projection Ichimoku.
+                   Le SSB est projeté 26 périodes en avant sur le graphique.
+                   Pour W1 et MN, shift=26 car la valeur visible aujourd'hui
+                   a été calculée il y a 26 périodes (Piège #2).
+                   Pour H1/H4/D1, shift=0 car le décalage est négligeable.
+        """
         factor = 10 if sym == 'XAUUSD' else (100 if 'JPY' in sym else 10000)
         results: List[Tuple[float, float]] = []
         seen = set()
-        for i in range(52, len(highs)):
-            sb = (max(highs[i-51:i+1]) + min(lows[i-51:i+1])) / 2.0
+        n = len(highs)
+        start = 52 + shift
+        for i in range(start, n):
+            # Visible SSB à la position i = SB calculé il y a 'shift' périodes
+            sb_idx_end = i + 1 - shift
+            sb_idx_start = i - 51 - shift
+            if sb_idx_start < 0 or sb_idx_end > n:
+                continue
+            sb = (max(highs[sb_idx_start:sb_idx_end]) + min(lows[sb_idx_start:sb_idx_end])) / 2.0
             if sb == 0: continue
             dist = abs(price - sb) * factor
             if dist < max_pips:
@@ -239,25 +438,65 @@ class DiamondScanner:
                     results.append((sb, dist))
         return sorted(results, key=lambda x: x[1])
 
+    # ── Etape 7b : Compression multi-TF ──
+
+    def _detect_compression(self, r: DiamondResult, sym: str) -> Tuple[float, str]:
+        """Detecte une compression entre support MN et resistance W1."""
+        supports = []
+        resistances = []
+
+        # Support MN: Kijun MN
+        if r.kj_mn > 0 and r.price > r.kj_mn:
+            supports.append(("Kijun MN", r.kj_mn))
+        # Support W1: Kijun W1
+        if r.kj_w1 > 0 and r.price > r.kj_w1:
+            supports.append(("Kijun W1", r.kj_w1))
+        # Resistance W1: cloud top
+        if r.cloud_w1_top > 0 and r.price < r.cloud_w1_top:
+            resistances.append(("Top nuage W1", r.cloud_w1_top))
+        # Resistance MN: Tenkan MN flat
+        for f in r.tenkan_flat_mn:
+            if f.direction == "RESISTANCE":
+                resistances.append((f"Tenkan MN plat", f.level))
+
+        if not supports or not resistances:
+            return (0.0, "")
+
+        nearest_support = max(supports, key=lambda x: x[1])
+        nearest_resistance = min(resistances, key=lambda x: x[1])
+        gap = self._pips(sym, nearest_resistance[1], nearest_support[1])
+
+        if gap < 0:
+            return (0.0, "")  # no compression, price outside bounds
+
+        if gap < 100:
+            desc = (f"COMPRESSION {gap:.0f}p: {nearest_support[0]} "
+                    f"{nearest_support[1]:.5f} ← PRIX → {nearest_resistance[0]} "
+                    f"{nearest_resistance[1]:.5f}")
+            return (gap, desc)
+        return (gap, "")
+
     # ── Core scan ──
 
     def _scan_symbol(self, sym: str) -> Optional[DiamondResult]:
         price = self._get_price(sym)
         if price is None: return None
 
+        # ── H1, H4, D1 (requis) ──
         h1 = self._get_rates(sym, mt5.TIMEFRAME_H1, 120)
         h4 = self._get_rates(sym, mt5.TIMEFRAME_H4, 120)
         d1 = self._get_rates(sym, mt5.TIMEFRAME_D1, 200)
-
         if h1 is None or h4 is None or d1 is None:
             return None
 
         h1_h, h1_l = [x[1] for x in h1], [x[2] for x in h1]
         h4_h, h4_l = [x[1] for x in h4], [x[2] for x in h4]
         d1_h, d1_l = [x[1] for x in d1], [x[2] for x in d1]
+        h1_t = [x[0] for x in h1]
+        h4_t = [x[0] for x in h4]
         d1_t = [x[0] for x in d1]
 
-        # Ichimoku
+        # ── Ichimoku H1/H4/D1 ──
         kj1, kj4, kd1 = self._kj(h1_h, h1_l), self._kj(h4_h, h4_l), self._kj(d1_h, d1_l)
         tk1, tk4, td1 = self._tk(h1_h, h1_l), self._tk(h4_h, h4_l), self._tk(d1_h, d1_l)
 
@@ -272,78 +511,310 @@ class DiamondScanner:
         flat1 = self._flat_bars(h1_h, h1_l)
         flat4 = self._flat_bars(h4_h, h4_l)
 
-        # Etape 3b : Tenkan D1 historique
-        tenkan_flats = self._detect_tenkan_flat_history(d1_h, d1_l, d1_t, sym, price)
+        # ═══ Etape 3b: Tenkan flat history — TOUS les TFs ════════════════════
+        tenkan_flat_h1 = self._detect_tenkan_flat_history(h1_h, h1_l, h1_t, sym, price, max_pips=30.0, source_label="H1")
+        tenkan_flat_h4 = self._detect_tenkan_flat_history(h4_h, h4_l, h4_t, sym, price, max_pips=50.0, source_label="H4")
+        tenkan_flats = self._detect_tenkan_flat_history(d1_h, d1_l, d1_t, sym, price, max_pips=80.0, source_label="D1")
 
-        # SSB H4
+        # ═══ Etape 3b: Kijun flat history — TOUS les TFs ═════════════════════
+        kijun_flats_h1 = self._detect_kijun_flat_history(h1_h, h1_l, h1_t, sym, price, max_pips=30.0, source_label="H1")
+        kijun_flats_h4 = self._detect_kijun_flat_history(h4_h, h4_l, h4_t, sym, price, max_pips=50.0, source_label="H4")
+        kijun_flats_d1 = self._detect_kijun_flat_history(d1_h, d1_l, d1_t, sym, price, max_pips=150.0, source_label="D1")
+
+        # ═══ Etape 3b: Kumo FUTUR — TOUS les TFs (H1/H4/D1) ══════════════════
+        cf_h1_top, cf_h1_bot, cf_h1_color, cf_h1_flat = self._kumo_future(h1_h, h1_l, sym)
+        cf_h4_top, cf_h4_bot, cf_h4_color, cf_h4_flat = self._kumo_future(h4_h, h4_l, sym)
+        cf_d1_top, cf_d1_bot, cf_d1_color, cf_d1_flat = self._kumo_future(d1_h, d1_l, sym)
+
+        # ═══ Etape 3b: SSB proximity — TOUS les TFs ══════════════════════════
+        ssb_h1 = self._detect_ssb_near(h1_h, h1_l, price, sym)
         ssb_h4 = self._detect_ssb_near(h4_h, h4_l, price, sym)
+        ssb_d1 = self._detect_ssb_near(d1_h, d1_l, price, sym)
 
-        # Scoring (11 criteres)
+
+
+        # ═══ Etape 5: W1 Analysis ═══════════════════════════════════════════
+        kjw1 = 0.0
+        tkxw1 = "N/A"
+        kumow1 = "N/A"
+        cloud_w1_top = 0.0
+        cloud_w1_bot = 0.0
+        cloud_w1_color = "N/A"
+        tenkan_flat_w1: List[TenkanFlatMemory] = []
+        cf_w1_top = cf_w1_bot = 0.0
+        cf_w1_color = "N/A"
+        cf_w1_flat = False
+        kijun_flats_w1: List[TenkanFlatMemory] = []
+        ssb_w1: List[Tuple[float, float]] = []
+        w1_available = False
+
+        w1 = self._get_rates_min(sym, mt5.TIMEFRAME_W1, 80, 100)
+        if w1 is not None:
+            w1_h, w1_l = [x[1] for x in w1], [x[2] for x in w1]
+            w1_t = [x[0] for x in w1]
+            kjw1 = self._kj(w1_h, w1_l)
+            tkw1 = self._tk(w1_h, w1_l)
+            tkxw1 = "BULL" if tkw1 > kjw1 else "BEAR"
+            kumow1, cloud_w1_top, cloud_w1_bot, cloud_w1_color = self._kumo_visible(price, w1_h, w1_l)
+            tenkan_flat_w1 = self._detect_tenkan_flat_history(w1_h, w1_l, w1_t, sym, price, max_pips=200.0, source_label="W1")
+            cf_w1_top, cf_w1_bot, cf_w1_color, cf_w1_flat = self._kumo_future(w1_h, w1_l, sym)
+            kijun_flats_w1 = self._detect_kijun_flat_history(w1_h, w1_l, w1_t, sym, price, max_pips=300.0, source_label="W1")
+            ssb_w1 = self._detect_ssb_near(w1_h, w1_l, price, sym, max_pips=15.0, shift=26)
+            w1_available = True
+
+        # ═══ Etape 7: MN Analysis ════════════════════════════════════════════
+        kjmn = 0.0
+        tkxmn = "N/A"
+        kumomn = "N/A"
+        cloud_mn_top = 0.0
+        cloud_mn_bot = 0.0
+        cloud_mn_color = "N/A"
+        tenkan_flat_mn: List[TenkanFlatMemory] = []
+        cf_mn_top = cf_mn_bot = 0.0
+        cf_mn_color = "N/A"
+        cf_mn_flat = False
+        kijun_flats_mn: List[TenkanFlatMemory] = []
+        ssb_mn: List[Tuple[float, float]] = []
+        months_vs_kj = 0
+        double_memory = False
+        mn_available = False
+
+        mn = self._get_rates_min(sym, mt5.TIMEFRAME_MN1, 80, 120)
+        if mn is not None:
+            mn_h, mn_l = [x[1] for x in mn], [x[2] for x in mn]
+            mn_c = [x[3] for x in mn]
+            mn_t = [x[0] for x in mn]
+            kjmn = self._kj(mn_h, mn_l)
+            tkmn = self._tk(mn_h, mn_l)
+            tkxmn = "BULL" if tkmn > kjmn else "BEAR"
+            kumomn, cloud_mn_top, cloud_mn_bot, cloud_mn_color = self._kumo_visible(price, mn_h, mn_l)
+            tenkan_flat_mn = self._detect_tenkan_flat_history(mn_h, mn_l, mn_t, sym, price, max_pips=500.0, source_label="MN")
+            cf_mn_top, cf_mn_bot, cf_mn_color, cf_mn_flat = self._kumo_future(mn_h, mn_l, sym)
+            kijun_flats_mn = self._detect_kijun_flat_history(mn_h, mn_l, mn_t, sym, price, max_pips=600.0, source_label="MN")
+            ssb_mn = self._detect_ssb_near(mn_h, mn_l, price, sym, max_pips=30.0, shift=26)
+            mn_available = True
+
+            # Months vs Kijun MN
+            months_vs_kj = 0
+            if kjmn > 0:
+                for i in range(len(mn_c) - 1, -1, -1):
+                    c = mn_c[i]
+                    if c > kjmn:
+                        months_vs_kj += 1
+                    else:
+                        break
+
+            # Double memory: Tenkan MN flat level == current Kijun MN
+            for f in tenkan_flat_mn:
+                if abs(f.level - kjmn) / kjmn * 100 < 0.05:
+                    double_memory = True
+                    break
+
+        # ═══ Scoring (12 criteres max) ═══════════════════════════════════════
         score = 0
+        max_score = 12 if mn_available else 10
         crit: List[str] = []
-        if kumo1 == "ABOVE": score += 1; crit.append("H1Ku")
+        warnings: List[str] = []
+        alignment = 0
+
+        # H1 (2 criteres)
+        if kumo1 == "ABOVE": score += 1; crit.append("H1Ku"); alignment += 1
         if tkx1 == "BULL": score += 1; crit.append("H1TK")
-        if kumo4 == "ABOVE": score += 1; crit.append("H4Ku")
+        # H4 (2 criteres)
+        if kumo4 == "ABOVE": score += 1; crit.append("H4Ku"); alignment += 1
         if tkx4 == "BULL": score += 1; crit.append("H4TK")
-        if kumod1 == "ABOVE": score += 1; crit.append("D1Ku")
+        # D1 (2 criteres)
+        if kumod1 == "ABOVE": score += 1; crit.append("D1Ku"); alignment += 1
         if tkxd1 == "BULL": score += 1; crit.append("D1TK")
+        # Flat bars (2 criteres)
         if flat4 >= 8: score += 1; crit.append(f"Fl4({flat4}b)")
         if flat1 >= 8: score += 1; crit.append(f"Fl1({flat1}b)")
+        # W1 (2 criteres) — Etape 5
+        if w1_available:
+            if kumow1 == "ABOVE": score += 1; crit.append("W1Ku"); alignment += 1
+            if tkxw1 == "BULL": score += 1; crit.append("W1TK")
+        # MN (2 criteres) — Etape 7
+        if mn_available:
+            if kumomn == "ABOVE": score += 1; crit.append("MNKu"); alignment += 1
+            if tkxmn == "BULL": score += 1; crit.append("MNTK")
 
         d_kj4 = self._pips(sym, price, kj4)
 
-        # Warnings (Etape 3b)
-        warnings: List[str] = []
+        # ── Warnings (Etape 3b — TOUS les TFs) ──
+        # Tenkan flats proches (H1/H4/D1/W1/MN)
+        for flats, label, threshold, unit in [
+            (tenkan_flat_h1, "TenkanH1", 5, "b"),
+            (tenkan_flat_h4, "TenkanH4", 10, "b"),
+            (tenkan_flats, "TenkanD1", 10, "j"),
+            (tenkan_flat_w1, "TenkanW1", 20, "sem"),
+        ]:
+            near = [f for f in flats if abs(f.dist_pips) < threshold]
+            for nf in near[:2 if label == "TenkanD1" else 1]:
+                warnings.append(
+                    f"{label} {nf.direction} {nf.level:.5f} "
+                    f"({nf.dist_pips:+.0f}p, {nf.duration}{unit})"
+                )
+        # Tenkan D1 penalty
         if tenkan_flats:
-            near = [f for f in tenkan_flats if abs(f.dist_pips) < 10]
-            if near:
-                for nf in near[:2]:
-                    warnings.append(
-                        f"TenkanD1 {nf.direction} {nf.level:.5f} "
-                        f"({nf.dist_pips:+.0f}p, {nf.duration}j)"
-                    )
-                score -= 1  # Penalite pour entree dans resistance
+            near_d1 = [f for f in tenkan_flats if abs(f.dist_pips) < 10]
+            if near_d1:
+                score -= 1
 
-        if ssb_h4:
-            for sb_l, sb_d in ssb_h4[:2]:
-                warnings.append(f"SSB {sb_l:.5f} ({sb_d:.1f}p)")
+        # Tenkan MN — double memory
+        if double_memory:
+            warnings.append(f"DOUBLE MEMOIRE: Tenkan MN plat = Kijun MN {kjmn:.5f}")
 
-        # Bias + setup
-        if d_kj4 > 5 and kumo4 == "ABOVE" and score >= 6:
-            bias, direction = "BULL", 1
-        elif d_kj4 < -5 and kumo4 == "BELOW" and score >= 6:
-            bias, direction = "BEAR", -1
-        else:
-            bias, direction = "FLAT", 0
+        # Kijun flat history warnings (H1/H4/D1/W1/MN)
+        for flats, label, threshold, unit in [
+            (kijun_flats_h1, "KijunH1", 5, "b"),
+            (kijun_flats_h4, "KijunH4", 10, "b"),
+            (kijun_flats_d1, "KijunD1", 20, "j"),
+            (kijun_flats_w1, "KijunW1", 30, "sem"),
+            (kijun_flats_mn, "KijunMN", 50, "mois"),
+        ]:
+            near = [f for f in flats if abs(f.dist_pips) < threshold]
+            for nf in near[:1]:
+                warnings.append(
+                    f"{label} {nf.direction} {nf.level:.5f} "
+                    f"({nf.dist_pips:+.0f}p, {nf.duration}{unit})"
+                )
+
+        # ── Confluence Kijun H1=H4 ──
+        kj_h1h4_dist = self._pips(sym, kj1, kj4)
+        if abs(kj_h1h4_dist) < 5.0 and kj1 > 0 and kj4 > 0:
+            avg_kj = (kj1 + kj4) / 2.0
+            if sym == 'XAUUSD':
+                level_label = f"{avg_kj:.2f}"
+            elif 'JPY' in sym:
+                level_label = f"{avg_kj:.3f}"
+            else:
+                level_label = f"{avg_kj:.5f}"
+            warnings.append(
+                f"CONFLUENT KIJUN H1=H4: {level_label} "
+                f"({abs(kj_h1h4_dist):.1f}p)"
+            )
+
+        # SSB proches (H1/H4/D1/W1/MN)
+        for ssb_list, label in [
+            (ssb_h1, "SSB H1"), (ssb_h4, "SSB H4"), (ssb_d1, "SSB D1"),
+            (ssb_w1, "SSB W1"), (ssb_mn, "SSB MN"),
+        ]:
+            for sb_l, sb_d in ssb_list[:2 if label == "SSB H4" else 1]:
+                warnings.append(f"{label} {sb_l:.5f} ({sb_d:.1f}p)")
+
+        # Kumo futur (H1/H4/D1/W1/MN)
+        for cf_color, cf_flat, kumo_current, label in [
+            (cf_h1_color, cf_h1_flat, kumo1, "H1"),
+            (cf_h4_color, cf_h4_flat, kumo4, "H4"),
+            (cf_d1_color, cf_d1_flat, kumod1, "D1"),
+            (cf_w1_color, cf_w1_flat, kumow1, "W1"),
+            (cf_mn_color, cf_mn_flat, kumomn, "MN"),
+        ]:
+            if cf_color == "ROUGE" and kumo_current == "ABOVE":
+                warnings.append(f"KUMO VIRAGE {label}: Nuage futur ROUGE (devient baissier)")
+            if cf_flat and label in ("H4", "D1", "W1", "MN"):
+                warnings.append(f"KUMO FLAT {label}: Senkou B projete plat → magnet")
+
+        # ── Bias: Kijun MN is the ultimate judge (Etape 7) ──
+        # Default: use H4 Kijun + Kumo
+        bias = "FLAT"
+        direction = 0
+
+        # MN overrides if available
+        mn_bullish = mn_available and kjmn > 0 and price > kjmn
+        mn_bearish = mn_available and kjmn > 0 and price < kjmn
+
+        if d_kj4 > 5 and kumo4 == "ABOVE":
+            if mn_bearish:
+                bias = "FLAT"  # H4 says BULL but MN says BEAR → conflict
+                warnings.append(f"CONFLIT MN: Prix SOUS Kijun MN {kjmn:.5f}")
+            else:
+                bias, direction = "BULL", 1
+        elif d_kj4 < -5 and kumo4 == "BELOW":
+            if mn_bullish:
+                bias = "FLAT"  # H4 says BEAR but MN says BULL → conflict
+                warnings.append(f"CONFLIT MN: Prix SUR Kijun MN {kjmn:.5f}")
+            else:
+                bias, direction = "BEAR", -1
+
+        # ── Quality thresholds (v2: 8/12 GOOD, 10/12 STRONG) ──
+        good_threshold = max_score - 4   # 8 for 12, 6 for 10
+        strong_threshold = max_score - 2  # 10 for 12, 8 for 10
 
         if direction != 0:
             sl = kj4
             risk = abs(d_kj4)
-            tp = price + (risk * 2.0) / (10 if sym == 'XAUUSD' else (100 if 'JPY' in sym else 10000)) * direction
+            pip_factor = 10 if sym == 'XAUUSD' else (100 if 'JPY' in sym else 10000)
+            tp = price + (risk * 2.0) / pip_factor * direction
             rr = 2.0
-            quality = "STRONG" if score >= 7 and not warnings else "GOOD" if score >= 6 else "WAIT"
+            has_warnings = any("TenkanD1" in w for w in warnings)
+            if score >= strong_threshold and not has_warnings:
+                quality = "STRONG"
+            elif score >= good_threshold:
+                quality = "GOOD"
+            else:
+                quality = "WAIT"
         else:
             sl = tp = rr = 0.0
             quality = "WAIT"
 
-        return DiamondResult(
-            symbol=sym, price=price, score=score, bias=bias, quality=quality,
-            kj_h1=kj1, kj_h4=kj4, kj_d1=kd1, d_kj4=d_kj4,
-            tkx_h1=tkx1, tkx_h4=tkx4, tkx_d1=tkxd1,
-            kumo_h1=kumo1, kumo_h4=kumo4, kumo_d1=kumod1,
+        # ── Horizon de trading ──
+        # Base sur l'alignement + Kumo (direction-agnostique : ABOVE ou BELOW = signal clair)
+        clear_mn = mn_available and kumomn not in ("INSIDE", "N/A")
+        clear_w1 = w1_available and kumow1 not in ("INSIDE", "N/A")
+        clear_d1 = kumod1 not in ("INSIDE", "N/A")
+
+        horizon = ""  # vide si aucun horizon clair
+        if alignment >= 5 and clear_mn:
+            horizon = "Position (semaines/mois)"
+        elif alignment >= 4 and clear_w1:
+            horizon = "Swing long (jours/semaines)"
+        elif alignment >= 3 and clear_d1 and flat4 >= 8:
+            horizon = "Swing (jours)"
+        elif flat4 >= 8 and flat1 >= 8:
+            horizon = "Session (heures)"
+        elif flat1 >= 8:
+            horizon = "Intraday (minutes/heures)"
+
+        # ── Etape 7b: Compression ──
+        r = DiamondResult(
+            symbol=sym, price=price, score=score, max_score=max_score,
+            bias=bias, quality=quality, alignment=alignment,
+            kj_h1=kj1, kj_h4=kj4, kj_d1=kd1, kj_w1=kjw1, kj_mn=kjmn, d_kj4=d_kj4,
+            tk_h1=tk1, tk_h4=tk4, tk_d1=td1, tk_w1=tkw1 if w1_available else 0.0, tk_mn=tkmn if mn_available else 0.0,
+            tkx_h1=tkx1, tkx_h4=tkx4, tkx_d1=tkxd1, tkx_w1=tkxw1, tkx_mn=tkxmn,
+            kumo_h1=kumo1, kumo_h4=kumo4, kumo_d1=kumod1, kumo_w1=kumow1, kumo_mn=kumomn,
+            cloud_w1_top=cloud_w1_top, cloud_w1_bot=cloud_w1_bot, cloud_w1_color=cloud_w1_color,
+            cloud_mn_top=cloud_mn_top, cloud_mn_bot=cloud_mn_bot, cloud_mn_color=cloud_mn_color,
             flat_h1=flat1, flat_h4=flat4,
-            tenkan_flats=tenkan_flats, ssb_proximity=ssb_h4,
-            sl=sl, tp=tp, rr=rr,
-            criteria=crit, warnings=warnings
+            tenkan_flat_h1=tenkan_flat_h1, tenkan_flat_h4=tenkan_flat_h4,
+            tenkan_flats=tenkan_flats, tenkan_flat_w1=tenkan_flat_w1, tenkan_flat_mn=tenkan_flat_mn,
+            ssb_h1=ssb_h1, ssb_h4=ssb_h4, ssb_proximity=ssb_h4,
+            ssb_d1=ssb_d1, ssb_w1=ssb_w1, ssb_mn=ssb_mn,
+            cloud_fut_h1_top=cf_h1_top, cloud_fut_h1_bot=cf_h1_bot, cloud_fut_h1_color=cf_h1_color, cloud_fut_h1_flat=cf_h1_flat,
+            cloud_fut_h4_top=cf_h4_top, cloud_fut_h4_bot=cf_h4_bot, cloud_fut_h4_color=cf_h4_color, cloud_fut_h4_flat=cf_h4_flat,
+            cloud_fut_d1_top=cf_d1_top, cloud_fut_d1_bot=cf_d1_bot, cloud_fut_d1_color=cf_d1_color, cloud_fut_d1_flat=cf_d1_flat,
+            cloud_fut_w1_top=cf_w1_top, cloud_fut_w1_bot=cf_w1_bot, cloud_fut_w1_color=cf_w1_color, cloud_fut_w1_flat=cf_w1_flat,
+            cloud_fut_mn_top=cf_mn_top, cloud_fut_mn_bot=cf_mn_bot, cloud_fut_mn_color=cf_mn_color, cloud_fut_mn_flat=cf_mn_flat,
+            kijun_flats_h1=kijun_flats_h1, kijun_flats_h4=kijun_flats_h4, kijun_flats_d1=kijun_flats_d1,
+            kijun_flats_w1=kijun_flats_w1, kijun_flats_mn=kijun_flats_mn,
+            months_vs_kj_mn=months_vs_kj, double_memory=double_memory,
+            sl=sl, tp=tp, rr=rr, horizon=horizon,
+            criteria=crit, warnings=warnings,
         )
 
+        compression_pips, compression_zone = self._detect_compression(r, sym)
+        r.compression_pips = compression_pips
+        r.compression_zone = compression_zone
 
-# ── DXY helper ──
+        return r
+
+
+# ── DXY helpers ──
 
 def get_dxy_price() -> Optional[float]:
     """Recupere le prix du DXY (essaye plusieurs variantes de symbole)."""
-    if not mt5.initialize():
-        return None
+    mt5.initialize()
     for sym in ['DXY.cash', 'DXY', 'USDX']:
         mt5.symbol_select(sym, True)
         t = mt5.symbol_info_tick(sym)
