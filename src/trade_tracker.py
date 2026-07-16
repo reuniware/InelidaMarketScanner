@@ -210,8 +210,9 @@ def _build_obstacles(sym: str, price: float, direction: int, r: DiamondResult) -
     obstacles = []
     pip_factor = 100.0 if ('JPY' in sym or 'DXY' in sym or 'XAUUSD' in sym) else 10000.0
     
-    # Tenkan levels
-    for label, tk in [("Tk H1", r.tk_h1), ("Tk H4", r.tk_h4), ("Tk D1", r.tk_d1)]:
+    # Tenkan levels (H1/H4/D1 + W1/MN)
+    for label, tk in [("Tk H1", r.tk_h1), ("Tk H4", r.tk_h4), ("Tk D1", r.tk_d1),
+                      ("Tk W1", r.tk_w1), ("Tk MN", r.tk_mn)]:
         if tk > 0:
             dist = (tk - price) * pip_factor
             if direction == 1 and dist > 0:  # BULL: obstacle above
@@ -219,8 +220,9 @@ def _build_obstacles(sym: str, price: float, direction: int, r: DiamondResult) -
             elif direction == -1 and dist < 0:  # BEAR: obstacle below
                 obstacles.append({"level": round(tk, 5), "label": label, "dist_pips": round(dist, 1)})
     
-    # Kijun levels
-    for label, kj in [("Kj H1", r.kj_h1), ("Kj H4", r.kj_h4), ("Kj D1", r.kj_d1)]:
+    # Kijun levels (H1/H4/D1 + W1/MN)
+    for label, kj in [("Kj H1", r.kj_h1), ("Kj H4", r.kj_h4), ("Kj D1", r.kj_d1),
+                      ("Kj W1", r.kj_w1), ("Kj MN", r.kj_mn)]:
         if kj > 0:
             dist = (kj - price) * pip_factor
             if direction == 1 and dist > 0:
@@ -228,8 +230,9 @@ def _build_obstacles(sym: str, price: float, direction: int, r: DiamondResult) -
             elif direction == -1 and dist < 0:
                 obstacles.append({"level": round(kj, 5), "label": label, "dist_pips": round(dist, 1)})
     
-    # SSB levels (ssb_proximity is backward compat for ssb_h4, use ssb_h4)
-    for ssb_list, label in [(r.ssb_h1, "SSB H1"), (r.ssb_h4, "SSB H4"), (r.ssb_d1, "SSB D1")]:
+    # SSB levels (H1/H4/D1 + W1/MN)
+    for ssb_list, label in [(r.ssb_h1, "SSB H1"), (r.ssb_h4, "SSB H4"), (r.ssb_d1, "SSB D1"),
+                            (r.ssb_w1, "SSB W1"), (r.ssb_mn, "SSB MN")]:
         for sb_l, sb_d in ssb_list[:2]:
             if direction == 1 and sb_l > price:
                 obstacles.append({"level": round(sb_l, 5), "label": label, "dist_pips": round(sb_d, 1)})
