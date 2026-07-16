@@ -16,7 +16,9 @@ import logging
 import os
 import sys
 import time
-from datetime import datetime as _dt
+import urllib.request
+import urllib.error
+from datetime import datetime as _dt, timezone as _tz
 
 from src.config import (
     DB, MT5, OUT, SWEEP, ASIAN, resolve_watchlist, DEFAULT_WATCHLIST,
@@ -1105,9 +1107,160 @@ def cmd_diamond(args):
     try:
         results = scanner.scan_all()
         _render_diamond_results(results, symbols)
+
+        # ── Discord posting ────────────────────────────────────────────
+        if getattr(args, 'discord', False):
+            webhook_url = _load_discord_webhook()
+            if webhook_url:
+                ok = _post_diamond_to_discord(webhook_url, results, symbols)
+                if ok:
+                    print(f"\n{GREEN}📤 Resultats postes sur Discord.{RESET}")
+                else:
+                    print(f"\n{RED}❌ Echec de l'envoi Discord.{RESET}")
+            else:
+                print(f"\n{YELLOW}⚠ --discord active mais aucun webhook (DISCORD_WEBHOOK_URL non defini).{RESET}")
     finally:
         scanner.shutdown()
     return 0
+
+
+def _load_discord_webhook():
+    """Charge l'URL du webhook Discord depuis .env ou la variable d'environnement."""
+    # 1. Check .env file (UTF-16 LE aware)
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    if os.path.isfile(env_path):
+        raw = None
+        with open(env_path, "rb") as f:
+            raw = f.read()
+        # Detect UTF-16 LE
+        if raw[:2] == b'\xff\xfe' or (len(raw) >= 6 and raw[1:6:2] == b'\x00\x00\x00'):
+            text = raw.decode("utf-16-le", errors="ignore")
+        else:
+            text = raw.decode("utf-8", errors="ignore")
+        for line in text.split("\n"):
+            line = line.strip()
+            if line.startswith("DISCORD_WEBHOOK_URL="):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    # 2. Check env var
+    return os.environ.get("DISCORD_WEBHOOK_URL")
+
+
+def _fmt(v):
+    """Formate un prix pour Discord (sans codes ANSI)."""
+    if v is None or v == 0:
+        return "?"
+    if isinstance(v, float):
+        if abs(v) >= 1000:
+            return f"{v:.2f}"
+        if abs(v) >= 10:
+            return f"{v:.4f}"
+        return f"{v:.5f}"
+    return str(v)
+
+
+def _build_diamond_discord_embed(results, symbols_count: int) -> dict:
+    """Construit un embed Discord a partir des resultats du Diamond Scanner."""
+    now_str = _dt.now(_tz.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+    active = [r for r in results if r.bias != "FLAT" and r.quality != "WAIT"]
+    n_strong = sum(1 for r in results if r.quality == "STRONG")
+    n_good = sum(1 for r in results if r.quality == "GOOD")
+    n_bull = sum(1 for r in results if r.bias == "BULL")
+    n_bear = sum(1 for r in results if r.bias == "BEAR")
+
+    # DXY info
+    dxy_price = get_dxy_price()
+    dxy_kj = get_dxy_kijun_h1()
+    dxy_line = ""
+    if dxy_price:
+        dxy_line = f"DXY: **{dxy_price:.3f}**"
+        if dxy_kj:
+            vs = "AU-DESSUS 🔼" if dxy_price > dxy_kj else "EN-DESSOUS 🔽"
+            dxy_line += f" | Kijun H1: {dxy_kj:.3f} | **{vs}**"
+
+    # Top symboles (all)
+    top_setups = []
+    for r in sorted(results, key=lambda x: (0 if x.quality != "WAIT" else 1, -x.score))[:12]:
+        d_kj = f" Δ{_fmt(r.d_kj4)}p" if r.d_kj4 != 0 else ""
+        warn_str = " ⚠️" if r.warnings else ""
+        top_setups.append(
+            f"`{r.symbol:<10} {r.score:>2}/{r.max_score} {r.bias:<5} {r.quality:<7} "
+            f"Kj4:{_fmt(r.kj_h4)}{d_kj}{warn_str}`"
+        )
+    if not top_setups:
+        top_setups.append("Aucun symbole scanne.")
+
+    # Active setups detail
+    active_detail = []
+    for r in active:
+        bias_icon = "🔺" if r.bias == "BULL" else "🔻"
+        tp_str = f"{_fmt(r.tp)}"
+        if r.tp_label:
+            tp_str += f" ({r.tp_label})"
+
+        detail = (
+            f"**{r.symbol}** {bias_icon} {r.bias} | Score: {r.score}/{r.max_score} | Align: {r.alignment} | RR: {r.rr:.1f}x\n"
+            f"> SL: {_fmt(r.sl)} | TP: {tp_str} | ΔKj4: {_fmt(r.d_kj4)}p"
+        )
+        if r.horizon:
+            detail += f" | Horizon: {r.horizon}"
+        detail += f"\n> Criteres: {' '.join(r.criteria[:8])}"
+
+        if r.warnings:
+            detail += f"\n> ⚠️ {' | '.join(r.warnings[:3])}"
+        if r.compression_zone:
+            detail += f"\n> 🔒 {r.compression_zone[:100]}"
+
+        active_detail.append(detail)
+    if not active_detail:
+        active_detail.append("Aucun setup actif detecte.")
+
+    # Warnings section
+    warned = [r for r in results if r.warnings]
+    warn_lines = []
+    for r in warned[:6]:
+        warn_lines.append(f"**{r.symbol}**: {' | '.join(r.warnings[:3])}")
+    if not warn_lines:
+        warn_lines.append("Aucun avertissement.")
+
+    color = 0x2ECC71 if n_strong + n_good > 0 else (0xE67E22 if n_bull + n_bear > 0 else 0x3498DB)
+
+    return {
+        "title": f"💎 Diamond Analysis — {now_str}",
+        "description": f"Scan Ichimoku multi-TF (H1→MN) sur {symbols_count} symboles\n{dxy_line}",
+        "color": color,
+        "fields": [
+            {"name": "📊 Tous les symboles", "value": "\n".join(top_setups) or "—", "inline": False},
+            {"name": "🎯 Setups actifs", "value": "\n\n".join(active_detail[:4]) or "—", "inline": False},
+            {"name": "⚠️ Avertissements", "value": "\n".join(warn_lines[:8]) or "—", "inline": False},
+            {"name": "📋 Resume", "value": (
+                f"🟢 **{n_strong}** STRONG | 🟡 **{n_good}** GOOD | ⚪ **{symbols_count - n_strong - n_good}** WAIT\n"
+                f"🔺 **{n_bull}** BULL | 🔻 **{n_bear}** BEAR"
+            ), "inline": False},
+        ],
+        "footer": {"text": "Inelida Diamond Scanner"},
+    }
+
+
+def _post_diamond_to_discord(webhook_url: str, results, symbols) -> bool:
+    """Envoie le scan Diamond sur Discord."""
+    embed = _build_diamond_discord_embed(results, len(symbols))
+    payload = json.dumps({"embeds": [embed]}, ensure_ascii=False).encode("utf-8")
+    req = urllib.request.Request(
+        webhook_url,
+        data=payload,
+        headers={
+            "Content-Type": "application/json; charset=utf-8",
+            "User-Agent": "InelidaDiamondScanner/1.0",
+        },
+        method="POST",
+    )
+    try:
+        resp = urllib.request.urlopen(req, timeout=15)
+        return resp.status == 204
+    except Exception as e:
+        print(f"[Discord] Error: {e}", file=sys.stderr)
+        return False
 
 
 def _render_diamond_results(results: list, scanned_symbols: list):
@@ -1643,6 +1796,10 @@ def build_parser() -> argparse.ArgumentParser:
              "Etape 3b (Tenkan D1 historique, SSB) + scoring + trade setup.",
     )
     _add_common(p_diamond)
+    p_diamond.add_argument(
+        "--discord", action="store_true",
+        help="Poste automatiquement les resultats sur Discord (via DISCORD_WEBHOOK_URL env var)."
+    )
 
     # ── asian-liquidity ───────────────────────────────────────────────────
     p_asian_liq = sub.add_parser(
