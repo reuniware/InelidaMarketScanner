@@ -516,8 +516,41 @@ Cible 7 symboles avec 1 seul sweep London :
 
 ---
 
-> **Prochaine session :** à remplir avec :
-> - Vérification watchlist `track verify --session 6ad79a41`
-> - DXY.cash follow-up (a-t-il cassé 100.681 ?)
-> - Nouveaux setups Diamond
+> **Prochaine session :** track verify --session 6ad79a41 / DXY 100.681 / setups
+
+## 17/07/2026 — Session Asian Open (~22:15 UTC)
+
+### 🆕 M30 Kijun Cross — Nouveau critère de scoring Diamond
+
+**Déclencheur :** GBPJPY traversait la Kijun M30 à la baisse pendant l'ouverture Asian. Je ne regardais que la H1 (Kj 219.109) et j'ai raté le signal M30.
+
+**Ajouts :**
+
+```
+DiamondResult:
+  kj_m30: float          # Kijun M30
+  kj_m30_cross_bear: bool # Traversée baissière
+  kj_m30_cross_bull: bool # Traversée haussière
+  d_kj_m30: float         # Distance en pips
+
+Scoring (max_score: 28/26):
+  M30B: bear cross + direction BEAR = +1
+  M30U: bull cross + direction BULL = +1
+
+Warnings:
+  "Kijun M30 CROSS BEAR ..." toujours affiché (même si direction opposée)
+  "Kijun M30 CROSS BULL ..." idem
+  "Sous Kijun M30 ... -structure baissiere" si prix >10p sous M30
+```
+
+**Détection :** 60 barres M30, Kijun = (plus haut + plus bas)/2 sur 26 périodes, cross détecté sur les 3 dernières closes.
+
+**Validation :**
+- GBPJPY : `Sous Kijun M30 219.031 (-27p) — structure baissière`
+- GBPUSD : `Sous Kijun M30 1.34883 (-12p) — structure baissière`
+- Les deux confirment la faiblesse court-terme que la H1 n'a pas vue.
+
+**Fichiers modifiés :** `src/diamond_scanner.py`, `main.py`
+
+---
 

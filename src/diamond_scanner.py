@@ -58,11 +58,17 @@ class DiamondResult:
 
     # Kijun values (TOUS les TFs)
     kj_h1: float = 0.0
+    kj_m30: float = 0.0    # Kijun M30 (cross detection)
     kj_h4: float = 0.0
     kj_d1: float = 0.0
     kj_w1: float = 0.0
     kj_mn: float = 0.0
     d_kj4: float = 0.0     # distance prix vs Kijun H4 en pips
+
+    # M30 Kijun cross detection
+    kj_m30_cross_bear: bool = False  # prix traverse Kijun M30 vers le bas
+    kj_m30_cross_bull: bool = False  # prix traverse Kijun M30 vers le haut
+    d_kj_m30: float = 0.0           # distance prix vs Kijun M30 en pips
 
     # Tenkan values (TOUS les TFs)
     tk_h1: float = 0.0
@@ -1087,6 +1093,32 @@ class DiamondScanner:
         # ═══ Kijun D1 distance ═══════════════════════════════════════════
         d_kj_d1 = self._pips(sym, price, kd1)
 
+        # ═══ M30 Kijun cross detection ══════════════════════════════════
+        kj_m30 = 0.0
+        kj_m30_cross_bear = False
+        kj_m30_cross_bull = False
+        d_kj_m30 = 0.0
+        m30 = self._get_rates_min(sym, mt5.TIMEFRAME_M30, 30, 60)
+        if m30 is not None:
+            m30_h, m30_l = [x[1] for x in m30], [x[2] for x in m30]
+            m30_t = [x[0] for x in m30]
+            m30_c = [x[3] for x in m30]
+            kj_m30 = self._kj(m30_h, m30_l)
+            d_kj_m30 = self._pips(sym, price, kj_m30) if kj_m30 > 0 else 0.0
+
+            # Detect Kijun M30 cross: price went from above -> below (bear) or below -> above (bull)
+            if len(m30_c) >= 3 and kj_m30 > 0:
+                # Check last 3 bars for cross
+                for i in range(max(1, len(m30_c) - 3), len(m30_c)):
+                    prev_close = m30_c[i - 1]
+                    curr_close = m30_c[i]
+                    # Bearish cross: was above Kijun, now below
+                    if prev_close > kj_m30 and curr_close < kj_m30:
+                        kj_m30_cross_bear = True
+                    # Bullish cross: was below Kijun, now above
+                    if prev_close < kj_m30 and curr_close > kj_m30:
+                        kj_m30_cross_bull = True
+
         # ═══ FVG detection — H1, H4, D1 ══════════════════════════════════
         fvg_top, fvg_bot, fvg_mitigated, fvg_pos, fvg_date, fvg_pip_factor, \
             fvg_bull_top, fvg_bull_bot, fvg_bull_mitigated, fvg_bull_pos, fvg_bull_date, fvg_bull_pip_factor = self._detect_fvg(
@@ -1117,9 +1149,9 @@ class DiamondScanner:
             else:
                 bias, direction = "BEAR", -1
 
-        # ═══ Scoring (25 criteres max avec TK4/TKd1/Kj4/KjD1 + Asian Sweep) ═══════════
+        # ═══ Scoring (28 criteres max avec TK4/TKd1/Kj4/KjD1 + Asian Sweep + M30 cross) ═══
         score = 0
-        max_score = 27 if mn_available else 25
+        max_score = 28 if mn_available else 26
         crit: List[str] = []
         warnings: List[str] = []
         alignment = 0
@@ -1209,6 +1241,21 @@ class DiamondScanner:
             alignment += 1
         elif lh_swept or ll_swept:
             alignment += 1
+
+        # M30 Kijun cross (1 critere) — momentum court-terme
+        if kj_m30_cross_bear and direction == -1:
+            score += 1; crit.append("M30B")
+            warnings.append(f"Kijun M30 CROSS BEAR {kj_m30:.5f} ({d_kj_m30:+.0f}p) — momentum baissier")
+        elif kj_m30_cross_bull and direction == 1:
+            score += 1; crit.append("M30U")
+            warnings.append(f"Kijun M30 CROSS BULL {kj_m30:.5f} ({d_kj_m30:+.0f}p) — momentum haussier")
+        elif kj_m30_cross_bear:
+            # Cross detected but direction not aligned — just warn
+            warnings.append(f"Kijun M30 CROSS BEAR {kj_m30:.5f} ({d_kj_m30:+.0f}p) — conflit direction")
+        elif kj_m30_cross_bull:
+            warnings.append(f"Kijun M30 CROSS BULL {kj_m30:.5f} ({d_kj_m30:+.0f}p) — conflit direction")
+        elif kj_m30 > 0 and price < kj_m30 and d_kj_m30 < -10:
+            warnings.append(f"Sous Kijun M30 {kj_m30:.5f} ({d_kj_m30:+.0f}p) — structure baissiere court-terme")
 
         # ── Warnings (Etape 3b — TOUS les TFs) ──
         # Tenkan/Kijun barrier warnings (when price near but NOT aligned)
@@ -1461,6 +1508,8 @@ class DiamondScanner:
             london_high_swept=lh_swept, london_low_swept=ll_swept,
             london_high_swept_at=lh_at, london_low_swept_at=ll_at,
             london_high_swept_session=lh_sess, london_low_swept_session=ll_sess,
+            kj_m30=kj_m30, kj_m30_cross_bear=kj_m30_cross_bear,
+            kj_m30_cross_bull=kj_m30_cross_bull, d_kj_m30=d_kj_m30,
             sl=sl, tp=tp, rr=rr, tp_label=tp_label, horizon=horizon,
             criteria=crit, warnings=warnings,
         )

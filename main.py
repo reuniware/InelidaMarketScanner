@@ -1838,7 +1838,9 @@ def _render_diamond_detail(r, lines: list):
                  f"Score: {r.score}/{r.max_score}  |  Align: {r.alignment}  |  "
                  f"ΔKj4: {r.d_kj4:+.1f}p"
                  f"{kj_d1_str}"
-                 f"{tk_h4_str}  |  "
+                 f"{tk_h4_str}"
+                 f"  |  M30: {'BEAR ' if r.kj_m30_cross_bear else 'BULL ' if r.kj_m30_cross_bull else ''}Kj {r.d_kj_m30:+.0f}p" if r.kj_m30 > 0 else ""
+                 f"  |  "
                  f"RR: {r.rr:.1f}x"
                  f"{horizon_str}")
     # Asian Range (ICT extensions)
