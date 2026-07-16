@@ -1541,7 +1541,8 @@ def _render_diamond_results(results: list, scanned_symbols: list):
         f"{'Prix':>10} {'Kj H1':>10} {'Kj H4':>10} {'Kj D1':>10}  "
         f"{'T/Kx H1':>8} {'T/Kx H4':>8} {'T/Kx D1':>8}  "
         f"{'Kumo H1':>8} {'Kumo H4':>8} {'Kumo D1':>8}  "
-        f"{'Flat H1':>8} {'Flat H4':>8}"
+        f"{'Flat H1':>8} {'Flat H4':>8}  "
+        f"{'Lon H':>10} {'Lon L':>10} {'Lon Swp':>8}"
         f"{RESET}"
     )
     lines.append(header)
@@ -1608,7 +1609,8 @@ def _render_diamond_results(results: list, scanned_symbols: list):
             f"{_fmt_price(r.price):>10} {_fmt_price(r.kj_h1):>10} {_fmt_price(r.kj_h4):>10} {_fmt_price(r.kj_d1):>10}  "
             f"{_pad_cell(_tkc(r.tkx_h1), 8)} {_pad_cell(_tkc(r.tkx_h4), 8)} {_pad_cell(_tkc(r.tkx_d1), 8)}  "
             f"{_pad_cell(_kc(r.kumo_h1), 8)} {_pad_cell(_kc(r.kumo_h4), 8)} {_pad_cell(_kc(r.kumo_d1), 8)}  "
-            f"{_pad_cell(_ff(r.flat_h1), 8)} {_pad_cell(_ff(r.flat_h4), 8)}"
+            f"{_pad_cell(_ff(r.flat_h1), 8)} {_pad_cell(_ff(r.flat_h4), 8)}  "
+            f"{_fmt_price(r.london_high):>10} {_fmt_price(r.london_low):>10} {_pad_cell(_london_swp(r), 8)}"
         )
 
     lines.append(f"{GRAY}{'─'*100}{RESET}")
@@ -1650,6 +1652,19 @@ def _render_diamond_results(results: list, scanned_symbols: list):
     )
 
     print("\n".join(lines))
+
+
+def _london_swp(r) -> str:
+    """Indicateur de sweep London (LH/LL) pour le tableau principal."""
+    if r.london_high <= 0 or r.london_low <= 0:
+        return f"{GRAY}--{RESET}"
+    if r.london_high_swept and r.london_low_swept:
+        return f"{YELLOW}H+L{RESET}"
+    if r.london_high_swept:
+        return f"{RED}LH{RESET}"
+    if r.london_low_swept:
+        return f"{GREEN}LL{RESET}"
+    return f"{GRAY}--{RESET}"
 
 
 def _kc_mini(val: str) -> str:
