@@ -19,11 +19,13 @@ python main.py diamond --symbols DXY.cash EURUSD GBPUSD  # symboles spécifiques
 - ✅ Ichimoku complet H1/H4/D1/W1/MN (Tenkan, Kijun, Kumo, T/K crosses)
 - ✅ **FVG multi-TF** : H1 (72b, priorité 18h-20h Paris), H4 (48b), D1 (30b) — bearish + bullish
 - ✅ Étape 3b : Tenkan/Kijun flat history TOUS TFs, SSB proximity, Kumo futur
-- ✅ Scoring 19 critères (17 sans MN) : Kumo, T/K, flat bars, FVGs, Kijun D1, W1, MN
+- ✅ Scoring 25 critères (23 sans MN) : Kumo, T/K, flat bars, FVGs, Kijun D1, W1, MN
 - ✅ Alignement multi-TF (0-5 TFs), qualités STRONG/GOOD/WAIT
 - ✅ Trade setup : SL (Kijun H4), TP (RR 2.0), horizon (Intraday→Position)
 - ✅ Détection compression multi-TF (Étape 7b)
 - ✅ Warnings : confluent Kijun H1=H4, Kumo virage/flat, conflit MN
+- ✅ **Asian Sweep detection** : AH/AL sweepés détectés sur H1 (depuis 00:00 UTC, pas seulement post-Asian) avec session (London/NY/Asian) — critères de scoring `AH{London}`, `AL{NY}`, `BOTH`
+- ✅ Affichage console `Sweeps: AH sweepé (London) | AL sweepé (NY)` + embed Discord
 
 **Critères FVG (6 max) :**
 | TF | Fenêtre scan | Priorité | Critère Bear | Critère Bull |
@@ -32,7 +34,14 @@ python main.py diamond --symbols DXY.cash EURUSD GBPUSD  # symboles spécifiques
 | **H4** | 48 barres (~8j) | Plus récent | `FVG4` | `FVGb4` |
 | **D1** | 30 barres (~1mois) | Plus récent | `FVGD1` | `FVGbD1` |
 
-**Scoring max :** 19 critères (17 sans MN)
+**Critères Asian Sweep (2+1) :**
+| Critère | Condition | Impact |
+|:---|---:|---:|
+| `AH{session}` | AH sweepé (ex: `AHLondon`) | +1 score +1 alignment |
+| `AL{session}` | AL sweepé (ex: `ALNY`) | +1 score +1 alignment |
+| `BOTH` | AH ET AL sweepés | +1 score bonus +1 alignment |
+
+**Scoring max :** 25 critères (23 sans MN)
 
 ---
 

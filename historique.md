@@ -341,5 +341,73 @@ Low H1 18h UTC: 1.14364
 
 ---
 
+### 🐛 Asian Sweep Fix — Intra-Asian detection
+
+#### Bug (découvert en fin de session)
+
+Le scanner Asian (`src/sweep_detector.py`) ignorait les sweeps survenant **pendant**
+la session asiatique (avant 08:00 UTC). Le filtre `post_bars = [b if b["time"] > last_asian_time]`
+excluait toutes les barres avant la fermeture de l'Asian.
+
+**Conséquence :** Un sweep AH à 07:45 UTC (9h45 Paris) n'était pas détecté.
+Le premier sweep enregistré était à 10:50 UTC (London).
+
+**Fix :** remplacé par `all_day_bars = [b if b["time"] >= first_asian_time]`
+scannant depuis 00:00 UTC jusqu'à maintenant.
+
+#### Piège secondaire : `bars_checked=len(post_bars)` → NameError
+
+La variable `post_bars` supprimée mais `bars_checked=len(post_bars)` oubliée dans
+le constructeur `AsianRangeResult` → NameError à l'exécution.
+
+**Fix :** `bars_checked=len(post_bars)` → `len(all_day_bars)`
+
+#### Diamond Scanner : même limitation sur l'Asian Range
+
+`_detect_asian_range` ne filtrait pas par `session_date` — les 24 dernières barres H1
+pouvaient inclure les barres d'hier (mêmes heures 00-07), contaminant les valeurs AH/AL.
+
+**Fix :** ajout du filtre `bar_date == session_date` + `_get_rates(..., 32)` pour buffer.
+
+### 💎 Asian Sweep Scoring dans le Diamond Scanner
+
+Ajout de la détection des sweeps AH/AL directement dans le Diamond Scanner :
+
+**Nouveaux champs DiamondResult :**
+- `asian_high_swept`, `asian_low_swept` (bool)
+- `asian_high_swept_at`, `asian_low_swept_at` (epoch)
+- `asian_high_swept_session`, `asian_low_swept_session` ("London", "NY", etc.)
+
+**Nouvelles méthodes :**
+- `_session_for_epoch()` — mapping ICT session → label
+- `_bar_sweeps_high/low()` — conditions de sweep ICT
+- `_detect_asian_sweeps()` — scanne les H1 déjà chargés pour sweeps AH/AL
+
+**Scoring (max_score: 25/23) :**
+- `AH{session}` → +1 si AH sweepé
+- `AL{session}` → +1 si AL sweepé
+- `BOTH` → +1 bonus si les deux
+- `alignment` +1 si au moins un sweep
+
+**Affichage console :** `Sweeps: AH sweepé (London) | AL sweepé (NY)`
+**Discord embed :** `🏹 AH ✅ (London) | AL ✅ (NY)`
+
+### Commits du jour
+
+| Hash | Description |
+|:---|:---|
+| `31ca3ed` | FVG H1 bear+bull + Kijun D1 |
+| `ac454f1` | FVG H4 + D1 |
+| `b417cc0` | User-Agent Discord |
+| `5d4bc61` | TK/KJ S/R + SL safety net |
+| `3654bd1` | Smart TP |
+| `4954746` | --discord flag |
+| `caa5ebd` | P&L Tracker + watchlist DXY |
+| `6b6bd89` | Mise à jour .md |
+| `3242ed4` | Intra-Asian sweep fix (sweep_detector) |
+| `2c692aa` | Diamond Asian Sweep scoring + date filter |
+
+---
+
 > **Prochaine session :** à remplir avec la date, le contexte, les setups, les analyses, et les résultats.
 

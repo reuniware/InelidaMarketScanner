@@ -132,6 +132,8 @@ GEMINI_API_KEY=ta_cle_ici
 | 🎨 **Dashboard Streamlit** | Interface web pour visualiser et filtrer les données |
 | 🗄️ **Base SQLite** | Enregistrement automatique des sessions, sweeps et niveaux |
 | 📊 **P&L Tracker** | Suivi automatisé des setups Diamond : save → update → rapport win rate / P&L |
+| 🐛 **Intra-Asian Sweep Fix** | Détection des sweeps AH/AL pendant la session asiatique (avant 08:00 UTC) — corrigé 16/07 |
+| 💎 **Asian Sweep Scoring** | Les sweeps AH/AL sont maintenant des critères de scoring dans le Diamond Scanner (max_score: 25) avec affichage console + Discord |
 
 ---
 
