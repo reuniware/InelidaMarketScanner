@@ -151,6 +151,10 @@ class DiamondResult:
     # Distance Kijun D1 (confluence ICT x Ichimoku)
     d_kj_d1: float = 0.0     # distance prix vs Kijun D1 en pips
 
+    # Distance Tenkan H4/D1 (support/resistance barrier)
+    d_tk_h4: float = 0.0     # distance prix vs Tenkan H4 en pips
+    d_tk_d1: float = 0.0     # distance prix vs Tenkan D1 en pips
+
     # FVG H1 recent — bearish (gap down, low[i] > high[i+2])
     fvg_h1_bear_top: float = 0.0
     fvg_h1_bear_bot: float = 0.0
@@ -262,6 +266,7 @@ class DiamondScanner:
     def _pips(self, sym: str, price: float, level: float) -> float:
         if sym == 'XAUUSD': return (price - level) * 10
         elif 'JPY' in sym: return (price - level) * 100
+        elif 'DXY' in sym or 'USDX' in sym: return (price - level) * 100
         else: return (price - level) * 10000
 
     def _pct(self, price: float, level: float) -> float:
@@ -799,9 +804,9 @@ class DiamondScanner:
             else:
                 bias, direction = "BEAR", -1
 
-        # ═══ Scoring (19 criteres max avec FVG H1+H4+D1 bear+bull+KjD1) ═══════════
+        # ═══ Scoring (22 criteres max avec TK4/TKd1/Kj4/KjD1) ═══════════
         score = 0
-        max_score = 19 if mn_available else 17
+        max_score = 22 if mn_available else 20
         crit: List[str] = []
         warnings: List[str] = []
         alignment = 0
@@ -826,8 +831,27 @@ class DiamondScanner:
         if mn_available:
             if kumomn == "ABOVE": score += 1; crit.append("MNKu"); alignment += 1
             if tkxmn == "BULL": score += 1; crit.append("MNTK")
-        # Kijun D1 (1 critere) — confluence ICT x Ichimoku
-        if kd1 > 0 and direction != 0:
+        # Tenkan/Kijun H4/D1 barrier (4 criteres) — S/R proximity
+        d_tk_h4 = self._pips(sym, price, tk4)
+        d_tk_d1 = self._pips(sym, price, td1)
+        tk_h4_thresh = 20.0 if sym == 'XAUUSD' else (5.0 if 'JPY' in sym else 20.0)
+        tk_d1_thresh = 40.0 if sym == 'XAUUSD' else (10.0 if 'JPY' in sym else 40.0)
+        kj4_score_thresh = 30.0 if sym == 'XAUUSD' else (7.0 if 'JPY' in sym else 30.0)
+        kj_d1_thresh = 50.0 if sym == 'XAUUSD' else (12.0 if 'JPY' in sym else 50.0)
+        # TK4: Tenkan H4
+        if tk4 > 0 and direction != 0 and abs(d_tk_h4) < tk_h4_thresh:
+            if (direction == 1 and price > tk4) or (direction == -1 and price < tk4):
+                score += 1; crit.append("TK4"); alignment += 1
+        # TKd1: Tenkan D1
+        if td1 > 0 and direction != 0 and abs(d_tk_d1) < tk_d1_thresh:
+            if (direction == 1 and price > td1) or (direction == -1 and price < td1):
+                score += 1; crit.append("TKd1"); alignment += 1
+        # Kj4: Kijun H4 (reuses d_kj4 computed earlier)
+        if kj4 > 0 and direction != 0 and abs(d_kj4) < kj4_score_thresh:
+            if (direction == 1 and price > kj4) or (direction == -1 and price < kj4):
+                score += 1; crit.append("Kj4"); alignment += 1
+        # KjD1: Kijun D1 barrier (proximity-scored)
+        if kd1 > 0 and direction != 0 and abs(d_kj_d1) < kj_d1_thresh:
             if (direction == 1 and price > kd1) or (direction == -1 and price < kd1):
                 score += 1; crit.append("KjD1"); alignment += 1
         # FVG H1 (2 criteres max) — mitigated FVG acting as S/R
@@ -853,6 +877,27 @@ class DiamondScanner:
                 score += 1; crit.append("FVGbD1")
 
         # ── Warnings (Etape 3b — TOUS les TFs) ──
+        # Tenkan/Kijun barrier warnings (when price near but NOT aligned)
+        if direction != 0:
+            # Tenkan H4 resistance when BULL (price below TK)
+            if direction == 1 and d_tk_h4 < 0 and abs(d_tk_h4) < tk_h4_thresh:
+                warnings.append(f"Tenkan H4 RESIST {tk4:.5f} ({d_tk_h4:+.0f}p) — obstacle haussier")
+            # Tenkan H4 support when BEAR (price above TK)
+            if direction == -1 and d_tk_h4 > 0 and abs(d_tk_h4) < tk_h4_thresh:
+                warnings.append(f"Tenkan H4 SUPPORT {tk4:.5f} ({d_tk_h4:+.0f}p) — obstacle baissier")
+        # Tenkan D1 (always warn if close)
+        if td1 > 0 and abs(d_tk_d1) < tk_d1_thresh:
+            role = "RESIST" if price < td1 else "SUPPORT"
+            if direction == 0 or (direction == 1 and price < td1) or (direction == -1 and price > td1):
+                warnings.append(f"Tenkan D1 {role} {td1:.5f} ({d_tk_d1:+.0f}p)")
+        # Kijun H4 always warn if close
+        d_kj4_abs = abs(d_kj4)
+        kj4_warn_thresh = 30.0 if sym == 'XAUUSD' else (3.0 if 'JPY' in sym else 30.0)
+        if d_kj4_abs < kj4_warn_thresh and kj4 > 0:
+            role = "RESIST" if price < kj4 else "SUPPORT"
+            if direction == 0 or (direction == 1 and price < kj4) or (direction == -1 and price > kj4):
+                warnings.append(f"Kijun H4 {role} {kj4:.5f} ({d_kj4:+.0f}p)")
+
         # FVG warnings (H1 + H4 + D1, bearish + bullish)
         for tf_name, fvg_t, fvg_b, fvg_m, fvg_p, fvg_d, fvg_pf, fvg_bt, fvg_bb, fvg_bm, fvg_bp, fvg_bd, fvg_bpf in [
             ("H1", fvg_top, fvg_bot, fvg_mitigated, fvg_pos, fvg_date, fvg_pip_factor,
@@ -955,9 +1000,9 @@ class DiamondScanner:
             elif direction == 0 and mn_bearish and d_kj4 > 5 and kumo4 == "ABOVE":
                 warnings.append(f"CONFLIT MN: Prix SOUS Kijun MN {kjmn:.5f}")
 
-        # ── Quality thresholds (v2: 8/12 GOOD, 10/12 STRONG) ──
-        good_threshold = max_score - 4   # 8 for 12, 6 for 10
-        strong_threshold = max_score - 2  # 10 for 12, 8 for 10
+        # ── Quality thresholds ──
+        good_threshold = max_score - 4
+        strong_threshold = max_score - 2
 
         if direction != 0:
             sl = kj4
@@ -972,6 +1017,28 @@ class DiamondScanner:
                 quality = "GOOD"
             else:
                 quality = "WAIT"
+
+            # ── SL proximity safety net ──
+            # Degrades quality if price is too close to the stop loss.
+            # Prevents the scanner from calling a trade STRONG/GOOD
+            # when it's 3 pts away from being stopped out.
+            if sl > 0 and tp > 0:
+                total_range = abs(tp - sl)
+                dist_to_sl = abs(price - sl)
+                if total_range > 0:
+                    sl_pct = dist_to_sl / total_range * 100
+                    if sl_pct < 10:
+                        warnings.append(
+                            f"SL CRITIQUE: {dist_to_sl:.1f} du SL "
+                            f"({sl_pct:.0f}% du range — trade force a WAIT)"
+                        )
+                        quality = "WAIT"
+                    elif sl_pct < 20:
+                        warnings.append(
+                            f"SL PROCHE: {dist_to_sl:.1f} du SL "
+                            f"({sl_pct:.0f}% du range)"
+                        )
+                        if quality == "STRONG": quality = "GOOD"
         else:
             sl = tp = rr = 0.0
             quality = "WAIT"
@@ -1018,6 +1085,7 @@ class DiamondScanner:
             kijun_flats_w1=kijun_flats_w1, kijun_flats_mn=kijun_flats_mn,
             months_vs_kj_mn=months_vs_kj, double_memory=double_memory,
             d_kj_d1=d_kj_d1,
+            d_tk_h4=d_tk_h4, d_tk_d1=d_tk_d1,
             fvg_h1_bear_top=fvg_top, fvg_h1_bear_bot=fvg_bot,
             fvg_h1_bear_mitigated=fvg_mitigated, fvg_h1_bear_price_pos=fvg_pos,
             fvg_h1_bear_date=fvg_date, fvg_h1_bear_pip_factor=fvg_pip_factor,

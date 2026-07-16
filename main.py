@@ -1281,11 +1281,13 @@ def _render_diamond_detail(r, lines: list):
 
     horizon_str = f"  |  {CYAN}Horizon: {r.horizon}{RESET}" if r.horizon else ""
     kj_d1_str = f"  |  ΔKjD1: {r.d_kj_d1:+.1f}p" if r.kj_d1 > 0 else ""
+    tk_h4_str = f"  |  ΔTkH4: {r.d_tk_h4:+.1f}p" if r.d_tk_h4 != 0 else ""
     lines.append(f"  {BOLD}{quality_icon} {MAGENTA}{r.symbol}{RESET}  "
                  f"{bias_icon} {r.bias}  "
-                 f"Score: {r.score}/{r.max_score}  |  Align: {r.alignment}/5  |  "
+                 f"Score: {r.score}/{r.max_score}  |  Align: {r.alignment}  |  "
                  f"ΔKj4: {r.d_kj4:+.1f}p"
-                 f"{kj_d1_str}  |  "
+                 f"{kj_d1_str}"
+                 f"{tk_h4_str}  |  "
                  f"RR: {r.rr:.1f}x"
                  f"{horizon_str}")
     lines.append(f"    {GRAY}Critères:{RESET} {' '.join(r.criteria)}")
