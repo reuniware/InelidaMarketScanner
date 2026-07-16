@@ -648,3 +648,65 @@ Warnings:
 
 ---
 
+
+| +Breaker Blocks | 64/62 | BRK (OB inverse) H1/H4/D1 |
+| +--volume-only | 64/62 | Option d'affichage filtre volume |
+
+| Metrique | Valeur |
+|:---|---:|
+| Lignes de code `diamond_scanner.py` | ~2100 |
+| Methodes de detection | 14+ |
+| Criteres de scoring | 64 |
+| Timeframes analyses | M5, M15, M30, H1, H4, D1, W1, MN |
+| Concepts ICT | Sweeps, FVG, OB, MSS/BOS, CHoCH, HVN/LVN, Breaker Blocks |
+
+---
+
+## 17/07/2026 — Session Breaker Blocks + --volume-only
+
+### Breaker Blocks (OB inverse) — Nouveau concept #4
+
+**Concept :** Quand un OB est casse (mitige), il s'inverse :
+- Bull OB casse a la baisse -> Bearish Breaker (devient resistance)
+- Bear OB casse a la hausse -> Bullish Breaker (devient support)
+
+**Detection :** Derivee des champs OB existants — zero appel MT5 supplementaire.
+
+**Scoring (max_score: 64/62) :** 6 criteres : BRH1/BRH4/BRD1 + BRbH1/BRbH4/BRbD1
+
+**Validation :**
+- GBPUSD : BRK BULL H1/H4/D1 intacts (supports)
+- EURUSD : BRK BULL H1 1.14433 (+2p) — support immediat
+
+### --volume-only — Option d'affichage filtre
+
+Nouvelle option `--volume-only` : affiche uniquement HVN/LVN/SPIKE sans le reste du scan.
+
+```bash
+python main.py diamond --symbols EURUSD GBPUSD --volume-only
+```
+
+Affichage : Vol H1/H4/D1 avec volume moyen, HVN, LVN, SPIKE.
+
+### Dernier scan (13 symboles)
+
+| Symbole | Score/64 | Biais |
+|:---|---:|---:|
+| EURJPY | 38 | BULL |
+| GBPJPY | 35 | BULL |
+| GBPUSD | 33 | BULL |
+| USDCAD | 33 | BEAR |
+| AUDUSD | 28 | BULL |
+| EURUSD | 27 | BULL |
+| USDJPY | 25 | BULL |
+| DXY.cash | 24 | BEAR |
+| US100.cash | 21 | BEAR |
+| US30.cash | 16 | FLAT |
+| US500.cash | 12 | FLAT |
+| USDCHF | 8 | FLAT |
+| XAUUSD | 8 | FLAT |
+
+**DXY :** 100.721 — AU-DESSUS du Kijun H1 (100.582)
+**Tous en WAIT** — aucun setup STRONG/GOOD actuellement.
+
+---

@@ -1107,7 +1107,7 @@ def cmd_diamond(args):
 
     try:
         results = scanner.scan_all()
-        _render_diamond_results(results, symbols)
+        _render_diamond_results(results, symbols, volume_only=getattr(args, 'volume_only', False))
 
         # ── Discord posting ────────────────────────────────────────────
         if getattr(args, 'discord', False):
@@ -1647,8 +1647,85 @@ def _post_diamond_to_discord(webhook_url: str, results, symbols) -> bool:
         return False
 
 
-def _render_diamond_results(results: list, scanned_symbols: list):
+def _render_volume_only(results: list, scanned_symbols: list):
+    """Mode --volume-only : affiche uniquement les HVN/LVN/SPIKE."""
+    now_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+    lines: list = []
+    lines.append(f"{BOLD}{CYAN}{'='*60}{RESET}")
+    lines.append(f"{BOLD}{CYAN}  📊 VOLUME ANALYSIS — HVN / LVN / Volume Spike{RESET}")
+    lines.append(f"{BOLD}{CYAN}{'='*60}{RESET}")
+    lines.append(f"  {GRAY}UTC:{RESET} {now_str}  |  "
+                 f"{GRAY}Symboles:{RESET} {len(scanned_symbols)}")
+    lines.append("")
+
+    # Entetes
+    header = (
+        f"{BOLD}{'Symbole':<10} {'Vol H1':>28} {'Vol H4':>28} {'Vol D1':>28}{RESET}"
+    )
+    lines.append(header)
+    lines.append(f"{GRAY}{'-' * (len(header) - len(BOLD) - len(RESET))}{RESET}")
+
+    for r in results:
+        vol_h1 = []
+        vol_h4 = []
+        vol_d1 = []
+
+        for tf_lbl, parts_list in [
+            ("h1", vol_h1), ("h4", vol_h4), ("d1", vol_d1)]:
+            avg = getattr(r, f"vol_avg_{tf_lbl}", 0.0)
+            spike = getattr(r, f"vol_spike_{tf_lbl}", False)
+            hvn = getattr(r, f"vol_hvn_{tf_lbl}", 0.0)
+            lvn = getattr(r, f"vol_lvn_{tf_lbl}", 0.0)
+            items = []
+            if avg > 0:
+                items.append(f"{avg:.0f}")
+            if spike:
+                items.append(f"{YELLOW}SPIKE{RESET}")
+            if hvn > 0:
+                items.append(f"{GREEN}HVN @{_fmt_price(hvn)}{RESET}")
+            if lvn > 0:
+                items.append(f"{RED}LVN @{_fmt_price(lvn)}{RESET}")
+            parts_list.append(" | ".join(items) if items else f"{GRAY}—{RESET}")
+
+        lines.append(
+            f"{MAGENTA}{r.symbol:<10}{RESET} "
+            f"{vol_h1[0]:>28} {vol_h4[0]:>28} {vol_d1[0]:>28}"
+        )
+
+    lines.append("")
+    lines.append(f"{BOLD}Volume zones detectees :{RESET}")
+    vol_count = sum(1 for r in results
+                    for tf in ["h1", "h4", "d1"]
+                    if (getattr(r, f"vol_hvn_{tf}", 0) > 0
+                        or getattr(r, f"vol_lvn_{tf}", 0) > 0
+                        or getattr(r, f"vol_spike_{tf}", False)))
+    hvn_count = sum(1 for r in results
+                    for tf in ["h1", "h4", "d1"]
+                    if getattr(r, f"vol_hvn_{tf}", 0) > 0)
+    lvn_count = sum(1 for r in results
+                    for tf in ["h1", "h4", "d1"]
+                    if getattr(r, f"vol_lvn_{tf}", 0) > 0)
+    spike_count = sum(1 for r in results
+                      for tf in ["h1", "h4", "d1"]
+                      if getattr(r, f"vol_spike_{tf}", False))
+    lines.append(
+        f"  {GREEN}HVN:{RESET} {hvn_count}  |  "
+        f"{RED}LVN:{RESET} {lvn_count}  |  "
+        f"{YELLOW}Spikes:{RESET} {spike_count}  |  "
+        f"{GRAY}Symboles avec volume:{RESET} {vol_count}"
+    )
+    lines.append(f"{BOLD}{CYAN}{'='*60}{RESET}")
+    print("\n".join(lines))
+
+
+def _render_diamond_results(results: list, scanned_symbols: list, volume_only: bool = False):
     """Affichage complet du scan Diamond Analysis."""
+
+    # ── Mode volume-only : queue reduite avec seulement les HVN/LVN/SPIKE ──
+    if volume_only:
+        _render_volume_only(results, scanned_symbols)
+        return
+
     lines: list = []
     now_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
     lines.append(f"{BOLD}{CYAN}{'='*100}{RESET}")
@@ -2104,6 +2181,18 @@ def _render_diamond_detail(r, lines: list):
         if vol_parts:
             lines.append(f"    {GRAY}Vol {tf_lbl}:{RESET} {' | '.join(vol_parts)}")
 
+    # Breaker Blocks (OB inverse)
+    for tf_lbl in ["H1", "H4", "D1"]:
+        brk_bear = getattr(r, f"brk_{tf_lbl.lower()}_bear_level", 0.0)
+        brk_bull = getattr(r, f"brk_{tf_lbl.lower()}_bull_level", 0.0)
+        brk_parts = []
+        if brk_bear > 0:
+            brk_parts.append(f"{RED}Bear{RESET}@{_fmt_price(brk_bear)}")
+        if brk_bull > 0:
+            brk_parts.append(f"{GREEN}Bull{RESET}@{_fmt_price(brk_bull)}")
+        if brk_parts:
+            lines.append(f"    {GRAY}BRK {tf_lbl}:{RESET} {' | '.join(brk_parts)}")
+
     # Market Structure (MSS/BOS) — H1, H4, D1
     for tf_lbl in ["H1", "H4", "D1"]:
         regime = getattr(r, f"mss_{tf_lbl.lower()}_regime", "N/A")
@@ -2295,6 +2384,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_diamond.add_argument(
         "--discord", action="store_true",
         help="Poste automatiquement les resultats sur Discord (via DISCORD_WEBHOOK_URL env var)."
+    )
+    p_diamond.add_argument(
+        "--volume-only", action="store_true",
+        help="Affiche uniquement les HVN/LVN et spikes de volume (masque le reste du scan)."
     )
 
     # ── track (P&L) ───────────────────────────────────────────────────────

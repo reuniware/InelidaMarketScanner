@@ -287,6 +287,14 @@ class DiamondResult:
     vol_hvn_d1: float = 0.0
     vol_lvn_d1: float = 0.0
 
+    # Breaker Blocks (OB inverse) — H1/H4/D1
+    brk_h1_bear_level: float = 0.0   # Ancien Bull OB cassé → résistance
+    brk_h1_bull_level: float = 0.0   # Ancien Bear OB cassé → support
+    brk_h4_bear_level: float = 0.0
+    brk_h4_bull_level: float = 0.0
+    brk_d1_bear_level: float = 0.0
+    brk_d1_bull_level: float = 0.0
+
     # Trade setup
     sl: float = 0.0
     tp: float = 0.0
@@ -1615,9 +1623,19 @@ class DiamondScanner:
             vol_avg_d1, vol_spike_d1, vol_hvn_d1, vol_lvn_d1 = self._detect_volume_analysis(
                 d1_v_h, d1_v_l, d1_v_c, d1_v_v, price, sym, "D1", 30)
 
-        # ═══ Scoring (43 criteres max avec vol + MSS + OB + TK4/TKd1/Kj4/KjD1 + Asian Sweep + M30 cross) ═══
+        # ═══ Breaker Blocks (OB inverse) — derives des OB detectes ═══════════
+        # Bullish OB cassé (price < ob_h1_bull_level) = Bearish Breaker (resistance)
+        # Bearish OB cassé (price > ob_h1_bear_level) = Bullish Breaker (support)
+        brk_h1_bear_level = ob_h1_bull_level if (ob_h1_bull_mitigated and ob_h1_bull_level > 0 and price < ob_h1_bull_level) else 0.0
+        brk_h1_bull_level = ob_h1_bear_level if (ob_h1_bear_mitigated and ob_h1_bear_level > 0 and price > ob_h1_bear_level) else 0.0
+        brk_h4_bear_level = ob_h4_bull_level if (ob_h4_bull_mitigated and ob_h4_bull_level > 0 and price < ob_h4_bull_level) else 0.0
+        brk_h4_bull_level = ob_h4_bear_level if (ob_h4_bear_mitigated and ob_h4_bear_level > 0 and price > ob_h4_bear_level) else 0.0
+        brk_d1_bear_level = ob_d1_bull_level if (ob_d1_bull_mitigated and ob_d1_bull_level > 0 and price < ob_d1_bull_level) else 0.0
+        brk_d1_bull_level = ob_d1_bear_level if (ob_d1_bear_mitigated and ob_d1_bear_level > 0 and price > ob_d1_bear_level) else 0.0
+
+        # ═══ Scoring (49 criteres max avec Breaker + vol + MSS + OB + TK4/TKd1/Kj4/KjD1 + Asian Sweep + M30 cross) ═══
         score = 0
-        max_score = 58 if mn_available else 56
+        max_score = 64 if mn_available else 62
         crit: List[str] = []
         warnings: List[str] = []
         alignment = 0
@@ -1812,6 +1830,22 @@ class DiamondScanner:
         if vol_lvn_d1 > 0 and ((direction == 1 and vol_lvn_d1 > price) or (direction == -1 and vol_lvn_d1 < price)):
             score += 1; crit.append("LVNd1")
 
+        # ── Breaker Block Scoring ──
+        # Bearish Breaker (ancien Bull OB cassé → résistance au-dessus)
+        if brk_h1_bear_level > 0 and direction == -1:
+            score += 1; crit.append("BRH1")
+        if brk_h4_bear_level > 0 and direction == -1:
+            score += 1; crit.append("BRH4")
+        if brk_d1_bear_level > 0 and direction == -1:
+            score += 1; crit.append("BRD1")
+        # Bullish Breaker (ancien Bear OB cassé → support en-dessous)
+        if brk_h1_bull_level > 0 and direction == 1:
+            score += 1; crit.append("BRbH1")
+        if brk_h4_bull_level > 0 and direction == 1:
+            score += 1; crit.append("BRbH4")
+        if brk_d1_bull_level > 0 and direction == 1:
+            score += 1; crit.append("BRbD1")
+
         # ── Warnings (TOUS les TFs) ──
         # Tenkan/Kijun barrier warnings (when price near but NOT aligned)
         if direction != 0:
@@ -1878,6 +1912,19 @@ class DiamondScanner:
                 warnings.append(f"HVN {tf_lbl} {hvn:.5f} — zone de fort volume proche")
             if lvn > 0 and abs(self._pips(sym, price, lvn)) < 10:
                 warnings.append(f"LVN {tf_lbl} {lvn:.5f} — zone de faible volume proche")
+
+        # Breaker Block warnings
+        for tf_lbl, brk_bear, brk_bull in [
+            ("H1", brk_h1_bear_level, brk_h1_bull_level),
+            ("H4", brk_h4_bear_level, brk_h4_bull_level),
+            ("D1", brk_d1_bear_level, brk_d1_bull_level),
+        ]:
+            if brk_bear > 0:
+                d = self._pips(sym, price, brk_bear)
+                warnings.append(f"BRK BEAR {tf_lbl} {brk_bear:.5f} ({d:+.0f}p) — OB inverse (resistance)")
+            if brk_bull > 0:
+                d = self._pips(sym, price, brk_bull)
+                warnings.append(f"BRK BULL {tf_lbl} {brk_bull:.5f} ({d:+.0f}p) — OB inverse (support)")
 
         # FVG warnings (H1 + H4 + D1, bearish + bullish)
         for tf_name, fvg_t, fvg_b, fvg_m, fvg_p, fvg_d, fvg_pf, fvg_bt, fvg_bb, fvg_bm, fvg_bp, fvg_bd, fvg_bpf in [
@@ -2141,6 +2188,9 @@ class DiamondScanner:
             vol_hvn_h4=vol_hvn_h4, vol_lvn_h4=vol_lvn_h4,
             vol_avg_d1=vol_avg_d1, vol_spike_d1=vol_spike_d1,
             vol_hvn_d1=vol_hvn_d1, vol_lvn_d1=vol_lvn_d1,
+            brk_h1_bear_level=brk_h1_bear_level, brk_h1_bull_level=brk_h1_bull_level,
+            brk_h4_bear_level=brk_h4_bear_level, brk_h4_bull_level=brk_h4_bull_level,
+            brk_d1_bear_level=brk_d1_bear_level, brk_d1_bull_level=brk_d1_bull_level,
             sl=sl, tp=tp, rr=rr, tp_label=tp_label, horizon=horizon,
             criteria=crit, warnings=warnings,
         )
