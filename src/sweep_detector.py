@@ -792,11 +792,10 @@ def detect_asian_range_for_symbol(
 
     asian_high = max(b["high"] for b in asian_bars)
     asian_low = min(b["low"] for b in asian_bars)
-    last_asian_time = max(b["time"] for b in asian_bars)
 
-    # 🔧 CORRECTION BUG: scanner TOUTES les barres du jour (y compris intra-asian)
-    # pour les sweeps, pas seulement les barres apres la session asiatique.
-    # Avant: seules les barres > last_asian_time (08:00 UTC) etaient scannees.
+    # Scanner TOUTES les barres du jour (y compris intra-asian) pour les
+    # sweeps, pas seulement les barres apres la fin de la session asiatique.
+    # Avant: seules les barres > 08:00 UTC (fin Asian) etaient scannees.
     # Un sweep intra-session a 07:45 UTC (9h45 Paris) etait ignore.
     # Maintenant: on scanne depuis la premiere barre asiatique du jour.
     first_asian_time = min(b["time"] for b in asian_bars)
@@ -1151,7 +1150,7 @@ def detect_asian_range_for_symbol(
         current_time=current_time,
         distance_high_pct=distance_high_pct,
         distance_low_pct=distance_low_pct,
-        bars_checked=len(post_bars),
+        bars_checked=len(all_day_bars),
         direction_target=target_key,
         direction_target_label=target_label,
         fib_plus_1618=fib_plus_1618,

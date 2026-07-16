@@ -21,6 +21,7 @@ Usage:
 """
 
 import logging
+import time as _time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
@@ -298,10 +299,14 @@ class DiamondScanner:
     def _detect_asian_range(self, sym: str) -> Tuple[float, float]:
         """Detecte l'Asian High et Asian Low sur H1 (session 00:00-08:00 UTC).
 
+        🔧 Filtre par session_date pour ne pas inclure les barres asiatiques
+        du jour precedent (24 dernieres H1 peuvent deborder sur hier).
+
         Returns:
             (AH, AL) — les deux a 0.0 si pas assez de barres.
         """
-        h1 = self._get_rates(sym, mt5.TIMEFRAME_H1, 24)
+        session_date = _time.strftime("%Y-%m-%d", _time.gmtime())
+        h1 = self._get_rates(sym, mt5.TIMEFRAME_H1, 32)
         if h1 is None:
             return (0.0, 0.0)
 
@@ -309,7 +314,8 @@ class DiamondScanner:
         al = None
         for bar in h1:
             dt = datetime.fromtimestamp(bar[0], UTC)
-            if dt.hour >= 0 and dt.hour < 8:
+            bar_date = dt.strftime("%Y-%m-%d")
+            if bar_date == session_date and dt.hour >= 0 and dt.hour < 8:
                 h, l = bar[1], bar[2]
                 if ah is None or h > ah:
                     ah = h
