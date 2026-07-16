@@ -734,6 +734,56 @@ src/
 
 ---
 
+## 📊 P&L Tracker — Suivi automatisé des setups Diamond
+
+Depuis le 16/07/2026, le Diamond Scanner est intégré à un **système de tracking P&L**
+qui suit chaque setup STRONG/GOOD dans le temps avec snapshots de prix, distance au SL,
+et calcul automatique du résultat final (SL touché / TP touché / encore ouvert).
+
+### Commandes
+
+```bash
+# 1. Scanner + sauvegarder les setups actifs
+python main.py track save
+
+# 2. Mettre à jour les prix (via MT5) — détecte SL/TP touchés automatiquement
+python main.py track update
+
+# 3. Rapport P&L global
+python main.py track report
+
+# 4. Détail d'un trade (time-series)
+python main.py track history --id 1
+
+# 5. Sessions de scan
+python main.py track sessions
+
+# 6. Fermeture manuelle
+python main.py track close --id 1
+```
+
+### Ce qui est tracké par trade
+
+| Champ | Source |
+|:---|---|
+| Symbol, price, score, bias, quality | DiamondResult du scan |
+| SL, TP, RR, TP label | Smart TP du Diamond Scanner |
+| Asian High, Asian Low | Asian Range detection |
+| Kijun H4/D1 | Ichimoku multi-TF |
+| Snapshots time-series (prix, dist SL/TP) | Chaque mise à jour `track update` |
+| P&L final (pips, %, RR) | Détection automatique SL/TP touché |
+
+### Architecture SQLite
+
+```
+diamond_trades        → 1 ligne par setup (mis à jour à chaque scan)
+diamond_snapshots     → time-series des prix et distances
+```
+
+Les tables sont créées automatiquement via `_ensure_schema()` dans `TradeTracker`.
+
+---
+
 ## 🐛 Bugs connus et pièges
 
 ### 1. `detect_flat_bars` — fenêtre glissante (CORRIGÉ le 13/07)

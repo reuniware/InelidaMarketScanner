@@ -131,6 +131,7 @@ GEMINI_API_KEY=ta_cle_ici
 | 📊 **Rapports PDF** | Générateur de rapports horodatés avec tous les scans |
 | 🎨 **Dashboard Streamlit** | Interface web pour visualiser et filtrer les données |
 | 🗄️ **Base SQLite** | Enregistrement automatique des sessions, sweeps et niveaux |
+| 📊 **P&L Tracker** | Suivi automatisé des setups Diamond : save → update → rapport win rate / P&L |
 
 ---
 
@@ -148,6 +149,7 @@ python main.py <commande> [options]
 | `sweeps` | Détection sweeps BSL/SSL |
 | `asian-liquidity` | Scan BSL/SSL session asiatique (Williams fractals) |
 | `diamond` | Diamond Analysis Ichimoku multi-TF + mémoire institutionnelle |
+| `track` | **P&L Tracking** — sauvegarde, mise à jour, rapport de performance des setups Diamond |
 | `levels` | Niveaux PDH/PDL + PWH/PWL |
 | `setups` | Setups directionnels filtrés |
 | `trade` | Liste ou exécute des ordres MT5 |
