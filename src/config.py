@@ -54,24 +54,28 @@ def load_dotenv(env_path: Optional[str] = None) -> None:
 # Tu peux surcharger via la variable d'environnement INELIDA_WATCHLIST
 # (separee par des virgules) ou via l'option --symbols du CLI.
 DEFAULT_WATCHLIST: List[str] = [
-    # Forex majeurs
-    "EURUSD",
-    "GBPUSD",
-    "USDJPY",
-    "AUDUSD",
-    "USDCAD",
-    "USDCHF",
-    "NZDUSD",
-    # Metaux
-    "XAUUSD",
-    "XAGUSD",
-    # Indices
-    "US30.cash",
-    "US100.cash",
-    "US500.cash",
-    # Crypto (selon broker)
-    "BTCUSD",
-    "ETHUSD",
+    # ── Indice Dollar (filtre macro) ──
+    "DXY.cash",           # INDICE USD — FILTRE MACRO ESSENTIEL (manquait!)
+
+    # ── Forex majeurs (paires USD) ──
+    "EURUSD",              # 1e paire mondiale, 57.6% du DXY
+    "GBPUSD",              # 2e paire, forte volatilite London
+    "USDJPY",              # 3e paire, proxy USD/JPY, indicateur avance
+    "AUDUSD",              # Correlations matieres premieres
+    "USDCAD",              # Correlation petrole
+    "USDCHF",              # Safe haven CHF
+
+    # ── Cross (contexte) ──
+    "EURJPY",              # Contexte EUR/JPY (divergences DXY)
+    "GBPJPY",              # Contexte GBP/JPY (forte volatilite)
+
+    # ── Matieres premieres ──
+    "XAUUSD",              # Or — safe haven, correlation inverse USD
+
+    # ── Indices US ──
+    "US30.cash",           # Dow Jones
+    "US500.cash",          # S&P 500
+    "US100.cash",          # Nasdaq
 ]
 
 

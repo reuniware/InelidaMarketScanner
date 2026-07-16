@@ -59,6 +59,7 @@ from src.diamond_scanner import (
     get_dxy_price,
     get_dxy_kijun_h1,
 )
+from src.trade_tracker import TradeTracker
 from analyze_asian_bsl_ssl import (
     scan_all_symbols,
     render_all_results,
@@ -1124,6 +1125,230 @@ def cmd_diamond(args):
     return 0
 
 
+# ─── Track P&L ────────────────────────────────────────────────────────────────
+
+def cmd_track(args):
+    """
+    Suivi P&L automatise des setups Diamond dans le temps.
+
+    Sous-commandes :
+      save         : sauvegarde les setups actifs d'un scan Diamond
+      update       : met a jour tous les trades ouverts avec les prix actuels
+      report       : affiche le rapport P&L global
+      history      : affiche l'historique detaille d'un trade
+      sessions     : liste les sessions de scan enregistrees
+      close        : ferme manuellement un trade
+    """
+    _setup_logging(args.verbose)
+    action = args.track_action
+
+    tracker = TradeTracker()
+
+    if action == "save":
+        # Lancer un scan Diamond puis sauvegarder
+        symbols = resolve_watchlist(args.symbols)
+        if not symbols:
+            print(f"{YELLOW}Aucun symbole. Specifie --symbols ou configure INELIDA_WATCHLIST.{RESET}")
+            return 1
+
+        scanner = DiamondScanner(symbols)
+        if not scanner.initialize():
+            print(f"{RED}Connexion MT5 impossible.{RESET}")
+            return 2
+        try:
+            results = scanner.scan_all()
+            saved = tracker.save_setups(results)
+            if saved > 0:
+                print(f"{GREEN}{saved} setup(s) Diamond sauvegarde(s).{RESET}")
+                print(f"{GRAY}Utilise 'track update' pour mettre a jour les prix, 'track report' pour le P&L.{RESET}")
+            else:
+                print(f"{YELLOW}Aucun setup actif (STRONG/GOOD) a sauvegarder.{RESET}")
+        finally:
+            scanner.shutdown()
+        return 0
+
+    if action == "update":
+        # Fetch current prices from MT5 for all open trades
+        prices = {}
+        log = logging.getLogger("cmd_track")
+        mt5_initialized = False
+        try:
+            import MetaTrader5 as mt5
+            mt5_initialized = mt5.initialize()
+            if mt5_initialized:
+                # Fetch price for each open trade symbol
+                cur = tracker.db.conn.execute(
+                    "SELECT DISTINCT symbol FROM diamond_trades WHERE status = 'OPEN'"
+                ) if tracker.db.conn else None
+                if cur:
+                    symbols = [r["symbol"] for r in cur.fetchall()]
+                    for sym in symbols:
+                        mt5.symbol_select(sym, True)
+                        tick = mt5.symbol_info_tick(sym)
+                        if tick:
+                            prices[sym] = float(tick.bid)
+        except Exception as e:
+            log.warning("Impossible de recuperer les prix MT5: %s", e)
+        finally:
+            if mt5_initialized:
+                try:
+                    import MetaTrader5 as mt5
+                    mt5.shutdown()
+                except Exception:
+                    pass
+
+        if prices:
+            updated = tracker.update_all(prices)
+        else:
+            log.warning("Aucun prix MT5 recu, mise a jour sans verification SL/TP")
+            updated = tracker.update_all()
+
+        if updated > 0:
+            print(f"{GREEN}{updated} trade(s) mis a jour.{RESET}")
+            if prices:
+                print(f"  {GRAY}Prix MT5 recus pour {len(prices)} symbole(s).{RESET}")
+        else:
+            print(f"{YELLOW}Aucun trade ouvert a mettre a jour.{RESET}")
+        return 0
+
+    if action == "report":
+        report = tracker.get_report(limit=args.limit or 20)
+        if "error" in report:
+            print(f"{RED}Erreur: {report['error']}{RESET}")
+            return 1
+
+        print(f"{BOLD}{CYAN}═══════════════════════════════════════{RESET}")
+        print(f"{BOLD}{CYAN}  📊 RAPPORT P&L — Diamond Trades{RESET}")
+        print(f"{BOLD}{CYAN}═══════════════════════════════════════{RESET}")
+        print(f"")
+        print(f"  {BOLD}Statistiques globales :{RESET}")
+        print(f"    Total trades     : {report['total_trades']}")
+        print(f"    Ouverts          : {report['open_trades']}")
+        print(f"    Fermes           : {report['closed_trades']}")
+        print(f"    Gains            : {GREEN}{report['wins']}{RESET}")
+        print(f"    Pertes           : {RED}{report['losses']}{RESET}")
+        print(f"    Win rate         : {report['win_rate']}%")
+        if report['total_pnl_pips']:
+            pnl_color = GREEN if report['total_pnl_pips'] >= 0 else RED
+            print(f"    P&L total        : {pnl_color}{report['total_pnl_pips']:+.1f} pips{RESET}")
+            print(f"    P&L moyen/trade  : {report['avg_pnl_pips']:+.1f} pips")
+            print(f"    RR moyen         : {report['avg_rr']:.2f}x")
+        print(f"")
+        if report['best_trade']:
+            b = report['best_trade']
+            print(f"  {GREEN}🏆 Meilleur trade : {b['symbol']} {b['pnl_pips']:+.1f}p ({b['reason']}){RESET}")
+        if report['worst_trade']:
+            w = report['worst_trade']
+            print(f"  {RED}💀 Pire trade     : {w['symbol']} {w['pnl_pips']:+.1f}p ({w['reason']}){RESET}")
+        print(f"")
+
+        # Derniers trades
+        if report['trades']:
+            print(f"  {BOLD}Derniers trades :{RESET}")
+            header = (
+                f"{BOLD}{'#':>4} {'Symbole':<10} {'Statut':>7} {'Score':>5} {'Biais':>5} "
+                f"{'Prix':>10} {'SL':>10} {'TP':>10} {'P&L':>8}{RESET}"
+            )
+            print(f"  {header}")
+            print(f"  {GRAY}{'-' * (len(header) - len(BOLD) - len(RESET))}{RESET}")
+            for i, t in enumerate(report['trades']):
+                if t['status'] == 'OPEN':
+                    st = f"{CYAN}OPEN{RESET}"
+                    pnl = f"{GRAY}?{RESET}"
+                else:
+                    pnl_v = t['pnl_pips'] or 0
+                    pnl_c = GREEN if pnl_v > 0 else RED
+                    st = f"{DIM}FERME{RESET}" if t['close_reason'] in ('SL_HIT',) else f"{GREEN}GAGNE{RESET}"
+                    pnl = f"{pnl_c}{pnl_v:+.1f}{RESET}"
+
+                bias_c = GREEN if t['bias'] == 'BULL' else (RED if t['bias'] == 'BEAR' else GRAY)
+                print(
+                    f"  {t['id']:>4} "
+                    f"{MAGENTA}{t['symbol']:<10}{RESET} "
+                    f"{st:>15} "
+                    f"{bias_c}{t['bias']:>5}{RESET} "
+                    f"{t['price']:>10.4f} "
+                    f"{t['sl']:>10.4f} "
+                    f"{t['tp']:>10.4f} "
+                    f"{pnl:>8}"
+                )
+
+        print(f"")
+        print(f"  {GRAY}Pour le detail d'un trade : track history --id <num>{RESET}")
+        return 0
+
+    if action == "history":
+        trade_id = args.id
+        if not trade_id:
+            print(f"{RED}Specifie --id <numero du trade>{RESET}")
+            return 1
+
+        trade = tracker.get_history(trade_id)
+        if trade is None:
+            print(f"{RED}Trade #{trade_id} introuvable.{RESET}")
+            return 1
+
+        print(f"{BOLD}{CYAN}═══ Historique trade #{trade_id} — {trade['symbol']} ═══{RESET}")
+        print(f"  Session   : {trade['session_id']}")
+        print(f"  Statut    : {trade['status']}")
+        print(f"  Score     : {trade['score']}/{trade['max_score']} | Biais: {trade['bias']} | Align: {trade['alignment']}")
+        print(f"  Prix      : {trade['price']:.5f}")
+        print(f"  SL        : {trade['sl']:.5f} | TP: {trade['tp']:.5f} ({trade['tp_label']}) | RR: {trade['rr']:.1f}x")
+        if trade['asian_high'] and trade['asian_high'] > 0:
+            print(f"  Asian R.  : AH={trade['asian_high']:.5f} AL={trade['asian_low']:.5f}")
+        if trade['status'] == 'CLOSED':
+            close_time = time.strftime("%Y-%m-%d %H:%M", time.gmtime(trade['close_time'])) if trade['close_time'] else "?"
+            print(f"  Fermeture : {trade['close_reason']} a {trade['close_price']:.5f} ({close_time})")
+            pnl_color = GREEN if (trade['pnl_pips'] or 0) >= 0 else RED
+            print(f"  P&L       : {pnl_color}{trade['pnl_pips']:+.1f}p ({trade['pnl_percent']:+.0f}%) RR: {trade['pnl_rr']:.1f}x{RESET}")
+        print(f"")
+
+        snapshots = trade.get('snapshots', [])
+        if snapshots:
+            print(f"  {BOLD}Snapshots ({len(snapshots)}) :{RESET}")
+            print(f"  {'#':>3} {'Heure':>16} {'Prix':>10} {'DistSL(p)':>10} {'DistTP(p)':>10} {'%Range':>8} {'Type'}")
+            for i, s in enumerate(snapshots):
+                ts = time.strftime("%H:%M", time.gmtime(s['timestamp']))
+                stype = "💾" if s['snapshot_type'] == 'SAVE' else ("🏁" if s['snapshot_type'] == 'CLOSE' else " ")
+                print(
+                    f"  {i+1:>3} {ts:>16} "
+                    f"{s['price']:>10.5f} {s['dist_to_sl_pips']:>10.1f} {s['dist_to_tp_pips']:>10.1f} "
+                    f"{s['dist_to_sl_pct']:>7.1f}% {stype}"
+                )
+        return 0
+
+    if action == "sessions":
+        sessions = tracker.list_sessions(limit=args.limit or 10)
+        if not sessions:
+            print(f"{YELLOW}Aucune session enregistree.{RESET}")
+            return 0
+        print(f"{BOLD}{CYAN}═══ Sessions de scan Diamond ═══{RESET}")
+        print(f"  {'Session':<12} {'Date':>16} {'Trades':>8} {'Ouverts':>8} {'Fermes':>8}")
+        for s in sessions:
+            first = time.strftime("%Y-%m-%d %H:%M", time.gmtime(s['first_scan'])) if s['first_scan'] else "?"
+            print(f"  {s['session_id']:<12} {first:>16} {s['trades_count']:>8} {s['open_count']:>8} {s['closed_count']:>8}")
+        print(f"")
+        print(f"  {GRAY}Utilise 'track report' pour le P&L global.{RESET}")
+        return 0
+
+    if action == "close":
+        trade_id = args.id
+        if not trade_id:
+            print(f"{RED}Specifie --id <numero du trade>{RESET}")
+            return 1
+        reason = args.reason or "MANUAL"
+        ok = tracker.close_trade(trade_id, reason=reason)
+        if ok:
+            print(f"{GREEN}Trade #{trade_id} ferme ({reason}).{RESET}")
+        else:
+            print(f"{RED}Impossible de fermer le trade #{trade_id}.{RESET}")
+        return 0
+
+    print(f"{RED}Action inconnue : {action}{RESET}")
+    print(f"Actions: save, update, report, history, sessions, close")
+    return 1
+
+
 def _load_discord_webhook():
     """Charge l'URL du webhook Discord depuis .env ou la variable d'environnement."""
     # 1. Check .env file (UTF-16 LE aware)
@@ -1813,6 +2038,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Poste automatiquement les resultats sur Discord (via DISCORD_WEBHOOK_URL env var)."
     )
 
+    # ── track (P&L) ───────────────────────────────────────────────────────
+    p_track = sub.add_parser(
+        "track",
+        help="Suivi P&L automatise des setups Diamond. Actions: save, update, report, history.",
+    )
+    p_track.add_argument(
+        "track_action",
+        choices=["save", "update", "report", "history", "sessions", "close"],
+        help="Action a executer",
+    )
+    _add_common(p_track)
+    p_track.add_argument("--id", type=int, default=None,
+                         help="ID du trade (pour history/close)")
+    p_track.add_argument("--reason", default="MANUAL",
+                         help="Raison de fermeture (pour close)")
+    p_track.add_argument("--limit", type=int, default=20,
+                         help="Nombre max de trades/sessions a afficher")
+
     # ── asian-liquidity ───────────────────────────────────────────────────
     p_asian_liq = sub.add_parser(
         "asian-liquidity",
@@ -1872,6 +2115,7 @@ def main():
         "levels":    cmd_levels,
         "setups":          cmd_setups,
         "diamond":         cmd_diamond,
+        "track":            cmd_track,
         "asian-liquidity": cmd_asian_liquidity,
     }
     try:

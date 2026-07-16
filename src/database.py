@@ -1,13 +1,16 @@
 """
-Gestionnaire de base de données SQLite pour InelidaMarketScanner.
+Gestionnaire de base de donnees SQLite pour InelidaMarketScanner.
 
 Enregistre les ranges de session asiatique (high/low + dates/heures) ainsi que
-les sweeps détectés (date/heure de sweep), dans l'objectif de pouvoir faire
-des statistiques ultérieures.
+les sweeps detectes (date/heure de sweep), et les trades Diamond suivis
+(avec historique de prix et P&L).
 
 Tables :
-  - asian_sessions : range asiatique + sweep des niveaux AH/AL
-  - sweep_events   : sweeps BSL/SSL génériques (ICT)
+  - asian_sessions   : range asiatique + sweep des niveaux AH/AL
+  - sweep_events     : sweeps BSL/SSL generiques (ICT)
+  - level_sweeps     : sweeps de niveaux daily/weekly
+  - diamond_trades   : trades Diamond suivis dans le temps (P&L tracking)
+  - diamond_snapshots : historique des prix et distances des trades suivis
 """
 
 import logging
@@ -21,7 +24,7 @@ from .sweep_detector import AsianRangeResult, SweepEvent, LevelSweepResult
 
 logger = logging.getLogger("DatabaseManager")
 
-# ─── Requêtes DDL ─────────────────────────────────────────────────────────────
+# ─── Requetes DDL ─────────────────────────────────────────────────────────────
 
 _SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS asian_sessions (
@@ -37,14 +40,14 @@ CREATE TABLE IF NOT EXISTS asian_sessions (
     high_swept_at       REAL,                -- epoch UTC
     high_swept_close    REAL,
     high_swept_session  TEXT,                -- "Asian"/"London"/"NY"/...
-    -- Breach du Asian High (mèche traverse, sans close condition)
+    -- Breach du Asian High (meche traverse, sans close condition)
     asian_high_breached INTEGER NOT NULL DEFAULT 0,   -- bool
     -- Sweep du Asian Low (avec rejet)
     asian_low_swept     INTEGER NOT NULL DEFAULT 0,   -- bool
     low_swept_at        REAL,                -- epoch UTC
     low_swept_close     REAL,
     low_swept_session   TEXT,
-    -- Breach du Asian Low (mèche traverse, sans close condition)
+    -- Breach du Asian Low (meche traverse, sans close condition)
     asian_low_breached  INTEGER NOT NULL DEFAULT 0,   -- bool
     -- Prix courant au moment du scan
     current_price       REAL,
@@ -57,7 +60,7 @@ CREATE TABLE IF NOT EXISTS asian_sessions (
     bear_fib_swept_at      REAL,
     bear_fib_swept_close   REAL,
     bear_fib_swept_session TEXT,
-    -- Métadonnées
+    -- Metadonnees
     created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
     -- Une seule ligne par (symbol, session_date, timeframe)
     UNIQUE(symbol, session_date, timeframe)
@@ -109,6 +112,77 @@ CREATE TABLE IF NOT EXISTS level_sweeps (
 
 CREATE INDEX IF NOT EXISTS idx_level_symbol
     ON level_sweeps(symbol, level_type);
+
+-- Diamond P&L Tracking
+
+CREATE TABLE IF NOT EXISTS diamond_trades (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id      TEXT    NOT NULL,         -- UUID court de la session de scan
+    symbol          TEXT    NOT NULL,
+    status          TEXT    NOT NULL DEFAULT 'OPEN',  -- 'OPEN' / 'CLOSED'
+
+    -- Snapshot au moment du scan
+    scan_time       REAL    NOT NULL,         -- epoch UTC
+    price           REAL    NOT NULL,
+    score           INTEGER NOT NULL,
+    max_score       INTEGER NOT NULL,
+    bias            TEXT    NOT NULL,
+    quality         TEXT    NOT NULL,
+    alignment       INTEGER NOT NULL DEFAULT 0,
+    sl              REAL    NOT NULL,
+    tp              REAL    NOT NULL,
+    tp_label        TEXT,
+    rr              REAL    NOT NULL,
+    horizon         TEXT,
+    asian_high      REAL,
+    asian_low       REAL,
+    kj_h4           REAL,
+    kj_d1           REAL,
+    d_kj4           REAL,
+    d_kj_d1         REAL,
+
+    -- Resultat P&L
+    close_price     REAL,                      -- prix au moment de la fermeture
+    close_reason    TEXT,                      -- 'SL_HIT' / 'TP_HIT' / 'MANUAL' / 'EXPIRED'
+    close_time      REAL,                      -- epoch UTC
+    pnl_pips        REAL,                      -- en pips (positif = gain)
+    pnl_percent     REAL,                      -- en % du risque initial
+    pnl_rr          REAL,                      -- RR reellement realise
+
+    -- Metadonnees
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+
+    UNIQUE(session_id, symbol)
+);
+
+CREATE TABLE IF NOT EXISTS diamond_snapshots (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    trade_id        INTEGER NOT NULL,
+    timestamp       REAL    NOT NULL,          -- epoch UTC de la mise a jour
+    price           REAL    NOT NULL,
+    dist_to_sl_pips REAL,                      -- distance au SL en pips
+    dist_to_tp_pips REAL,                      -- distance au TP en pips
+    dist_to_sl_pct  REAL,                      -- % du range SL-TP (0 = SL, 100 = TP)
+    snapshot_type   TEXT    NOT NULL DEFAULT 'UPDATE',  -- 'SAVE' / 'UPDATE' / 'CLOSE'
+
+    FOREIGN KEY (trade_id) REFERENCES diamond_trades(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_trades_status
+    ON diamond_trades(status);
+
+CREATE INDEX IF NOT EXISTS idx_trades_session
+    ON diamond_trades(session_id);
+
+CREATE INDEX IF NOT EXISTS idx_trades_symbol
+    ON diamond_trades(symbol);
+
+CREATE INDEX IF NOT EXISTS idx_snapshots_trade
+    ON diamond_snapshots(trade_id, timestamp);
+
+CREATE INDEX IF NOT EXISTS idx_snapshots_trade_latest
+    ON diamond_snapshots(trade_id, timestamp DESC);
 """
 
 
@@ -132,11 +206,10 @@ class DatabaseManager:
     # ─── Cycle de vie ──────────────────────────────────────────────────────
 
     def connect(self) -> bool:
-        """Ouvre la connexion SQLite et crée les tables si nécessaire."""
+        """Ouvre la connexion SQLite et cree les tables si necessaire."""
         if self._conn is not None:
             return True
         try:
-            # Créer le répertoire parent si besoin
             parent = os.path.dirname(self.db_path)
             if parent and not os.path.exists(parent):
                 os.makedirs(parent, exist_ok=True)
@@ -146,9 +219,8 @@ class DatabaseManager:
             self._conn.execute("PRAGMA journal_mode=WAL")
             self._conn.executescript(_SCHEMA_SQL)
             self._conn.commit()
-            # Migration : ajouter les colonnes manquantes si la DB date d'avant les modifications
             self._migrate()
-            logger.info("Base de données SQLite ouverte : %s", self.db_path)
+            logger.info("Base de donnees SQLite ouverte : %s", self.db_path)
             return True
         except sqlite3.Error as e:
             logger.error("Impossible d'ouvrir la base %s : %s", self.db_path, e)
@@ -156,18 +228,16 @@ class DatabaseManager:
             return False
 
     def close(self):
-        """Ferme proprement la connexion."""
         if self._conn is not None:
             try:
                 self._conn.close()
             except Exception:
                 pass
             self._conn = None
-            logger.debug("Base de données fermée.")
+            logger.debug("Base de donnees fermee.")
 
     @property
     def conn(self) -> Optional[sqlite3.Connection]:
-        """Retourne la connexion, en l'ouvrant si nécessaire."""
         if self._conn is None:
             self.connect()
         return self._conn
@@ -175,7 +245,6 @@ class DatabaseManager:
     # ─── Asian Sessions ────────────────────────────────────────────────────
 
     def save_asian_result(self, result: AsianRangeResult) -> bool:
-        """Insère ou met à jour (UPSERT) un résultat de range asiatique."""
         if self.conn is None:
             return False
         try:
@@ -259,19 +328,17 @@ class DatabaseManager:
             return False
 
     def save_asian_results_bulk(self, results: List[AsianRangeResult]) -> int:
-        """Sauvegarde une liste de résultats asiatiques. Retourne le nombre de succès."""
         count = 0
         for r in results:
             if self.save_asian_result(r):
                 count += 1
         if count > 0:
-            logger.info("DB : %d range(s) asiatique(s) enregistré(s).", count)
+            logger.info("DB : %d range(s) asiatique(s) enregistre(s).", count)
         return count
 
     # ─── Sweep Events ──────────────────────────────────────────────────────
 
     def save_sweep_event(self, event: SweepEvent) -> bool:
-        """Insère un événement de sweep BSL/SSL dans la base."""
         if self.conn is None:
             return False
         try:
@@ -303,19 +370,17 @@ class DatabaseManager:
             return False
 
     def save_sweep_events_bulk(self, events: List[SweepEvent]) -> int:
-        """Sauvegarde une liste de sweep events. Retourne le nombre de succès."""
         count = 0
         for e in events:
             if self.save_sweep_event(e):
                 count += 1
         if count > 0:
-            logger.info("DB : %d sweep(s) enregistré(s).", count)
+            logger.info("DB : %d sweep(s) enregistre(s).", count)
         return count
 
     # ─── Daily / Weekly Level Sweeps ───────────────────────────────────────
 
     def save_level_sweep(self, result: LevelSweepResult) -> bool:
-        """Insère ou met à jour un résultat de sweep de niveau daily/weekly."""
         if self.conn is None:
             return False
         try:
@@ -367,13 +432,12 @@ class DatabaseManager:
             return False
 
     def save_level_sweeps_bulk(self, results: list) -> int:
-        """Sauvegarde une liste de LevelSweepResult."""
         count = 0
         for r in results:
             if self.save_level_sweep(r):
                 count += 1
         if count > 0:
-            logger.info("DB : %d niveau(x) enregistré(s).", count)
+            logger.info("DB : %d niveau(x) enregistre(s).", count)
         return count
 
     def get_level_sweeps(
@@ -382,7 +446,6 @@ class DatabaseManager:
         level_type: Optional[str] = None,
         limit: int = 30,
     ) -> List[sqlite3.Row]:
-        """Récupère les niveaux daily/weekly stockés."""
         if self.conn is None:
             return []
         query = "SELECT * FROM level_sweeps WHERE 1=1"
@@ -404,7 +467,7 @@ class DatabaseManager:
             logger.error("Erreur DB get_level_sweeps : %s", e)
             return []
 
-    # ─── Requêtes de statistiques ──────────────────────────────────────────
+    # ─── Requetes de statistiques ──────────────────────────────────────────
 
     def get_asian_sessions(
         self,
@@ -412,7 +475,6 @@ class DatabaseManager:
         session_date: Optional[str] = None,
         limit: int = 50,
     ) -> List[sqlite3.Row]:
-        """Récupère les sessions asiatiques stockées, avec filtres optionnels."""
         if self.conn is None:
             return []
         query = "SELECT * FROM asian_sessions WHERE 1=1"
@@ -440,7 +502,6 @@ class DatabaseManager:
         sweep_label: Optional[str] = None,
         limit: int = 50,
     ) -> List[sqlite3.Row]:
-        """Récupère les sweep events stockés, avec filtres optionnels."""
         if self.conn is None:
             return []
         query = "SELECT * FROM sweep_events WHERE 1=1"
@@ -463,7 +524,6 @@ class DatabaseManager:
             return []
 
     def get_statistics(self) -> dict:
-        """Retourne des statistiques globales sur les données stockées."""
         if self.conn is None:
             return {}
         stats = {}
@@ -500,15 +560,28 @@ class DatabaseManager:
             cur = self.conn.execute("SELECT COUNT(*) FROM sweep_events WHERE sweep_label = 'SSL'")
             stats["ssl_total"] = cur.fetchone()[0]
 
+            # Diamond trades stats
+            cur = self.conn.execute("SELECT COUNT(*) FROM diamond_trades")
+            stats["diamond_total"] = cur.fetchone()[0]
+
+            cur = self.conn.execute(
+                "SELECT COUNT(*) FROM diamond_trades WHERE status = 'OPEN'"
+            )
+            stats["diamond_open"] = cur.fetchone()[0]
+
+            cur = self.conn.execute(
+                "SELECT COUNT(*) FROM diamond_trades WHERE status = 'CLOSED'"
+            )
+            stats["diamond_closed"] = cur.fetchone()[0]
+
         except sqlite3.Error as e:
             logger.error("Erreur DB get_statistics : %s", e)
         return stats
 
-
     # ─── Migration ────────────────────────────────────────────────────────────
 
     def _migrate(self):
-        """Ajoute les colonnes manquantes pour les bases créées avant les modifications."""
+        """Ajoute les colonnes manquantes pour les bases creees avant les modifications."""
         migrations = [
             ("asian_sessions", "asian_high_breached", "INTEGER NOT NULL DEFAULT 0"),
             ("asian_sessions", "asian_low_breached", "INTEGER NOT NULL DEFAULT 0"),
@@ -519,9 +592,9 @@ class DatabaseManager:
             try:
                 self._conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
                 self._conn.commit()
-                logger.info("Migration : colonne %s.%s ajoutée.", table, column)
+                logger.info("Migration : colonne %s.%s ajoutee.", table, column)
             except sqlite3.OperationalError:
-                pass  # La colonne existe déjà
+                pass
 
 
 # ─── Module-level helpers ──────────────────────────────────────────────────────
@@ -530,7 +603,6 @@ _db_manager: Optional[DatabaseManager] = None
 
 
 def get_db() -> DatabaseManager:
-    """Retourne l'instance singleton du DatabaseManager."""
     global _db_manager
     if _db_manager is None:
         _db_manager = DatabaseManager()
