@@ -409,5 +409,49 @@ Ajout de la détection des sweeps AH/AL directement dans le Diamond Scanner :
 
 ---
 
+---
+
+## 17/07/2026 — Fin de session
+
+### 📋 Leçon : Interprétation des labels SUPPORT/RÉSISTANCE
+
+#### ⚠️ Erreur commise (analyse USDCHF)
+
+**Contexte :** Analyse des obstacles LH/LL sur USDCHF (LH sweepé → objectif LL).
+Le scanner affichait :
+```
+Tenkan H1 → SUPPORT 0.80812 (+2p)
+Kijun H1 → RÉSISTANCE 0.80841 (-1p)
+```
+
+**Mon erreur :** J'ai listé le Kijun H1 comme obstacle baissier. C'est FAUX.
+- `RÉSISTANCE -1p` = le niveau est AU-DESSUS du prix
+- Pour un mouvement baissier (LH→LL), les obstacles sont EN DESSOUS du prix
+- Le Kijun H1 étant AU-DESSUS, il n'empêche PAS la descente
+
+**Véritable obstacle :** La Tenkan H1 (0.80812, SUPPORT +2p) est EN DESSOUS du prix.
+C'est elle qu'il faut casser pour aller vers LL.
+
+#### ✅ Correction ajoutée au Diamond Scan
+
+Les colonnes LH/LL ont été ajoutées au tableau principal (`Lon H`, `Lon L`, `Lon Swp`)
+pour visualiser les London sweeps sur TOUS les symboles, pas seulement STRONG/GOOD.
+
+#### 🔧 Fix technique : `_session_for_epoch()`
+
+Correction des ranges qui chevauchaient :
+- `0 <= h < 8` → Asian ✅
+- `7 <= h < 13` → London **BUG** (heure 7 était London au lieu d'Asian)
+- `8 <= h < 13` → London ✅
+
+#### 📝 Documentation ajoutée
+
+Nouvelle section dans `diamond-analysis-skill.md` :
+- **Règle #6 : Interprétation des labels SUPPORT/RÉSISTANCE**
+- Tableau de décision directionnel (BEAR→dessous, BULL→dessus)
+- Méthode de vérification rapide + exemples concrets
+
+---
+
 > **Prochaine session :** à remplir avec la date, le contexte, les setups, les analyses, et les résultats.
 

@@ -1021,6 +1021,79 @@ EURUSD    13/22   WAIT      1.14450     1.14298    +15.2 p    34%
 ❌ "Trade en vie" • "Stable" • "Renforcé"  
 ✅ Chiffres bruts : distances, % du range, risque
 
+---
+
+### ⚠️ Règle #6 : Interprétation CORRECTE des labels SUPPORT/RÉSISTANCE
+
+**⚠️ PIÈGE FRÉQUENT (exemple USDCHF, 16/07/2026) :** Le scanner affiche :
+```
+Tenkan H1 SUPPORT 0.80812 (+2p, 3b)
+Kijun H1 RESISTANCE 0.80841 (-1p, 4b)
+```
+
+Ces labels sont **toujours relatifs au prix actuel**, PAS à la direction du trade.
+
+| Label | Signification |
+|:---|---:|
+| `SUPPORT` + `+Xp` | Prix **AU-DESSUS** du niveau → Niveau EN DESSOUS du prix = **support à casser** pour aller vers le bas |
+| `RÉSISTANCE` + `-Xp` | Prix **EN-DESSOUS** du niveau → Niveau AU DESSUS du prix = **résistance à franchir** pour aller vers le haut |
+
+**Erreur classique (que j'ai faite) :** Voir "Kijun H1 RESISTANCE" et l'ajouter comme obstacle baissier. C'est FAUX — une résistance est AU-DESSUS du prix, donc elle n'empêche PAS une descente.
+
+#### Règle : Projeter chaque niveau dans le sens du trade
+
+Pour un trade **BEAR** (LH sweepé → LL, prix doit descendre) :
+```
+Prix: 0.80828
+
+OBSTACLES (niveaux EN DESSOUS du prix, à casser pour descendre) :
+  - Tenkan H1 → 0.80812 (SUPPORT, +2p)  ← support à casser pour baisser ✅
+  - SSB H4   → 0.80809 (SUPPORT, +2p)  ← support à casser ✅
+  - SSB H1   → 0.80806 (SUPPORT, +2p)  ← support à casser ✅
+
+PAS DES OBSTACLES (niveaux AU DESSUS du prix, pas pertinents pour la baisse) :
+  - Kijun H1  → 0.80841 (RÉSISTANCE, -1p) ← au-dessus, pas un obstacle pour descendre ❌
+  - Tenkan D1 → 0.80894 (RÉSISTANCE, -7p) ← au-dessus, pas un obstacle pour descendre ❌
+```
+
+Pour un trade **BULL** (LL sweepé → LH, prix doit monter) :
+```
+Prix: 1.34732
+
+OBSTACLES (niveaux AU DESSUS du prix, à franchir pour monter) :
+  - Tenkan H4 → 1.34898 (RÉSISTANCE, -17p) ← résistance à franchir pour monter ✅
+  - SSB D1    → 1.34745 (RÉSISTANCE, -1.3p) ← résistance à franchir ✅
+  - Kijun D1  → 1.34793 (RÉSISTANCE, -5p)  ← résistance à franchir ✅
+
+PAS DES OBSTACLES (niveaux EN DESSOUS du prix, supports déjà franchis) :
+  - Kijun W1  → 1.34638 (SUPPORT, +9p)  ← support déjà sous le prix, pas un obstacle ❌
+  - Tenkan H1 → 1.34692 (SUPPORT, +3p)  ← support déjà sous le prix ❌
+```
+
+#### 🔍 Méthode de vérification rapide
+
+```
+1. Identifier la direction du trade :
+   - LH sweepé (H seul) → BEAR → objectif LL → regarder les niveaux EN DESSOUS du prix
+   - LL sweepé (L seul) → BULL → objectif LH → regarder les niveaux AU DESSUS du prix
+   - LH+LL sweepés → les DEUX → regarder les deux côtés
+
+2. Filtrer les obstacles par position relative :
+   - BEAR : ne garder QUE les niveaux où dist > 0 (prix au-dessus, donc à casser)
+   - BULL : ne garder QUE les niveaux où dist < 0 (prix en dessous, donc à franchir)
+
+3. Ordre des obstacles : du plus proche au plus loin dans la direction du trade
+```
+
+#### 📋 Tableau de décision
+
+| Label scanner | dist | Prix vs niveau | Pour BEAR (↓) | Pour BULL (↑) |
+|:---:|:---:|:---|:---|:---|
+| SUPPORT | `+Xp` | Prix AU-DESSUS | ✅ Obstacle à casser | ❌ Pas un obstacle (déjà dépassé) |
+| RÉSISTANCE | `-Xp` | Prix EN-DESSOUS | ❌ Pas un obstacle (déjà au-dessus) | ✅ Obstacle à franchir |
+
+---
+
 #### 4. Vérification croisée systématique
 | Check | Règle |
 |:---|---:|
@@ -1028,6 +1101,7 @@ EURUSD    13/22   WAIT      1.14450     1.14298    +15.2 p    34%
 | DXY cohérent avec le trade ? | DXY haussier → EUR baissier |
 | Trendline vérifiée sur toutes les TF ? | Pas juste H1, check D1 |
 | Cotation MT5 = TradingView ? | Demander confirmation si doute |
+| **Labels SUPPORT/RÉSISTANCE bien interprétés ?** | **Filtrer par direction du trade (BEAR→dessous, BULL→dessus)** |
 
 #### 5. Incertitude = je le dis
 Si doute sur une donnée, divergence MT5/TradingView, ou calcul incertain →
