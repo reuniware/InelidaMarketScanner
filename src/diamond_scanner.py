@@ -291,6 +291,28 @@ class DiamondScanner:
             return None
         return [(int(x[0]), float(x[2]), float(x[3]), float(x[4])) for x in r]
 
+    def _detect_asian_range(self, sym: str) -> Tuple[float, float]:
+        """Detecte l'Asian High et Asian Low sur H1 (session 00:00-08:00 UTC).
+
+        Returns:
+            (AH, AL) — les deux a 0.0 si pas assez de barres.
+        """
+        h1 = self._get_rates(sym, mt5.TIMEFRAME_H1, 24)
+        if h1 is None:
+            return (0.0, 0.0)
+
+        ah = None
+        al = None
+        for bar in h1:
+            dt = datetime.fromtimestamp(bar[0], UTC)
+            if dt.hour >= 0 and dt.hour < 8:
+                h, l = bar[1], bar[2]
+                if ah is None or h > ah:
+                    ah = h
+                if al is None or l < al:
+                    al = l
+        return (ah or 0.0, al or 0.0)
+
     def _kj(self, highs: List[float], lows: List[float]) -> float:
         return (max(highs[-26:]) + min(lows[-26:])) / 2.0
 
@@ -603,12 +625,18 @@ class DiamondScanner:
     def _compute_tp(
         self, sym: str, price: float, sl: float, direction: int,
         kijuns: dict, tenkans: dict, fvgs_bear: list, fvgs_bull: list,
-        ssbs: list, clouds: list
+        ssbs: list, clouds: list, asian_high: float = 0.0, asian_low: float = 0.0
     ) -> Tuple[float, float, float, str]:
         """Calcule le TP optimal base sur les vrais niveaux techniques.
 
-        Collecte Kijun, Tenkan, FVG, SSB, et nuages. Filtre par direction.
+        Collecte Kijun, Tenkan, FVG, SSB, nuages, et extensions ICT (base sur AH/AL).
+        Filtre par direction.
         Prend le niveau le plus proche qui donne RR >= 1.5.
+
+        ICT Extensions (base sur AH):
+          - Ext +1.272/+1.618/+2.0/+2.272/+2.618/+3.0/+3.618
+          - Extension BEAR: AH - n × (AH - AL)  (projete vers le bas)
+          - Extension BULL: AL + n × (AH - AL)  (projete vers le haut)
 
         Returns: (tp, risk, rr, tp_label)
         """
@@ -617,6 +645,22 @@ class DiamondScanner:
         min_tp_dist = risk * 1.5 / pip_factor  # minimum distance for RR>=1.5 (in price units)
 
         candidates: List[Tuple[float, str]] = []  # (level, label)
+
+        # ICT Extensions (base sur l'Asian Range)
+        if asian_high > 0 and asian_low > 0:
+            asi_range = asian_high - asian_low
+            if asi_range > 0:
+                for n_str, n in [("+1.272", 1.272), ("+1.618", 1.618), ("+2.0", 2.0),
+                                 ("+2.272", 2.272), ("+2.618", 2.618), ("+3.0", 3.0),
+                                 ("+3.618", 3.618)]:
+                    # Bear extension (base sur AH, projetee vers le bas)
+                    ext_bear = asian_high - n * asi_range
+                    if direction == -1 and ext_bear < price:
+                        candidates.append((ext_bear, f"Ext {n_str} AH"))
+                    # Bull extension (base sur AL, projetee vers le haut)
+                    ext_bull = asian_low + n * asi_range
+                    if direction == 1 and ext_bull > price:
+                        candidates.append((ext_bull, f"Ext {n_str} AL"))
 
         # Kijuns (all TFs)
         for label, kj in [("Kj H1", kijuns.get('h1', 0)), ("Kj H4", kijuns.get('h4', 0)),
@@ -1095,9 +1139,12 @@ class DiamondScanner:
             clouds = []
             if cloud_w1_top > 0: clouds.append((cloud_w1_top, cloud_w1_bot, 'W1'))
             if cloud_mn_top > 0: clouds.append((cloud_mn_top, cloud_mn_bot, 'MN'))
+            # Detecter l'Asian Range pour les extensions ICT
+            asian_high, asian_low = self._detect_asian_range(sym)
             tp, risk, rr, tp_label = self._compute_tp(
                 sym, price, sl, direction, kijun_dict, tenkan_dict,
-                fvgs_bear, fvgs_bull, ssb_list, clouds
+                fvgs_bear, fvgs_bull, ssb_list, clouds,
+                asian_high=asian_high, asian_low=asian_low
             )
             has_warnings = any("TenkanD1" in w for w in warnings)
             if score >= strong_threshold and not has_warnings:
