@@ -122,7 +122,7 @@ GEMINI_API_KEY=ta_cle_ici
 | 🔍 **Scan multi-actifs** | Forex, Métaux, Indices, Crypto — tous les symboles disponibles chez le broker |
 | 🌏 **Session Asiatique** | Calcul du range AH/AL (00-08 UTC) + sweeps post-Asian + extensions Fibonacci ±1.618 à ±4.0 |
 | 🔷 **BSL/SSL Sweeps** | Détection Williams fractals (N=2) avec sweep detection sur M15 à H4 |
-| 💎 **Diamond Analysis** | Ichimoku multi-TF (H1/H4/D1/W1/MN) + mémoire institutionnelle (Tenkan/Kijun flat history) + scoring 12 critères |
+| 💎 **Diamond Analysis** | Ichimoku multi-TF (H1/H4/D1/W1/MN) + mémoire institutionnelle (Tenkan/Kijun flat history) + **scoring 25 critères** (incl. FVG H1/H4/D1, AH/AL sweeps, TK/KJ barriers) + **Smart TP** (niveaux réels: Kijun, FVG, SSB, nuages) + **SL proximity safety net** (dégradation STRONG→WAIT si SL < 10% du range) + **--discord** flag pour publication automatique |
 | 📈 **Backtest Asian** | Backtest 30 jours BSL/SSL asiatique → sweep London → continuation vers l'autre liquidité |
 | 🏛️ **Niveaux Daily/Weekly** | PDH/PDL / PWH/PWL avec sweeps, breaches et direction cible |
 | 🎯 **ICT FVG** | Stratégie complète en 5 étapes : DOL → Raid → FVG → Retracement → SL/TP |
@@ -183,6 +183,12 @@ python main.py asian-liquidity --scan-all --tf M15
 
 # Diamond Analysis Ichimoku multi-TF
 python main.py diamond --symbols XAUUSD EURUSD GBPUSD
+
+# Diamond Analysis + publication Discord automatique
+python main.py diamond --discord
+
+# Diamond Analysis + sauvegarde P&L des setups actifs
+python main.py track save
 
 # Backtest 30 jours Asian BSL/SSL → London continuation
 python backtest_asian_bsl_ssl.py --days 30
