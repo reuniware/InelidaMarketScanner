@@ -453,5 +453,71 @@ Nouvelle section dans `diamond-analysis-skill.md` :
 
 ---
 
-> **Prochaine session :** à remplir avec la date, le contexte, les setups, les analyses, et les résultats.
+## 17/07/2026 — Fin de session (mise à jour sweep watchlist)
+
+### 🆕 Sweep Watchlist — Système de suivi timestampé des niveaux London
+
+Ajout d'un système complet de sauvegarde et vérification des niveaux London LH/LL :
+
+**CLI :** 3 nouvelles commandes :
+- `python main.py track watch` → sauvegarde les niveaux LH/LL à surveiller
+- `python main.py track verify --session <id>` → vérifie quels niveaux ont été sweepés
+- `python main.py track watchlist` → liste les watchlists enregistrées
+
+**Base de données :** Nouvelle table `sweep_watchlist` avec :
+- `session_id`, `symbol`, `direction` (BULL/BEAR)
+- `target_level` (LH ou LL), `target_label`
+- `current_price`, `distance_pips`
+- `obstacles_json` (Ichimoku entre prix et cible)
+- `status` (PENDING → HIT/MISSED)
+- Timestamps de création et vérification
+
+**Export JSON :** Rapports timestampés dans `reports/`
+
+### 📊 Watchlist sauvegardée — session `6ad79a41`
+
+Cible 7 symboles avec 1 seul sweep London :
+
+| Symbole | Direction | Target | Prix | Distance | Obstacle principal |
+|:---|---:|:---:|---:|---:|:---|
+| **USDJPY** | 🔻 BEAR | LL 161.979 | 162.347 | 37p | Kj H1 @ -9p |
+| **GBPUSD** | 🔺 BULL | LH 1.35422 | 1.34732 | 69p | SSB D1 @ +1p |
+| **GBPJPY** | 🔺 BULL | LH 219.525 | 218.732 | 79p | Tk H1 @ +29p |
+| **EURUSD** | 🔺 BULL | LH 1.14762 | 1.14408 | 35p | SSB H1 @ +2p |
+| **DXY.cash** | 🔻 BEAR | LL 100.424 | 100.721 | 30p | Tk H4 @ -4p |
+| **USDCHF** | 🔻 BEAR | LL 0.80551 | 0.80872 | 32p | SSB H1 @ +1p |
+| **US500.cash** | 🔺 BULL | LH 7588.65 | 7524.55 | 64p | Kj H4 |
+
+### 🎯 Trade pick : DXY.cash SELL → LL 100.424
+
+| Critère | Valeur |
+|:---|---:|
+| Sweep | LH 100.564 sweepé par NY |
+| Direction | BEAR → LL 100.424 (30p) |
+| Biais scanner | ✅ BEAR (aligné) |
+| Kumo H1/H4 | BELOW (structure baissière) |
+| Chemin | 100.736(TkH1)→prix→100.681(KjH1)→libre→100.424 |
+
+**Plan :** Attendre cassure sous 100.681 (Kijun H1), route libre 28p vers LL.
+
+### 🔧 Fixes dans le code :
+
+- `_build_obstacles()` : supprimé `ssb_proximity` qui doublait SSB H4
+- `update_all()` : fix `reason, _ = close_result` → `reason, level = close_result` (NameError quand SL touché)
+
+### 📁 Fichiers modifiés :
+
+| Fichier | Changement |
+|:---|---:|
+| `src/database.py` | Nouvelle table `sweep_watchlist` + indexes |
+| `src/trade_tracker.py` | 4 nouvelles méthodes + fixes bugs |
+| `main.py` | 3 nouvelles commandes CLI |
+| `reports/sweep_watchlist_*.json` | Rapport timestampé (21:47 UTC) |
+
+---
+
+> **Prochaine session :** à remplir avec :
+> - Vérification watchlist `track verify --session 6ad79a41`
+> - DXY.cash follow-up (a-t-il cassé 100.681 ?)
+> - Nouveaux setups Diamond
 

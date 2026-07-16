@@ -716,6 +716,63 @@ Pour chaque trade, construire cette matrice :
 
 ---
 
+## 🎯 Sweep Watchlist — Suivi timestampé des niveaux London LH/LL
+
+Depuis le 17/07/2026, le tracker P&L inclut un système de **watchlist des niveaux London**
+qui sauvegarde les symboles avec un seul sweep (LH ou LL) et leur cible opposée,
+avec timestamp + obstacles Ichimoku, pour vérification le lendemain.
+
+### Concept
+
+Quand une session se termine et qu'un symbole a exactement **1 des 2 niveaux London**
+sweepé (LH OU LL, pas les deux), la direction est claire : le marché va chercher
+l'autre côté. Le système sauvegarde :
+- La cible (LH ou LL restant)
+- La distance en pips
+- Les obstacles Ichimoku entre le prix et la cible (Tenkan, Kijun, SSB)
+- Le timestamp précis (DB + export JSON)
+
+### Commandes
+
+```bash
+# 1. Créer une watchlist (scanne + sauvegarde les niveaux à surveiller)
+python main.py track watch
+
+# 2. Vérifier les niveaux sauvegardés (re-scanne + compare)
+python main.py track verify --session <id> --symbols SYM1,SYM2,...
+
+# 3. Lister les watchlists enregistrées
+python main.py track watchlist
+```
+
+### Filtrage des candidats
+
+| Sweep | Direction | Cible | Logique |
+|:---|:---|---:|:---|
+| LH sweepé uniquement | 🔻 **BEAR** | **LL** | Liquidité haute prise → va chercher la liquidité basse |
+| LL sweepé uniquement | 🔺 **BULL** | **LH** | Liquidité basse prise → va chercher la liquidité haute |
+
+### Obstacles direction-aware
+
+| Direction | Obstacles |
+|:---|---:|
+| BULL (→ LH) | Niveaux **AU-DESSUS** du prix (Tk, Kj, SSB) |
+| BEAR (→ LL) | Niveaux **EN-DESSOUS** du prix (Tk, Kj, SSB) |
+
+### Base de données
+
+Table `sweep_watchlist` : session_id, symbol, direction, target_level, target_label,
+current_price, distance_pips, obstacles_json (6 max), status (PENDING/HIT), timestamps.
+
+### Flux
+
+```
+T0 (soir) : track watch  →  sauvegarde + JSON timestampé → status PENDING
+T1 (lendemain) : track verify --session <id>  →  re-scanne + compare → HIT/PENDING
+```
+
+---
+
 ## 🏗️ Structure des projets
 
 ### InelidaMarketScan (C:\Users\TSTAC\RustProjects\InelidaMarketScan)
@@ -1038,9 +1095,18 @@ Ces labels sont **toujours relatifs au prix actuel**, PAS à la direction du tra
 | `SUPPORT` + `+Xp` | Prix **AU-DESSUS** du niveau → Niveau EN DESSOUS du prix = **support à casser** pour aller vers le bas |
 | `RÉSISTANCE` + `-Xp` | Prix **EN-DESSOUS** du niveau → Niveau AU DESSUS du prix = **résistance à franchir** pour aller vers le haut |
 
-**Erreur classique (que j'ai faite) :** Voir "Kijun H1 RESISTANCE" et l'ajouter comme obstacle baissier. C'est FAUX — une résistance est AU-DESSUS du prix, donc elle n'empêche PAS une descente.
+**⚠️ Erreur classique #1 — Confusion Tenkan / Kijun :** Le scanner liste TOUS les niveaux
+Ichimoku (Tenkan, Kijun, SSB). Il ne dit PAS lequel est l'obstacle principal. Dans le cas USDCHF :
+- Le Kijun H1 (0.80841) est AU-DESSUS du prix → n'empêche PAS une descente
+- La **Tenkan H1** (0.80812) est EN DESSOUS du prix → **c'est elle le vrai obstacle**
 
-#### Règle : Projeter chaque niveau dans le sens du trade
+J'ai cité le Kijun comme obstacle parce que c'est l'indicateur le plus connu, mais c'était le **mauvais indicateur**. La Tenkan (9 périodes) est plus volatile que le Kijun (26 périodes) — elle réagit plus vite et se trouve souvent plus proche du prix.
+
+**⚠️ Erreur classique #2 — Confusion direction :** Voir "Kijun H1 RESISTANCE" et l'ajouter
+comme obstacle baissier. C'est FAUX — une résistance est AU-DESSUS du prix, donc elle
+n'empêche PAS une descente.
+
+#### Règle : 1️⃣ Identifier le bon indicateur, 2️⃣ Projeter dans le sens du trade
 
 Pour un trade **BEAR** (LH sweepé → LL, prix doit descendre) :
 ```
