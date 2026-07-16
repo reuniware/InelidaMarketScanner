@@ -162,8 +162,14 @@ python main.py <commande> [options]
 # Boucle temps réel
 python main.py watch --symbols XAUUSD,EURUSD
 
-# Scan asiatique
+# Scan asiatique (Market Watch, max 50)
 python main.py asian --timeframe H1 --symbols XAUUSD,EURUSD
+
+# Scan asiatique exhaustif (tous les symboles du broker, ~167)
+python main.py asian --scan-all
+
+# Scan asiatique sans limite de Market Watch (--all ≠ --scan-all)
+python main.py asian --all
 
 # Sweeps avec timeframe custom
 python main.py sweeps --timeframe M15 --lookback 100

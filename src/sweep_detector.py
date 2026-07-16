@@ -728,9 +728,17 @@ def detect_asian_range_for_symbol(
     start_utc: int = 0,
     end_utc: int = 8,
     max_bars_after: int = 240,
+    _mt5c: Optional[MT5Connector] = None,
 ) -> Optional[AsianRangeResult]:
     """Calcule le range asiatique du jour (UTC) + detecte sweeps post-Asian
-    (Asian High/Low + niveaux d extension Fibonacci)."""
+    (Asian High/Low + niveaux d extension Fibonacci).
+
+    Args:
+        _mt5c: Connecteur MT5 optionnel. Si fourni, il est reutilise tel quel
+               (pas de select_symbol, pas de nouvel ensure_connected). Utile
+               pour les batch scans (--all) ou on ne veut pas saturer le
+               Market Watch avec 167 select_symbol().
+    """
     tf_name = (timeframe or "H1").upper()
     tf = _TIMEFRAME_MAP.get(tf_name)
     if tf is None:
@@ -740,9 +748,12 @@ def detect_asian_range_for_symbol(
     if session_date is None:
         session_date = time.strftime("%Y-%m-%d", time.gmtime())
 
-    mt5c = MT5Connector()
+    # Reutiliser le connecteur fourni ou en creer un nouveau
+    mt5c = _mt5c if _mt5c is not None else MT5Connector()
     if not mt5c.ensure_connected():
         return None
+    # select_symbol EST necessaire pour que MT5 charge/cache les donnees.
+    # En mode batch, on nettoie le Market Watch apres pour eviter la saturation.
     mt5c.select_symbol(symbol)
 
     lookback_bars = max(240, 24 * 14)
@@ -1195,11 +1206,20 @@ def scan_market_watch_asian_ranges(
     results: List[AsianRangeResult] = []
     for sym in symbols:
         try:
-            r = detect_asian_range_for_symbol(sym, tf_name, session_date)
+            r = detect_asian_range_for_symbol(sym, tf_name, session_date,
+                                               _mt5c=mt5c)
             if r is not None:
                 results.append(r)
         except Exception as e:
             logger.debug("Asian scan failed pour %s: %s", sym, e)
+        finally:
+            # Nettoyer le Market Watch pour ne pas saturer avec 167 symboles
+            # en mode --scan-all. Safe a appeler meme si le symbole n'etait
+            # pas dans le Market Watch.
+            try:
+                mt5.symbol_select(sym, False)
+            except Exception:
+                pass
 
     # Sauvegarde automatique en DB (import lazy pour eviter l'import circulaire)
     if save_to_db and results and DB.auto_save_asian:
