@@ -7,6 +7,35 @@ Il permet de reproduire le même niveau de profondeur d'analyse pour n'importe q
 
 ## 📋 Pipeline d'analyse (ordre à suivre)
 
+### Étape 0 : Diamond Scanner — Scan complet automatisé
+
+```bash
+cd InelidaMarketScan
+python main.py diamond                     # tous les symboles de la watchlist
+python main.py diamond --symbols DXY.cash EURUSD GBPUSD  # symboles spécifiques
+```
+
+**Ce que le Diamond Scanner automatise :**
+- ✅ Ichimoku complet H1/H4/D1/W1/MN (Tenkan, Kijun, Kumo, T/K crosses)
+- ✅ **FVG multi-TF** : H1 (72b, priorité 18h-20h Paris), H4 (48b), D1 (30b) — bearish + bullish
+- ✅ Étape 3b : Tenkan/Kijun flat history TOUS TFs, SSB proximity, Kumo futur
+- ✅ Scoring 19 critères (17 sans MN) : Kumo, T/K, flat bars, FVGs, Kijun D1, W1, MN
+- ✅ Alignement multi-TF (0-5 TFs), qualités STRONG/GOOD/WAIT
+- ✅ Trade setup : SL (Kijun H4), TP (RR 2.0), horizon (Intraday→Position)
+- ✅ Détection compression multi-TF (Étape 7b)
+- ✅ Warnings : confluent Kijun H1=H4, Kumo virage/flat, conflit MN
+
+**Critères FVG (6 max) :**
+| TF | Fenêtre scan | Priorité | Critère Bear | Critère Bull |
+|:---|:---|:---|:---|:---|
+| **H1** | 72 barres (~3j) | 18h-20h Paris=10, hier=5 | `FVG` | `FVGb` |
+| **H4** | 48 barres (~8j) | Plus récent | `FVG4` | `FVGb4` |
+| **D1** | 30 barres (~1mois) | Plus récent | `FVGD1` | `FVGbD1` |
+
+**Scoring max :** 19 critères (17 sans MN)
+
+---
+
 ### Étape 1 : Scan Asian Range (ICT)
 
 ```bash

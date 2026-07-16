@@ -18,6 +18,7 @@ InelidaMarketScan/
 │   ├── sweep_detector.py   # Détection sweeps BSL/SSL + Asian range + Fibonacci
 │   ├── database.py         # SQLite persistence (asian, sweeps, levels)
 │   ├── display.py          # Affichage console formaté
+│   ├── diamond_scanner.py  # 🔷 Diamond Analysis — Ichimoku multi-TF + FVG H1/H4/D1 + mémoire institutionnelle
 │   ├── ai_analyst.py       # Analyse AI des données
 │   ├── ai_client.py        # Client API AI (Gemini)
 │   └── trade_executor.py   # Exécution trades automatisée
@@ -46,6 +47,7 @@ InelidaMarketScan/
 
 | Fichier | Rôle | Usage |
 |---------|------|-------|
+| `src/diamond_scanner.py` | 🔷 Diamond Analysis : Ichimoku H1/H4/D1/W1/MN + FVG multi-TF + mémoire | Scan complet |
 | `src/sweep_detector.py` | Détection sweeps, Asian range, Fibonacci, trades, **spread** | Cœur de l'analyse |
 | `src/config.py` | Watchlist, paramètres MT5/Sweep/DB | Personnalisation |
 | `src/display.py` | Affichage console formaté (setups, asian, niveaux) | Tableaux couleur |

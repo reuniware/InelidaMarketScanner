@@ -1420,7 +1420,7 @@ def _render_diamond_detail(r, lines: list):
         mit = "MITIGE" if r.fvg_h1_bear_mitigated else "NON MITIGE"
         pos_col = GREEN if r.fvg_h1_bear_price_pos == "ABOVE" else (RED if r.fvg_h1_bear_price_pos == "BELOW" else YELLOW)
         lines.append(
-            f"    {RED}FVG Bear {r.fvg_h1_bear_date}:{RESET} {_fmt_price(r.fvg_h1_bear_bot)}-{_fmt_price(r.fvg_h1_bear_top)} "
+            f"    {RED}FVG H1 Bear {r.fvg_h1_bear_date}:{RESET} {_fmt_price(r.fvg_h1_bear_bot)}-{_fmt_price(r.fvg_h1_bear_top)} "
             f"({gap_pips:.0f}p) [{mit}] [{pos_col}{r.fvg_h1_bear_price_pos}{RESET}]"
         )
     if r.fvg_h1_bull_top > 0 and r.fvg_h1_bull_bot > 0:
@@ -1428,8 +1428,44 @@ def _render_diamond_detail(r, lines: list):
         mit = "MITIGE" if r.fvg_h1_bull_mitigated else "NON MITIGE"
         pos_col = GREEN if r.fvg_h1_bull_price_pos == "ABOVE" else (RED if r.fvg_h1_bull_price_pos == "BELOW" else YELLOW)
         lines.append(
-            f"    {GREEN}FVG Bull {r.fvg_h1_bull_date}:{RESET} {_fmt_price(r.fvg_h1_bull_bot)}-{_fmt_price(r.fvg_h1_bull_top)} "
+            f"    {GREEN}FVG H1 Bull {r.fvg_h1_bull_date}:{RESET} {_fmt_price(r.fvg_h1_bull_bot)}-{_fmt_price(r.fvg_h1_bull_top)} "
             f"({gap_pips:.0f}p) [{mit}] [{pos_col}{r.fvg_h1_bull_price_pos}{RESET}]"
+        )
+
+    # FVG H4
+    if r.fvg_h4_bear_top > 0 and r.fvg_h4_bear_bot > 0:
+        gap_pips = abs(r.fvg_h4_bear_top - r.fvg_h4_bear_bot) * r.fvg_h4_bear_pip_factor
+        mit = "MITIGE" if r.fvg_h4_bear_mitigated else "NON MITIGE"
+        pos_col = GREEN if r.fvg_h4_bear_price_pos == "ABOVE" else (RED if r.fvg_h4_bear_price_pos == "BELOW" else YELLOW)
+        lines.append(
+            f"    {RED}FVG H4 Bear {r.fvg_h4_bear_date}:{RESET} {_fmt_price(r.fvg_h4_bear_bot)}-{_fmt_price(r.fvg_h4_bear_top)} "
+            f"({gap_pips:.0f}p) [{mit}] [{pos_col}{r.fvg_h4_bear_price_pos}{RESET}]"
+        )
+    if r.fvg_h4_bull_top > 0 and r.fvg_h4_bull_bot > 0:
+        gap_pips = abs(r.fvg_h4_bull_top - r.fvg_h4_bull_bot) * r.fvg_h4_bull_pip_factor
+        mit = "MITIGE" if r.fvg_h4_bull_mitigated else "NON MITIGE"
+        pos_col = GREEN if r.fvg_h4_bull_price_pos == "ABOVE" else (RED if r.fvg_h4_bull_price_pos == "BELOW" else YELLOW)
+        lines.append(
+            f"    {GREEN}FVG H4 Bull {r.fvg_h4_bull_date}:{RESET} {_fmt_price(r.fvg_h4_bull_bot)}-{_fmt_price(r.fvg_h4_bull_top)} "
+            f"({gap_pips:.0f}p) [{mit}] [{pos_col}{r.fvg_h4_bull_price_pos}{RESET}]"
+        )
+
+    # FVG D1
+    if r.fvg_d1_bear_top > 0 and r.fvg_d1_bear_bot > 0:
+        gap_pips = abs(r.fvg_d1_bear_top - r.fvg_d1_bear_bot) * r.fvg_d1_bear_pip_factor
+        mit = "MITIGE" if r.fvg_d1_bear_mitigated else "NON MITIGE"
+        pos_col = GREEN if r.fvg_d1_bear_price_pos == "ABOVE" else (RED if r.fvg_d1_bear_price_pos == "BELOW" else YELLOW)
+        lines.append(
+            f"    {RED}FVG D1 Bear {r.fvg_d1_bear_date}:{RESET} {_fmt_price(r.fvg_d1_bear_bot)}-{_fmt_price(r.fvg_d1_bear_top)} "
+            f"({gap_pips:.0f}p) [{mit}] [{pos_col}{r.fvg_d1_bear_price_pos}{RESET}]"
+        )
+    if r.fvg_d1_bull_top > 0 and r.fvg_d1_bull_bot > 0:
+        gap_pips = abs(r.fvg_d1_bull_top - r.fvg_d1_bull_bot) * r.fvg_d1_bull_pip_factor
+        mit = "MITIGE" if r.fvg_d1_bull_mitigated else "NON MITIGE"
+        pos_col = GREEN if r.fvg_d1_bull_price_pos == "ABOVE" else (RED if r.fvg_d1_bull_price_pos == "BELOW" else YELLOW)
+        lines.append(
+            f"    {GREEN}FVG D1 Bull {r.fvg_d1_bull_date}:{RESET} {_fmt_price(r.fvg_d1_bull_bot)}-{_fmt_price(r.fvg_d1_bull_top)} "
+            f"({gap_pips:.0f}p) [{mit}] [{pos_col}{r.fvg_d1_bull_price_pos}{RESET}]"
         )
 
     # Compression (Etape 7b)

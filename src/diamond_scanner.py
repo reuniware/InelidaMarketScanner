@@ -46,7 +46,7 @@ class TenkanFlatMemory:
 
 @dataclass
 class DiamondResult:
-    """Resultat d'analyse Diamond pour un symbole (12 criteres max + Etape 3b + W1/MN)."""
+    """Resultat d'analyse Diamond pour un symbole (19 criteres max + Etape 3b + W1/MN)."""
     symbol: str
     price: float
     score: int
@@ -166,6 +166,38 @@ class DiamondResult:
     fvg_h1_bull_price_pos: str = "N/A"  # "ABOVE", "BELOW", "INSIDE"
     fvg_h1_bull_date: str = ""
     fvg_h1_bull_pip_factor: float = 10000.0
+
+    # FVG H4 recent — bearish
+    fvg_h4_bear_top: float = 0.0
+    fvg_h4_bear_bot: float = 0.0
+    fvg_h4_bear_mitigated: bool = False
+    fvg_h4_bear_price_pos: str = "N/A"
+    fvg_h4_bear_date: str = ""
+    fvg_h4_bear_pip_factor: float = 10000.0
+
+    # FVG H4 recent — bullish
+    fvg_h4_bull_top: float = 0.0
+    fvg_h4_bull_bot: float = 0.0
+    fvg_h4_bull_mitigated: bool = False
+    fvg_h4_bull_price_pos: str = "N/A"
+    fvg_h4_bull_date: str = ""
+    fvg_h4_bull_pip_factor: float = 10000.0
+
+    # FVG D1 recent — bearish
+    fvg_d1_bear_top: float = 0.0
+    fvg_d1_bear_bot: float = 0.0
+    fvg_d1_bear_mitigated: bool = False
+    fvg_d1_bear_price_pos: str = "N/A"
+    fvg_d1_bear_date: str = ""
+    fvg_d1_bear_pip_factor: float = 10000.0
+
+    # FVG D1 recent — bullish
+    fvg_d1_bull_top: float = 0.0
+    fvg_d1_bull_bot: float = 0.0
+    fvg_d1_bull_mitigated: bool = False
+    fvg_d1_bull_price_pos: str = "N/A"
+    fvg_d1_bull_date: str = ""
+    fvg_d1_bull_pip_factor: float = 10000.0
 
     # Trade setup
     sl: float = 0.0
@@ -457,16 +489,18 @@ class DiamondScanner:
                     results.append((sb, dist))
         return sorted(results, key=lambda x: x[1])
 
-    # ── FVG H1 detection (bearish + bullish gaps) ──
+    # ── FVG detection (bearish + bullish gaps) — generic TF ──
 
-    def _detect_fvg_h1(
+    def _detect_fvg(
         self, highs: List[float], lows: List[float],
-        timestamps: List[int], price: float, sym: str
+        timestamps: List[int], price: float, sym: str,
+        scan_window: int = 72, use_priority: bool = True, tf_label: str = "H1"
     ) -> Tuple[float, float, bool, str, str, float,
                float, float, bool, str, str, float]:
-        """Detecte les FVGs H1 bearish (low[i] > high[i+2]) et bullish (high[i] < low[i+2]).
+        """Detecte les FVGs bearish (low[i] > high[i+2]) et bullish (high[i] < low[i+2]).
 
-        Cherche dans les 3 derniers jours (72 barres).
+        Pour H1, utilise un systeme de priorite (18h-20h Paris = 10, hier = 5).
+        Pour les autres TFs, prend le plus recent.
 
         Returns 12 valeurs:
             bear_top, bear_bot, bear_mitigated, bear_pos, bear_date, bear_pip_factor,
@@ -481,30 +515,41 @@ class DiamondScanner:
         tolerance = thresh / 2.0
         pip_factor = 10.0 if sym == 'XAUUSD' else (100.0 if 'JPY' in sym else 10000.0)
 
+        # Date formatter: include hour for H1, just date for H4/D1
+        if tf_label == "H1":
+            date_fmt = "%d/%m %Hh"
+        else:
+            date_fmt = "%d/%m"
+
         best_bear: Optional[Tuple[int, float, float, str, int]] = None
         best_bull: Optional[Tuple[int, float, float, str, int]] = None
+        max_idx = min(n, scan_window)
 
-        for i in range(2, min(n, 72)):
+        for i in range(2, max_idx):
             dt_i = datetime.fromtimestamp(timestamps[i], UTC)
             dt_i2 = datetime.fromtimestamp(timestamps[i - 2], UTC)
-            prev_h = dt_i2.hour
 
-            # Priority: yesterday's 18h-20h Paris (16-18 UTC) gets 10, yesterday gets 5
-            priority = 0
-            if prev_h == 16 and dt_i.hour == 18:
-                priority = 10
-            elif dt_i.day != datetime.now(UTC).day:
-                priority = 5
+            if use_priority:
+                prev_h = dt_i2.hour
+                # Priority: yesterday's 18h-20h Paris (16-18 UTC) gets 10, yesterday gets 5
+                priority = 0
+                if prev_h == 16 and dt_i.hour == 18:
+                    priority = 10
+                elif dt_i.day != datetime.now(UTC).day:
+                    priority = 5
+            else:
+                # For H4/D1: just use reverse index as priority (most recent = highest)
+                priority = max_idx - i
 
             # Bearish FVG: low[i-2] > high[i]
             if lows[i - 2] > highs[i] and (lows[i - 2] - highs[i]) > thresh:
-                label = dt_i2.strftime("%d/%m %Hh")
+                label = dt_i2.strftime(date_fmt)
                 if best_bear is None or priority > best_bear[0]:
                     best_bear = (priority, lows[i - 2], highs[i], label, i)
 
             # Bullish FVG: high[i-2] < low[i]
             if highs[i - 2] < lows[i] and (lows[i] - highs[i - 2]) > thresh:
-                label = dt_i2.strftime("%d/%m %Hh")
+                label = dt_i2.strftime(date_fmt)
                 if best_bull is None or priority > best_bull[0]:
                     best_bull = (priority, lows[i], highs[i - 2], label, i)
 
@@ -724,10 +769,18 @@ class DiamondScanner:
         # ═══ Kijun D1 distance ═══════════════════════════════════════════
         d_kj_d1 = self._pips(sym, price, kd1)
 
-        # ═══ FVG H1 detection (e.g. 18h-20h Paris bearish gap) ════════════
+        # ═══ FVG detection — H1, H4, D1 ══════════════════════════════════
         fvg_top, fvg_bot, fvg_mitigated, fvg_pos, fvg_date, fvg_pip_factor, \
-            fvg_bull_top, fvg_bull_bot, fvg_bull_mitigated, fvg_bull_pos, fvg_bull_date, fvg_bull_pip_factor = self._detect_fvg_h1(
-            h1_h, h1_l, h1_t, price, sym
+            fvg_bull_top, fvg_bull_bot, fvg_bull_mitigated, fvg_bull_pos, fvg_bull_date, fvg_bull_pip_factor = self._detect_fvg(
+            h1_h, h1_l, h1_t, price, sym, scan_window=72, use_priority=True, tf_label="H1"
+        )
+        fvg4_top, fvg4_bot, fvg4_mitigated, fvg4_pos, fvg4_date, fvg4_pip_factor, \
+            fvg4_bull_top, fvg4_bull_bot, fvg4_bull_mitigated, fvg4_bull_pos, fvg4_bull_date, fvg4_bull_pip_factor = self._detect_fvg(
+            h4_h, h4_l, h4_t, price, sym, scan_window=48, use_priority=False, tf_label="H4"
+        )
+        fvg_d1_top, fvg_d1_bot, fvg_d1_mitigated, fvg_d1_pos, fvg_d1_date, fvg_d1_pip_factor, \
+            fvg_d1_bull_top, fvg_d1_bull_bot, fvg_d1_bull_mitigated, fvg_d1_bull_pos, fvg_d1_bull_date, fvg_d1_bull_pip_factor = self._detect_fvg(
+            d1_h, d1_l, d1_t, price, sym, scan_window=30, use_priority=False, tf_label="D1"
         )
 
         # ═══ Bias/Direction (computed BEFORE scoring) ════════════════════
@@ -746,9 +799,9 @@ class DiamondScanner:
             else:
                 bias, direction = "BEAR", -1
 
-        # ═══ Scoring (15 criteres max avec FVG bear+bull+KjD1) ═══════════
+        # ═══ Scoring (19 criteres max avec FVG H1+H4+D1 bear+bull+KjD1) ═══════════
         score = 0
-        max_score = 15 if mn_available else 13
+        max_score = 19 if mn_available else 17
         crit: List[str] = []
         warnings: List[str] = []
         alignment = 0
@@ -777,28 +830,50 @@ class DiamondScanner:
         if kd1 > 0 and direction != 0:
             if (direction == 1 and price > kd1) or (direction == -1 and price < kd1):
                 score += 1; crit.append("KjD1"); alignment += 1
-        # FVG H1 (1 critere) — mitigated FVG acting as S/R
+        # FVG H1 (2 criteres max) — mitigated FVG acting as S/R
         if fvg_mitigated and fvg_pos in ("BELOW", "ABOVE") and direction != 0:
             if (direction == -1 and fvg_pos == "BELOW") or (direction == 1 and fvg_pos == "ABOVE"):
                 score += 1; crit.append("FVG")
         if fvg_bull_mitigated and fvg_bull_pos in ("BELOW", "ABOVE") and direction != 0:
             if (direction == 1 and fvg_bull_pos == "ABOVE") or (direction == -1 and fvg_bull_pos == "BELOW"):
                 score += 1; crit.append("FVGb")
+        # FVG H4 (2 criteres max)
+        if fvg4_mitigated and fvg4_pos in ("BELOW", "ABOVE") and direction != 0:
+            if (direction == -1 and fvg4_pos == "BELOW") or (direction == 1 and fvg4_pos == "ABOVE"):
+                score += 1; crit.append("FVG4")
+        if fvg4_bull_mitigated and fvg4_bull_pos in ("BELOW", "ABOVE") and direction != 0:
+            if (direction == 1 and fvg4_bull_pos == "ABOVE") or (direction == -1 and fvg4_bull_pos == "BELOW"):
+                score += 1; crit.append("FVGb4")
+        # FVG D1 (2 criteres max)
+        if fvg_d1_mitigated and fvg_d1_pos in ("BELOW", "ABOVE") and direction != 0:
+            if (direction == -1 and fvg_d1_pos == "BELOW") or (direction == 1 and fvg_d1_pos == "ABOVE"):
+                score += 1; crit.append("FVGD1")
+        if fvg_d1_bull_mitigated and fvg_d1_bull_pos in ("BELOW", "ABOVE") and direction != 0:
+            if (direction == 1 and fvg_d1_bull_pos == "ABOVE") or (direction == -1 and fvg_d1_bull_pos == "BELOW"):
+                score += 1; crit.append("FVGbD1")
 
         # ── Warnings (Etape 3b — TOUS les TFs) ──
-        # FVG H1 warnings (bearish + bullish)
-        if fvg_top > 0 and fvg_bot > 0:
-            gap = self._pips(sym, fvg_top, fvg_bot)
-            mit = "MITIGE" if fvg_mitigated else "NON MITIGE"
-            warnings.append(
-                f"FVG BEAR {fvg_date}: {fvg_bot:.5f}-{fvg_top:.5f} ({abs(gap):.1f}p) [{mit}] [{fvg_pos}]"
-            )
-        if fvg_bull_top > 0 and fvg_bull_bot > 0:
-            gap = self._pips(sym, fvg_bull_top, fvg_bull_bot)
-            mit = "MITIGE" if fvg_bull_mitigated else "NON MITIGE"
-            warnings.append(
-                f"FVG BULL {fvg_bull_date}: {fvg_bull_bot:.5f}-{fvg_bull_top:.5f} ({abs(gap):.1f}p) [{mit}] [{fvg_bull_pos}]"
-            )
+        # FVG warnings (H1 + H4 + D1, bearish + bullish)
+        for tf_name, fvg_t, fvg_b, fvg_m, fvg_p, fvg_d, fvg_pf, fvg_bt, fvg_bb, fvg_bm, fvg_bp, fvg_bd, fvg_bpf in [
+            ("H1", fvg_top, fvg_bot, fvg_mitigated, fvg_pos, fvg_date, fvg_pip_factor,
+             fvg_bull_top, fvg_bull_bot, fvg_bull_mitigated, fvg_bull_pos, fvg_bull_date, fvg_bull_pip_factor),
+            ("H4", fvg4_top, fvg4_bot, fvg4_mitigated, fvg4_pos, fvg4_date, fvg4_pip_factor,
+             fvg4_bull_top, fvg4_bull_bot, fvg4_bull_mitigated, fvg4_bull_pos, fvg4_bull_date, fvg4_bull_pip_factor),
+            ("D1", fvg_d1_top, fvg_d1_bot, fvg_d1_mitigated, fvg_d1_pos, fvg_d1_date, fvg_d1_pip_factor,
+             fvg_d1_bull_top, fvg_d1_bull_bot, fvg_d1_bull_mitigated, fvg_d1_bull_pos, fvg_d1_bull_date, fvg_d1_bull_pip_factor),
+        ]:
+            if fvg_t > 0 and fvg_b > 0:
+                gap = abs(fvg_t - fvg_b) * fvg_pf
+                mit = "MITIGE" if fvg_m else "NON MITIGE"
+                warnings.append(
+                    f"FVG {tf_name} BEAR {fvg_d}: {fvg_b:.5f}-{fvg_t:.5f} ({gap:.1f}p) [{mit}] [{fvg_p}]"
+                )
+            if fvg_bt > 0 and fvg_bb > 0:
+                gap = abs(fvg_bt - fvg_bb) * fvg_bpf
+                mit = "MITIGE" if fvg_bm else "NON MITIGE"
+                warnings.append(
+                    f"FVG {tf_name} BULL {fvg_bd}: {fvg_bb:.5f}-{fvg_bt:.5f} ({gap:.1f}p) [{mit}] [{fvg_bp}]"
+                )
         # Tenkan flats proches (H1/H4/D1/W1/MN)
         for flats, label, threshold, unit in [
             (tenkan_flat_h1, "TenkanH1", 5, "b"),
@@ -949,6 +1024,18 @@ class DiamondScanner:
             fvg_h1_bull_top=fvg_bull_top, fvg_h1_bull_bot=fvg_bull_bot,
             fvg_h1_bull_mitigated=fvg_bull_mitigated, fvg_h1_bull_price_pos=fvg_bull_pos,
             fvg_h1_bull_date=fvg_bull_date, fvg_h1_bull_pip_factor=fvg_bull_pip_factor,
+            fvg_h4_bear_top=fvg4_top, fvg_h4_bear_bot=fvg4_bot,
+            fvg_h4_bear_mitigated=fvg4_mitigated, fvg_h4_bear_price_pos=fvg4_pos,
+            fvg_h4_bear_date=fvg4_date, fvg_h4_bear_pip_factor=fvg4_pip_factor,
+            fvg_h4_bull_top=fvg4_bull_top, fvg_h4_bull_bot=fvg4_bull_bot,
+            fvg_h4_bull_mitigated=fvg4_bull_mitigated, fvg_h4_bull_price_pos=fvg4_bull_pos,
+            fvg_h4_bull_date=fvg4_bull_date, fvg_h4_bull_pip_factor=fvg4_bull_pip_factor,
+            fvg_d1_bear_top=fvg_d1_top, fvg_d1_bear_bot=fvg_d1_bot,
+            fvg_d1_bear_mitigated=fvg_d1_mitigated, fvg_d1_bear_price_pos=fvg_d1_pos,
+            fvg_d1_bear_date=fvg_d1_date, fvg_d1_bear_pip_factor=fvg_d1_pip_factor,
+            fvg_d1_bull_top=fvg_d1_bull_top, fvg_d1_bull_bot=fvg_d1_bull_bot,
+            fvg_d1_bull_mitigated=fvg_d1_bull_mitigated, fvg_d1_bull_price_pos=fvg_d1_bull_pos,
+            fvg_d1_bull_date=fvg_d1_bull_date, fvg_d1_bull_pip_factor=fvg_d1_bull_pip_factor,
             sl=sl, tp=tp, rr=rr, horizon=horizon,
             criteria=crit, warnings=warnings,
         )
