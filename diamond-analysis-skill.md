@@ -1170,7 +1170,54 @@ PAS DES OBSTACLES (niveaux EN DESSOUS du prix, supports déjà franchis) :
 | **Labels SUPPORT/RÉSISTANCE bien interprétés ?** | **Filtrer par direction du trade (BEAR→dessous, BULL→dessus)** |
 
 #### 5. Incertitude = je le dis
-Si doute sur une donnée, divergence MT5/TradingView, ou calcul incertain →
+Si doute sur une donnée, divergence MT5/TradingView, ou calcul incert
+
+---
+
+## 🆕 Concepts ajoutés le 17/07/2026 — OB + MSS/BOS + Volume
+
+### Order Blocks (OB) ICT
+
+**Détection :** `_detect_order_blocks()` dans Diamond Scanner.
+- ATR(14) × 1.2 pour détection d'impulsion
+- Bougie AVANT l'impulsion = Order Block
+- Bearish OB : high de la bougie pré-impulsion (résistance)
+- Bullish OB : low (support)
+
+**Scoring (6 critères) :** `OBH1/OBH4/OBD1` (bear), `OBbH1/OBbH4/OBbD1` (bull) + bonus `OBx2` (≥2 TFs), `OBx3` (3 TFs)
+
+**Warnings :** `OB BEAR H1 ... — resistance intacte` / `OB BULL H4 ... — support intact`
+
+### Market Structure Shift (MSS/BOS)
+
+**Détection :** `_detect_market_structure()` — swing points fractales 5 barres.
+- Régime : BULL (HH+HL), BEAR (LH+LL), RANGE
+- BOS : prix casse le dernier swing = momentum confirmé
+- MSS (CHoCH) : shift de structure = retournement potentiel
+
+**Scoring (9 critères) :** `MSSbH1/MSSH1` (régime), `BOSH1/BOSH4/BOSD1` (BOS), `CHoCHH1/CHoCHH4/CHoCHD1` (shift)
+
+### Volume Analysis (HVN/LVN + Spike)
+
+**Données :** Tick volume MT5 via `_get_rates_with_volume()`
+
+**Détection :** `_detect_volume_analysis()` — 20 zones de prix, HVN > 1.5× moyenne, LVN < 0.5× moyenne, spike > 2× moyenne
+
+**Scoring (9 critères) :** `VOLh1/VOLh4/VOLd1` (spike), `HVNh1/HVNh4/HVNd1` (support/résistance), `LVNh1/LVNh4/LVNd1` (mouvement rapide)
+
+### Évolution max_score
+
+| Version | max_score | Nouveautés |
+|:---:|:---:|:---|
+| Initiale | 12 | Ichimoku H1/H4/D1 + W1/MN |
+| +FVG | 19 | FVG H1/H4/D1 bear+bull |
+| +S/R barriers | 22 | TK4/TKd1/Kj4/KjD1 |
+| +Asian Sweep | 25/23 | AH/AL sweep |
+| +M30 cross | 28/26 | Kijun M30 cross |
+| +M5/M15/M30 | 34/32 | Kijun+Tenkan M5/M15/M30 |
+| +Order Blocks | 40/38 | OB + multi-TF bonus |
+| +MSS/BOS | 49/47 | Régime + BOS + CHoCH |
+| +Volume | 58/56 | VOL + HVN + LVN |ain →
 je le précise. Pas d'affirmations fausses avec assurance.
 
 ---

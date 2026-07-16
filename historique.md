@@ -554,3 +554,97 @@ Warnings:
 
 ---
 
+## 17/07/2026 — Session complète (OB + MSS/BOS + Volume)
+
+### 🆕 Order Blocks (OB) ICT — Nouveau concept #1 dans le Diamond Scanner
+
+**Déclencheur :** Besoin d'identifier où les institutions sont positionnées — complément essentiel aux FVG et sweeps.
+
+**Ajouts dans `DiamondResult` :** 18 nouveaux champs (bear+bull + pos + mitigated × H1/H4/D1)
+
+**Méthode :** `_detect_order_blocks(highs, lows, closes, ...)`
+- ATR(14) × 1.2 pour détection d'impulsion
+- La bougie AVANT l'impulsion = Order Block
+- Bearish OB : high de la bougie pré-impulsion (résistance)
+- Bullish OB : low de la bougie pré-impulsion (support)
+- Position : ABOVE/BELOW/AT (3 pips de tolérance)
+- Mitigé : prix a touché/repassé l'OB
+
+**Scoring (max_score: 40/38) :**
+- OBH1/OBH4/OBD1 : bear OB BELOW + direction BEAR
+- OBbH1/OBbH4/OBbD1 : bull OB ABOVE + direction BULL
+- OBx2 : bonus si ≥2 TFs avec OB
+- OBx3 : bonus + alignment si 3 TFs avec OB
+
+**Warnings :** `OB BEAR H1 ... — resistance intacte` / `OB BULL D1 ... — support intact`
+
+**Validation :** GBPUSD OB BULL H1/H4/D1 supports intacts, EURUSD OB BULL H1 +4p du prix
+
+---
+
+### 🆕 Market Structure Shift (MSS/BOS) — Nouveau concept #2
+
+**Ajouts dans `DiamondResult` :** 9 nouveaux champs (regime + bos + shift × H1/H4/D1)
+
+**Méthode :** `_detect_market_structure(highs, lows, closes, ...)`
+- Swing highs/lows (fractales 5 barres)
+- Régime : BULL (HH+HL) / BEAR (LH+LL) / RANGE
+- BOS : prix a cassé le dernier swing high (BULL) ou low (BEAR)
+- MSS (shift) : structure qui change (higher low en bear, lower high en bull)
+
+**Scoring (max_score: 49/47) :**
+- MSSbH1/MSSH1, MSSbH4/MSSH4, MSSbD1/MSSD1 : régime aligné
+- BOSH1/BOSH4/BOSD1 : BOS confirme la direction
+- CHoCHH1/CHoCHH4/CHoCHD1 : changement de caractère (shift)
+
+**Warnings :** Conflit régime/direction, BOS structure cassée, MSS retournement potentiel
+
+**Validation :** EURUSD BOS D1 BEAR détecté — structure cassée confirmée
+
+---
+
+### 🆕 Volume analysis (HVN/LVN + Volume Spike) — Nouveau concept #3
+
+**Nouvelle méthode MT5 :** `_get_rates_with_volume()` retourne (time, high, low, close, tick_volume)
+
+**Méthode :** `_detect_volume_analysis(highs, lows, closes, volumes, ...)`
+- Volume moyen sur la fenêtre
+- Volume spike : dernière barre > 2× la moyenne
+- HVN (High Volume Node) : 20 zones de prix, zone avec volume > 1.5× moyenne
+- LVN (Low Volume Node) : zone avec volume < 0.5× moyenne
+
+**Scoring (max_score: 58/56) :**
+- VOLh1/VOLh4/VOLd1 : spike + direction active
+- HVNh1/HVNh4/HVNd1 : HVN comme support (price > HVN × direction BULL) ou résistance (price < HVN × direction BEAR)
+- LVNh1/LVNh4/LVNd1 : LVN dans la direction du trade
+
+**Warnings :** VOL SPIKE, HVN/LVN proches (< 10 pips)
+
+**Détections scan complet (13 symboles) :** HVN/LVN sur EURUSD, GBPJPY, USDCAD, DXY.cash, USDCHF, AUDUSD, USDJPY, EURJPY
+
+---
+
+### 📊 Bilan des évolutions Diamond Scanner
+
+| Version | max_score | Nouveautés |
+|:---:|:---:|:---|
+| Initiale | 12 | Ichimoku H1/H4/D1 + W1/MN |
+| +FVG | 19 | FVG H1/H4/D1 bear+bull |
+| +S/R barriers | 22 | TK4/TKd1/Kj4/KjD1 |
+| +Asian Sweep | 25/23 | AH/AL sweep detection + London |
+| +M30 cross | 28/26 | Kijun M30 cross |
+| +M5/M15 | 34/32 | Kijun+Tenkan M5/M15/M30 crosses |
+| +Order Blocks | 40/38 | OB H1/H4/D1 bear+bull + multi-TF bonus |
+| +MSS/BOS | 49/47 | Régime + BOS + CHoCH H1/H4/D1 |
+| +Volume | 58/56 | VOL spike + HVN + LVN H1/H4/D1 |
+
+| Métrique | Valeur |
+|:---|---:|
+| Lignes de code `diamond_scanner.py` | ~2000 |
+| Méthodes de détection | 12+ |
+| Critères de scoring | 58 |
+| Timeframes analysés | M5, M15, M30, H1, H4, D1, W1, MN |
+| Concepts ICT | Sweeps, FVG, OB, MSS/BOS, CHoCH, HVN/LVN |
+
+---
+

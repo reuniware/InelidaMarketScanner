@@ -1839,7 +1839,9 @@ def _render_diamond_detail(r, lines: list):
                  f"ΔKj4: {r.d_kj4:+.1f}p"
                  f"{kj_d1_str}"
                  f"{tk_h4_str}"
-                 f"  |  M30: {'BEAR ' if r.kj_m30_cross_bear else 'BULL ' if r.kj_m30_cross_bull else ''}Kj {r.d_kj_m30:+.0f}p" if r.kj_m30 > 0 else ""
+                 f"  |  M30: {'V' if r.kj_m30_cross_bear else '^' if r.kj_m30_cross_bull else ''}Kj {r.d_kj_m30:+.0f}p{' Tk' if r.tk_m30_cross_bear or r.tk_m30_cross_bull else ''}" if r.kj_m30 > 0 else ""
+                 f"  |  M15: {'V' if r.kj_m15_cross_bear else '^' if r.kj_m15_cross_bull else ''}Kj {r.d_kj_m15:+.0f}p{' Tk' if r.tk_m15_cross_bear or r.tk_m15_cross_bull else ''}" if r.kj_m15 > 0 else ""
+                 f"  |  M5: {'V' if r.kj_m5_cross_bear else '^' if r.kj_m5_cross_bull else ''}Kj {r.d_kj_m5:+.0f}p{' Tk' if r.tk_m5_cross_bear or r.tk_m5_cross_bull else ''}" if r.kj_m5 > 0 else ""
                  f"  |  "
                  f"RR: {r.rr:.1f}x"
                  f"{horizon_str}")
@@ -2063,6 +2065,62 @@ def _render_diamond_detail(r, lines: list):
             f"    {GREEN}FVG D1 Bull {r.fvg_d1_bull_date}:{RESET} {_fmt_price(r.fvg_d1_bull_bot)}-{_fmt_price(r.fvg_d1_bull_top)} "
             f"({gap_pips:.0f}p) [{mit}] [{pos_col}{r.fvg_d1_bull_price_pos}{RESET}]"
         )
+
+    # Order Blocks (H1/H4/D1)
+    for tf_lbl in ["H1", "H4", "D1"]:
+        bear_lv = getattr(r, f"ob_{tf_lbl.lower()}_bear_level", 0.0)
+        bear_pos = getattr(r, f"ob_{tf_lbl.lower()}_bear_pos", "N/A")
+        bear_mit = getattr(r, f"ob_{tf_lbl.lower()}_bear_mitigated", False)
+        bull_lv = getattr(r, f"ob_{tf_lbl.lower()}_bull_level", 0.0)
+        bull_pos = getattr(r, f"ob_{tf_lbl.lower()}_bull_pos", "N/A")
+        bull_mit = getattr(r, f"ob_{tf_lbl.lower()}_bull_mitigated", False)
+        ob_parts = []
+        if bear_lv > 0:
+            mit_tag = "" if not bear_mit else f" {RED}MITIGE{RESET}"
+            pos_tag = {"ABOVE": f"{GREEN}▲{RESET}", "BELOW": f"{RED}▼{RESET}", "AT": f"{YELLOW}◆{RESET}"}.get(bear_pos, "")
+            ob_parts.append(f"{RED}Bear{RESET}{mit_tag}{pos_tag}@{_fmt_price(bear_lv)}")
+        if bull_lv > 0:
+            mit_tag = "" if not bull_mit else f" {RED}MITIGE{RESET}"
+            pos_tag = {"ABOVE": f"{GREEN}▲{RESET}", "BELOW": f"{RED}▼{RESET}", "AT": f"{YELLOW}◆{RESET}"}.get(bull_pos, "")
+            ob_parts.append(f"{GREEN}Bull{RESET}{mit_tag}{pos_tag}@{_fmt_price(bull_lv)}")
+        if ob_parts:
+            lines.append(f"    {GRAY}OB {tf_lbl}:{RESET} {' | '.join(ob_parts)}")
+
+    # Volume analysis (HVN/LVN + spike)
+    for tf_lbl in ["H1", "H4", "D1"]:
+        avg_v = getattr(r, f"vol_avg_{tf_lbl.lower()}", 0.0)
+        spike = getattr(r, f"vol_spike_{tf_lbl.lower()}", False)
+        hvn = getattr(r, f"vol_hvn_{tf_lbl.lower()}", 0.0)
+        lvn = getattr(r, f"vol_lvn_{tf_lbl.lower()}", 0.0)
+        vol_parts = []
+        if avg_v > 0:
+            vol_parts.append(f"Moy {avg_v:.0f}")
+        if spike:
+            vol_parts.append(f"{YELLOW}SPIKE{RESET}")
+        if hvn > 0:
+            vol_parts.append(f"HVN@{_fmt_price(hvn)}")
+        if lvn > 0:
+            vol_parts.append(f"LVN@{_fmt_price(lvn)}")
+        if vol_parts:
+            lines.append(f"    {GRAY}Vol {tf_lbl}:{RESET} {' | '.join(vol_parts)}")
+
+    # Market Structure (MSS/BOS) — H1, H4, D1
+    for tf_lbl in ["H1", "H4", "D1"]:
+        regime = getattr(r, f"mss_{tf_lbl.lower()}_regime", "N/A")
+        bos = getattr(r, f"mss_{tf_lbl.lower()}_bos", "N/A")
+        shift = getattr(r, f"mss_{tf_lbl.lower()}_shift", "N/A")
+        mss_parts = []
+        if regime != "N/A":
+            reg_col = GREEN if regime == "BULL" else (RED if regime == "BEAR" else GRAY)
+            mss_parts.append(f"{reg_col}{regime}{RESET}")
+        if bos != "N/A":
+            bos_col = GREEN if bos == "BULL" else RED
+            mss_parts.append(f"BOS:{bos_col}{bos}{RESET}")
+        if shift != "N/A":
+            shift_col = GREEN if shift == "BULL" else RED
+            mss_parts.append(f"MSS:{shift_col}{shift}{RESET}")
+        if mss_parts:
+            lines.append(f"    {GRAY}Struct {tf_lbl}:{RESET} {' | '.join(mss_parts)}")
 
     # Compression (Etape 7b)
     if r.compression_zone:

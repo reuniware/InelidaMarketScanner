@@ -65,10 +65,34 @@ class DiamondResult:
     kj_mn: float = 0.0
     d_kj4: float = 0.0     # distance prix vs Kijun H4 en pips
 
-    # M30 Kijun cross detection
-    kj_m30_cross_bear: bool = False  # prix traverse Kijun M30 vers le bas
-    kj_m30_cross_bull: bool = False  # prix traverse Kijun M30 vers le haut
-    d_kj_m30: float = 0.0           # distance prix vs Kijun M30 en pips
+    # M30 Kijun/Tenkan cross detection
+    kj_m30_cross_bear: bool = False
+    kj_m30_cross_bull: bool = False
+    d_kj_m30: float = 0.0
+    tk_m30: float = 0.0
+    tk_m30_cross_bear: bool = False
+    tk_m30_cross_bull: bool = False
+    d_tk_m30: float = 0.0
+
+    # M15 Kijun/Tenkan cross detection
+    kj_m15: float = 0.0
+    kj_m15_cross_bear: bool = False
+    kj_m15_cross_bull: bool = False
+    d_kj_m15: float = 0.0
+    tk_m15: float = 0.0
+    tk_m15_cross_bear: bool = False
+    tk_m15_cross_bull: bool = False
+    d_tk_m15: float = 0.0
+
+    # M5 Kijun/Tenkan cross detection
+    kj_m5: float = 0.0
+    kj_m5_cross_bear: bool = False
+    kj_m5_cross_bull: bool = False
+    d_kj_m5: float = 0.0
+    tk_m5: float = 0.0
+    tk_m5_cross_bear: bool = False
+    tk_m5_cross_bull: bool = False
+    d_tk_m5: float = 0.0
 
     # Tenkan values (TOUS les TFs)
     tk_h1: float = 0.0
@@ -210,6 +234,59 @@ class DiamondResult:
     fvg_d1_bull_date: str = ""
     fvg_d1_bull_pip_factor: float = 10000.0
 
+    # Order Blocks (OB) ICT — H1
+    ob_h1_bear_level: float = 0.0
+    ob_h1_bear_pos: str = "N/A"     # "ABOVE", "BELOW", "AT"
+    ob_h1_bear_mitigated: bool = False
+    ob_h1_bull_level: float = 0.0
+    ob_h1_bull_pos: str = "N/A"     # "ABOVE", "BELOW", "AT"
+    ob_h1_bull_mitigated: bool = False
+
+    # Order Blocks (OB) ICT — H4
+    ob_h4_bear_level: float = 0.0
+    ob_h4_bear_pos: str = "N/A"
+    ob_h4_bear_mitigated: bool = False
+    ob_h4_bull_level: float = 0.0
+    ob_h4_bull_pos: str = "N/A"
+    ob_h4_bull_mitigated: bool = False
+
+    # Order Blocks (OB) ICT — D1
+    ob_d1_bear_level: float = 0.0
+    ob_d1_bear_pos: str = "N/A"
+    ob_d1_bear_mitigated: bool = False
+    ob_d1_bull_level: float = 0.0
+    ob_d1_bull_pos: str = "N/A"
+    ob_d1_bull_mitigated: bool = False
+
+    # Market Structure (MSS/BOS) ICT — H1
+    mss_h1_regime: str = "N/A"       # "BULL", "BEAR", "RANGE"
+    mss_h1_bos: str = "N/A"          # "BULL", "BEAR", "N/A"
+    mss_h1_shift: str = "N/A"        # "BULL", "BEAR", "N/A"
+
+    # Market Structure (MSS/BOS) ICT — H4
+    mss_h4_regime: str = "N/A"
+    mss_h4_bos: str = "N/A"
+    mss_h4_shift: str = "N/A"
+
+    # Market Structure (MSS/BOS) ICT — D1
+    mss_d1_regime: str = "N/A"
+    mss_d1_bos: str = "N/A"
+    mss_d1_shift: str = "N/A"
+
+    # Volume analysis (HVN/LVN + spike)
+    vol_avg_h1: float = 0.0       # volume moyen H1
+    vol_spike_h1: bool = False    # volume spike sur la derniere barre H1
+    vol_hvn_h1: float = 0.0       # plus proche niveau HVN H1
+    vol_lvn_h1: float = 0.0       # plus proche niveau LVN H1
+    vol_avg_h4: float = 0.0
+    vol_spike_h4: bool = False
+    vol_hvn_h4: float = 0.0
+    vol_lvn_h4: float = 0.0
+    vol_avg_d1: float = 0.0
+    vol_spike_d1: bool = False
+    vol_hvn_d1: float = 0.0
+    vol_lvn_d1: float = 0.0
+
     # Trade setup
     sl: float = 0.0
     tp: float = 0.0
@@ -312,6 +389,13 @@ class DiamondScanner:
         if r is None or len(r) < n:
             return None
         return [(int(x[0]), float(x[2]), float(x[3]), float(x[4])) for x in r]
+
+    def _get_rates_with_volume(self, sym: str, tf: int, n: int) -> Optional[List[Tuple[int, float, float, float, int]]]:
+        """Fetch OHLC + tick_volume. Retourne (time, high, low, close, tick_volume)."""
+        r = mt5.copy_rates_from_pos(sym, tf, 0, n)
+        if r is None or len(r) < n:
+            return None
+        return [(int(x[0]), float(x[2]), float(x[3]), float(x[4]), int(x[5])) for x in r]
 
     def _get_rates_min(self, sym: str, tf: int, min_bars: int, request_bars: int) -> Optional[List[Tuple[int, float, float, float]]]:
         """Fetch bars; return None if < min_bars available even after requesting request_bars."""
@@ -794,6 +878,291 @@ class DiamondScanner:
         return (bear_top, bear_bot, bear_mitigated, bear_pos, bear_date, pip_factor,
                 bull_top, bull_bot, bull_mitigated, bull_pos, bull_date, pip_factor)
 
+    # ── Order Blocks (OB) ICT detection — generic TF ──
+
+    def _detect_order_blocks(
+        self, highs: List[float], lows: List[float], closes: List[float],
+        timestamps: List[int], price: float, sym: str,
+        tf_label: str = "H1", scan_window: int = 80
+    ) -> Tuple[float, str, bool, float, str, bool]:
+        """Detecte les Order Blocks (OB) ICT : bearish et bullish.
+
+        Bearish OB : dernière bougie avant une impulsion baissière.
+          - Niveau OB = high de la bougie précédant l'impulsion.
+          - Actif (BELOW) = prix sous l'OB → résistance potentielle.
+          - Mitigé (ABOVE/AT) = prix a touché l'OB → résistance affaiblie.
+
+        Bullish OB : dernière bougie avant une impulsion haussière.
+          - Niveau OB = low de la bougie précédant l'impulsion.
+          - Actif (ABOVE) = prix au-dessus de l'OB → support potentiel.
+          - Mitigé (BELOW/AT) = prix a touché l'OB → support affaibli.
+
+        Détection d'impulsion : close[i] - close[i-1] > 1.2 × ATR(14).
+        Prend le niveau OB le PLUS PROCHE du prix (le plus récent pertinent).
+
+        Returns:
+            (bear_level, bear_pos, bear_mitigated,
+             bull_level, bull_pos, bull_mitigated)
+        """
+        n = len(highs)
+        if n < 10:
+            return (0.0, "N/A", False, 0.0, "N/A", False)
+
+        max_idx = min(n, scan_window)
+
+        # ── ATR(14) pour seuil d'impulsion ──
+        ranges = [highs[i] - lows[i] for i in range(max_idx)]
+        atr_14 = sum(ranges[-14:]) / 14 if len(ranges) >= 14 else (sum(ranges) / len(ranges) if ranges else 0.0001)
+        impulse_thresh = atr_14 * 1.2  # 1.2× ATR
+
+        if atr_14 == 0:
+            return (0.0, "N/A", False, 0.0, "N/A", False)
+
+        bear_level = 0.0
+        bull_level = 0.0
+        best_bear_dist = float('inf')
+        best_bull_dist = float('inf')
+
+        # ── Scan des barres de gauche à droite ──
+        for i in range(2, max_idx):
+            # Bearish impulse : close baisse fortement
+            if closes[i] < closes[i - 1] - impulse_thresh:
+                j = i - 1  # Bougie avant l'impulsion = OB
+                if j >= 0:
+                    level = highs[j]
+                    dist = abs(price - level)
+                    if bear_level == 0 or dist < best_bear_dist:
+                        bear_level = level
+                        best_bear_dist = dist
+
+            # Bullish impulse : close monte fortement
+            if closes[i] > closes[i - 1] + impulse_thresh:
+                j = i - 1
+                if j >= 0:
+                    level = lows[j]
+                    dist = abs(price - level)
+                    if bull_level == 0 or dist < best_bull_dist:
+                        bull_level = level
+                        best_bull_dist = dist
+
+        # ── Position et mitigation ──
+        pip_thresh = 3.0  # 3 pips de tolérance pour "AT"
+
+        bear_pos = "N/A"
+        bear_mitigated = False
+        if bear_level > 0:
+            d = self._pips(sym, price, bear_level)
+            if abs(d) < pip_thresh:
+                bear_pos = "AT"
+                bear_mitigated = True
+            elif price > bear_level:
+                bear_pos = "ABOVE"
+                bear_mitigated = True  # Prix a dépassé l'OB → mitigé
+            else:
+                bear_pos = "BELOW"
+                # Non mitigé : OB intacte, résistance active
+
+        bull_pos = "N/A"
+        bull_mitigated = False
+        if bull_level > 0:
+            d = self._pips(sym, price, bull_level)
+            if abs(d) < pip_thresh:
+                bull_pos = "AT"
+                bull_mitigated = True
+            elif price < bull_level:
+                bull_pos = "BELOW"
+                bull_mitigated = True  # Prix en dessous → mitigé
+            else:
+                bull_pos = "ABOVE"
+                # Non mitigé : OB intacte, support active
+
+        return (bear_level, bear_pos, bear_mitigated,
+                bull_level, bull_pos, bull_mitigated)
+
+    # ── Market Structure (MSS/BOS) detection — generic TF ──
+
+    def _detect_market_structure(
+        self, highs: List[float], lows: List[float],
+        closes: List[float], price: float, sym: str,
+        tf_label: str = "H1", scan_window: int = 60
+    ) -> Tuple[str, str, str]:
+        """Analyse la structure du marché : BOS, MSS, régime.
+
+        Concepts ICT :
+          - Swing High : pic local avec 2 barres plus basses de chaque côté.
+          - Swing Low : creux local avec 2 barres plus hautes de chaque côté.
+          - BOS (Break of Structure) : prix casse un swing high (bull) ou
+            swing low (bear) → confirmation de tendance.
+          - MSS (Market Structure Shift) : la structure de swings change
+            (ex: lower lows → higher low) → signal de retournement.
+          - Régime : "BULL" (HH/HL), "BEAR" (LH/LL), "RANGE" (sideways).
+
+        Returns:
+            (regime, bos, shift)
+              regime : "BULL", "BEAR", "RANGE", "N/A"
+              bos    : "BULL", "BEAR", "N/A"
+              shift  : "BULL", "BEAR", "N/A"
+        """
+        n = len(highs)
+        if n < 10:
+            return ("N/A", "N/A", "N/A")
+
+        max_idx = min(n, scan_window)
+
+        # ── Swing detection (5-bar fractals) ──
+        swing_highs: List[Tuple[int, float]] = []  # (index, level)
+        swing_lows: List[Tuple[int, float]] = []
+
+        for i in range(2, max_idx - 2):
+            # Swing High: high[i] > high[i-2], high[i] > high[i-1],
+            #             high[i] >= high[i+1], high[i] >= high[i+2]
+            if (highs[i] > highs[i-2] and highs[i] > highs[i-1] and
+                highs[i] >= highs[i+1] and highs[i] >= highs[i+2]):
+                swing_highs.append((i, highs[i]))
+            # Swing Low: low[i] < low[i-2], low[i] < low[i-1],
+            #            low[i] <= low[i+1], low[i] <= low[i+2]
+            if (lows[i] < lows[i-2] and lows[i] < lows[i-1] and
+                lows[i] <= lows[i+1] and lows[i] <= lows[i+2]):
+                swing_lows.append((i, lows[i]))
+
+        if not swing_highs or not swing_lows:
+            return ("RANGE", "N/A", "N/A")
+
+        # ── Régime : analyser les 3 derniers swings ──
+        last_3_sh = swing_highs[-3:] if len(swing_highs) >= 3 else swing_highs
+        last_3_sl = swing_lows[-3:] if len(swing_lows) >= 3 else swing_lows
+
+        higher_highs = len(last_3_sh) >= 2 and last_3_sh[-1][1] > last_3_sh[-2][1]
+        lower_highs = len(last_3_sh) >= 2 and last_3_sh[-1][1] < last_3_sh[-2][1]
+        higher_lows = len(last_3_sl) >= 2 and last_3_sl[-1][1] > last_3_sl[-2][1]
+        lower_lows = len(last_3_sl) >= 2 and last_3_sl[-1][1] < last_3_sl[-2][1]
+
+        if higher_highs and higher_lows:
+            regime = "BULL"
+        elif lower_highs and lower_lows:
+            regime = "BEAR"
+        else:
+            regime = "RANGE"
+
+        # ── BOS : prix a-t-il cassé le dernier swing ? ──
+        bos = "N/A"
+        last_sh = swing_highs[-1][1] if swing_highs else None
+        last_sl = swing_lows[-1][1] if swing_lows else None
+
+        if last_sh and price > last_sh:
+            bos = "BULL"
+        elif last_sl and price < last_sl:
+            bos = "BEAR"
+
+        # ── MSS : la structure récente change-t-elle ? ──
+        shift = "N/A"
+        if len(swing_highs) >= 2 and len(swing_lows) >= 2:
+            prev_sh = swing_highs[-2][1]
+            prev_sl = swing_lows[-2][1]
+
+            # Bullish MSS : tendance baissière → prix fait un higher low
+            # (la structure s'inverse)
+            if (regime == "BEAR" or regime == "RANGE"):
+                if higher_lows and len(swing_lows) >= 2:
+                    if swing_lows[-1][1] > swing_lows[-2][1]:
+                        shift = "BULL"
+
+            # Bearish MSS : tendance haussière → prix fait un lower high
+            if (regime == "BULL" or regime == "RANGE"):
+                if lower_highs and len(swing_highs) >= 2:
+                    if swing_highs[-1][1] < swing_highs[-2][1]:
+                        shift = "BEAR"
+
+        return (regime, bos, shift)
+
+    # ── Volume analysis (HVN/LVN + spike) — generic TF ──
+
+    def _detect_volume_analysis(
+        self, highs: List[float], lows: List[float], closes: List[float],
+        volumes: List[int], price: float, sym: str,
+        tf_label: str = "H1", scan_window: int = 60
+    ) -> Tuple[float, bool, float, float]:
+        """Analyse le tick volume : moyenne, spike, HVN, LVN.
+
+        Concepts :
+          - Volume moyen : moyenne des tick_volumes sur la fenetre.
+          - Volume spike : volume de la derniere barre > 2x la moyenne.
+          - HVN (High Volume Node) : niveau de prix avec volume > 1.5x moyenne.
+            Zone de support/resistance forte.
+          - LVN (Low Volume Node) : niveau de prix avec volume < 0.5x moyenne.
+            Zone de faible interet — le prix la traverse rapidement.
+
+        Algorithme HVN/LVN :
+          - Divise l'amplitude de prix (min_low à max_high) en 20 zones.
+          - Pour chaque barre, ajoute son volume à la zone correspondant à son close.
+          - Calcule le volume moyen par zone.
+          - HVN = zone la plus proche du prix avec volume > 1.5x moyenne.
+          - LVN = zone la plus proche du prix avec volume < 0.5x moyenne.
+
+        Returns:
+            (avg_volume, spike, hvn_level, lvn_level)
+        """
+        n = len(volumes)
+        if n < 5 or not any(volumes):
+            return (0.0, False, 0.0, 0.0)
+
+        max_idx = min(n, scan_window)
+        vols = volumes[-max_idx:]
+        hs = highs[-max_idx:]
+        ls = lows[-max_idx:]
+        cs = closes[-max_idx:]
+
+        avg_vol = sum(vols) / len(vols) if vols else 0
+        spike = vols[-1] > avg_vol * 2.0 if len(vols) >= 1 else False
+
+        if avg_vol == 0:
+            return (float(avg_vol), spike, 0.0, 0.0)
+
+        # ── HVN/LVN via price zones ──
+        min_p = min(ls)
+        max_p = max(hs)
+        if max_p <= min_p:
+            return (float(avg_vol), spike, 0.0, 0.0)
+
+        n_zones = 20
+        zone_size = (max_p - min_p) / n_zones
+        zone_vols = [0.0] * n_zones
+        zone_counts = [0] * n_zones
+
+        for i in range(max_idx):
+            cz = cs[i]
+            v = vols[i]
+            zi = min(n_zones - 1, int((cz - min_p) / zone_size)) if zone_size > 0 else 0
+            zone_vols[zi] += v
+            zone_counts[zi] += 1
+
+        # Volume moyen par zone (zones non vides uniquement)
+        non_zero_zones = [v for v in zone_vols if v > 0]
+        zone_avg = sum(non_zero_zones) / len(non_zero_zones) if non_zero_zones else avg_vol
+
+        # Trouver la zone HVN la plus proche du prix
+        price_zone = min(n_zones - 1, int((price - min_p) / zone_size)) if zone_size > 0 else 0
+        hvn_level = 0.0
+        lvn_level = 0.0
+        best_hvn_dist = float('inf')
+        best_lvn_dist = float('inf')
+
+        for zi in range(n_zones):
+            z_vol = zone_vols[zi]
+            if z_vol == 0:
+                continue
+            z_price = min_p + (zi + 0.5) * zone_size
+            z_dist = abs(zi - price_zone)
+
+            if z_vol > zone_avg * 1.5 and z_dist < best_hvn_dist:
+                hvn_level = z_price
+                best_hvn_dist = z_dist
+            if z_vol < zone_avg * 0.5 and z_dist < best_lvn_dist:
+                lvn_level = z_price
+                best_lvn_dist = z_dist
+
+        return (float(avg_vol), spike, hvn_level, lvn_level)
+
     # ── TP calculation based on real levels ──
 
     def _compute_tp(
@@ -939,6 +1308,55 @@ class DiamondScanner:
                     f"{nearest_resistance[1]:.5f}")
             return (gap, desc)
         return (gap, "")
+
+    # ── Generic TF cross detection helper ──
+
+    def _detect_tf_crosses(self, sym: str, tf: int, price: float,
+                            min_bars: int = 30, request_bars: int = 60) -> Optional[dict]:
+        """Detecte Kijun et Tenkan crosses pour un timeframe donne.
+
+        Retourne un dict avec: kj, tk, kj_cross_bear, kj_cross_bull,
+        tk_cross_bear, tk_cross_bull, d_kj, d_tk
+        ou None si pas assez de donnees.
+        """
+        rates = self._get_rates_min(sym, tf, min_bars, request_bars)
+        if rates is None:
+            return None
+
+        highs = [x[1] for x in rates]
+        lows = [x[2] for x in rates]
+        closes = [x[3] for x in rates]
+
+        kj = self._kj(highs, lows) if len(highs) >= 26 else 0.0
+        tk = self._tk(highs, lows) if len(highs) >= 9 else 0.0
+
+        d_kj = self._pips(sym, price, kj) if kj > 0 else 0.0
+        d_tk = self._pips(sym, price, tk) if tk > 0 else 0.0
+
+        kj_cross_bear = False
+        kj_cross_bull = False
+        if len(closes) >= 3 and kj > 0:
+            for i in range(max(1, len(closes) - 3), len(closes)):
+                if closes[i-1] > kj and closes[i] < kj:
+                    kj_cross_bear = True
+                if closes[i-1] < kj and closes[i] > kj:
+                    kj_cross_bull = True
+
+        tk_cross_bear = False
+        tk_cross_bull = False
+        if len(closes) >= 3 and tk > 0:
+            for i in range(max(1, len(closes) - 3), len(closes)):
+                if closes[i-1] > tk and closes[i] < tk:
+                    tk_cross_bear = True
+                if closes[i-1] < tk and closes[i] > tk:
+                    tk_cross_bull = True
+
+        return {
+            'kj': kj, 'tk': tk,
+            'kj_cross_bear': kj_cross_bear, 'kj_cross_bull': kj_cross_bull,
+            'tk_cross_bear': tk_cross_bear, 'tk_cross_bull': tk_cross_bull,
+            'd_kj': d_kj, 'd_tk': d_tk,
+        }
 
     # ── Core scan ──
 
@@ -1093,31 +1511,37 @@ class DiamondScanner:
         # ═══ Kijun D1 distance ═══════════════════════════════════════════
         d_kj_d1 = self._pips(sym, price, kd1)
 
-        # ═══ M30 Kijun cross detection ══════════════════════════════════
-        kj_m30 = 0.0
-        kj_m30_cross_bear = False
-        kj_m30_cross_bull = False
-        d_kj_m30 = 0.0
-        m30 = self._get_rates_min(sym, mt5.TIMEFRAME_M30, 30, 60)
-        if m30 is not None:
-            m30_h, m30_l = [x[1] for x in m30], [x[2] for x in m30]
-            m30_t = [x[0] for x in m30]
-            m30_c = [x[3] for x in m30]
-            kj_m30 = self._kj(m30_h, m30_l)
-            d_kj_m30 = self._pips(sym, price, kj_m30) if kj_m30 > 0 else 0.0
+        # ═══ TF Cross detection: M30, M15, M5 (Kijun + Tenkan) ═════════════
+        kj_m30 = 0.0; kj_m30_cross_bear = False; kj_m30_cross_bull = False; d_kj_m30 = 0.0
+        tk_m30 = 0.0; tk_m30_cross_bear = False; tk_m30_cross_bull = False; d_tk_m30 = 0.0
+        kj_m15 = 0.0; kj_m15_cross_bear = False; kj_m15_cross_bull = False; d_kj_m15 = 0.0
+        tk_m15 = 0.0; tk_m15_cross_bear = False; tk_m15_cross_bull = False; d_tk_m15 = 0.0
+        kj_m5 = 0.0; kj_m5_cross_bear = False; kj_m5_cross_bull = False; d_kj_m5 = 0.0
+        tk_m5 = 0.0; tk_m5_cross_bear = False; tk_m5_cross_bull = False; d_tk_m5 = 0.0
 
-            # Detect Kijun M30 cross: price went from above -> below (bear) or below -> above (bull)
-            if len(m30_c) >= 3 and kj_m30 > 0:
-                # Check last 3 bars for cross
-                for i in range(max(1, len(m30_c) - 3), len(m30_c)):
-                    prev_close = m30_c[i - 1]
-                    curr_close = m30_c[i]
-                    # Bearish cross: was above Kijun, now below
-                    if prev_close > kj_m30 and curr_close < kj_m30:
-                        kj_m30_cross_bear = True
-                    # Bullish cross: was below Kijun, now above
-                    if prev_close < kj_m30 and curr_close > kj_m30:
-                        kj_m30_cross_bull = True
+        for tf_info in [
+            (mt5.TIMEFRAME_M30, 'm30'),
+            (mt5.TIMEFRAME_M15, 'm15'),
+            (mt5.TIMEFRAME_M5,  'm5'),
+        ]:
+            tf_val, tf_label = tf_info
+            d = self._detect_tf_crosses(sym, tf_val, price, min_bars=30, request_bars=60)
+            if d is not None:
+                if tf_label == 'm30':
+                    kj_m30 = d['kj']; d_kj_m30 = d['d_kj']
+                    kj_m30_cross_bear = d['kj_cross_bear']; kj_m30_cross_bull = d['kj_cross_bull']
+                    tk_m30 = d['tk']; d_tk_m30 = d['d_tk']
+                    tk_m30_cross_bear = d['tk_cross_bear']; tk_m30_cross_bull = d['tk_cross_bull']
+                elif tf_label == 'm15':
+                    kj_m15 = d['kj']; d_kj_m15 = d['d_kj']
+                    kj_m15_cross_bear = d['kj_cross_bear']; kj_m15_cross_bull = d['kj_cross_bull']
+                    tk_m15 = d['tk']; d_tk_m15 = d['d_tk']
+                    tk_m15_cross_bear = d['tk_cross_bear']; tk_m15_cross_bull = d['tk_cross_bull']
+                else:  # m5
+                    kj_m5 = d['kj']; d_kj_m5 = d['d_kj']
+                    kj_m5_cross_bear = d['kj_cross_bear']; kj_m5_cross_bull = d['kj_cross_bull']
+                    tk_m5 = d['tk']; d_tk_m5 = d['d_tk']
+                    tk_m5_cross_bear = d['tk_cross_bear']; tk_m5_cross_bull = d['tk_cross_bull']
 
         # ═══ FVG detection — H1, H4, D1 ══════════════════════════════════
         fvg_top, fvg_bot, fvg_mitigated, fvg_pos, fvg_date, fvg_pip_factor, \
@@ -1149,9 +1573,51 @@ class DiamondScanner:
             else:
                 bias, direction = "BEAR", -1
 
-        # ═══ Scoring (28 criteres max avec TK4/TKd1/Kj4/KjD1 + Asian Sweep + M30 cross) ═══
+        # ═══ Order Blocks (OB) detection — H1, H4, D1 ═══════════════════════
+        h1_c = [x[3] for x in h1]
+        h4_c = [x[3] for x in h4]
+        d1_c = [x[3] for x in d1]
+        ob_h1 = self._detect_order_blocks(h1_h, h1_l, h1_c, h1_t, price, sym, "H1", 80)
+        ob_h4 = self._detect_order_blocks(h4_h, h4_l, h4_c, h4_t, price, sym, "H4", 60)
+        ob_d1 = self._detect_order_blocks(d1_h, d1_l, d1_c, d1_t, price, sym, "D1", 40)
+        ob_h1_bear_level, ob_h1_bear_pos, ob_h1_bear_mitigated, ob_h1_bull_level, ob_h1_bull_pos, ob_h1_bull_mitigated = ob_h1
+        ob_h4_bear_level, ob_h4_bear_pos, ob_h4_bear_mitigated, ob_h4_bull_level, ob_h4_bull_pos, ob_h4_bull_mitigated = ob_h4
+        ob_d1_bear_level, ob_d1_bear_pos, ob_d1_bear_mitigated, ob_d1_bull_level, ob_d1_bull_pos, ob_d1_bull_mitigated = ob_d1
+
+        # ═══ Market Structure (MSS/BOS) detection — H1, H4, D1 ═══════════════
+        mss_h1 = self._detect_market_structure(h1_h, h1_l, h1_c, price, sym, "H1", 80)
+        mss_h4 = self._detect_market_structure(h4_h, h4_l, h4_c, price, sym, "H4", 60)
+        mss_d1 = self._detect_market_structure(d1_h, d1_l, d1_c, price, sym, "D1", 40)
+        mss_h1_regime, mss_h1_bos, mss_h1_shift = mss_h1
+        mss_h4_regime, mss_h4_bos, mss_h4_shift = mss_h4
+        mss_d1_regime, mss_d1_bos, mss_d1_shift = mss_d1
+
+        # ═══ Volume analysis — H1, H4, D1 ═════════════════════════════════════
+        h1_v = self._get_rates_with_volume(sym, mt5.TIMEFRAME_H1, 60)
+        h4_v = self._get_rates_with_volume(sym, mt5.TIMEFRAME_H4, 60)
+        d1_v = self._get_rates_with_volume(sym, mt5.TIMEFRAME_D1, 60)
+        vol_avg_h1 = vol_spike_h1 = vol_hvn_h1 = vol_lvn_h1 = 0.0
+        vol_avg_h4 = vol_spike_h4 = vol_hvn_h4 = vol_lvn_h4 = 0.0
+        vol_avg_d1 = vol_spike_d1 = vol_hvn_d1 = vol_lvn_d1 = 0.0
+        if h1_v:
+            h1_v_h = [x[1] for x in h1_v]; h1_v_l = [x[2] for x in h1_v]
+            h1_v_c = [x[3] for x in h1_v]; h1_v_v = [x[4] for x in h1_v]
+            vol_avg_h1, vol_spike_h1, vol_hvn_h1, vol_lvn_h1 = self._detect_volume_analysis(
+                h1_v_h, h1_v_l, h1_v_c, h1_v_v, price, sym, "H1", 48)
+        if h4_v:
+            h4_v_h = [x[1] for x in h4_v]; h4_v_l = [x[2] for x in h4_v]
+            h4_v_c = [x[3] for x in h4_v]; h4_v_v = [x[4] for x in h4_v]
+            vol_avg_h4, vol_spike_h4, vol_hvn_h4, vol_lvn_h4 = self._detect_volume_analysis(
+                h4_v_h, h4_v_l, h4_v_c, h4_v_v, price, sym, "H4", 36)
+        if d1_v:
+            d1_v_h = [x[1] for x in d1_v]; d1_v_l = [x[2] for x in d1_v]
+            d1_v_c = [x[3] for x in d1_v]; d1_v_v = [x[4] for x in d1_v]
+            vol_avg_d1, vol_spike_d1, vol_hvn_d1, vol_lvn_d1 = self._detect_volume_analysis(
+                d1_v_h, d1_v_l, d1_v_c, d1_v_v, price, sym, "D1", 30)
+
+        # ═══ Scoring (43 criteres max avec vol + MSS + OB + TK4/TKd1/Kj4/KjD1 + Asian Sweep + M30 cross) ═══
         score = 0
-        max_score = 28 if mn_available else 26
+        max_score = 58 if mn_available else 56
         crit: List[str] = []
         warnings: List[str] = []
         alignment = 0
@@ -1242,22 +1708,111 @@ class DiamondScanner:
         elif lh_swept or ll_swept:
             alignment += 1
 
-        # M30 Kijun cross (1 critere) — momentum court-terme
-        if kj_m30_cross_bear and direction == -1:
-            score += 1; crit.append("M30B")
-            warnings.append(f"Kijun M30 CROSS BEAR {kj_m30:.5f} ({d_kj_m30:+.0f}p) — momentum baissier")
-        elif kj_m30_cross_bull and direction == 1:
-            score += 1; crit.append("M30U")
-            warnings.append(f"Kijun M30 CROSS BULL {kj_m30:.5f} ({d_kj_m30:+.0f}p) — momentum haussier")
-        elif kj_m30_cross_bear:
-            # Cross detected but direction not aligned — just warn
-            warnings.append(f"Kijun M30 CROSS BEAR {kj_m30:.5f} ({d_kj_m30:+.0f}p) — conflit direction")
-        elif kj_m30_cross_bull:
-            warnings.append(f"Kijun M30 CROSS BULL {kj_m30:.5f} ({d_kj_m30:+.0f}p) — conflit direction")
-        elif kj_m30 > 0 and price < kj_m30 and d_kj_m30 < -10:
-            warnings.append(f"Sous Kijun M30 {kj_m30:.5f} ({d_kj_m30:+.0f}p) — structure baissiere court-terme")
+        # TF Cross detection: M30, M15, M5 (6 criteres — Kj + Tk pour chaque TF)
+        for tf_label, kj_val, d_kj, kj_bear, kj_bull, tk_val, d_tk, tk_bear, tk_bull in [
+            ("M30", kj_m30, d_kj_m30, kj_m30_cross_bear, kj_m30_cross_bull, tk_m30, d_tk_m30, tk_m30_cross_bear, tk_m30_cross_bull),
+            ("M15", kj_m15, d_kj_m15, kj_m15_cross_bear, kj_m15_cross_bull, tk_m15, d_tk_m15, tk_m15_cross_bear, tk_m15_cross_bull),
+            ("M5",  kj_m5,  d_kj_m5,  kj_m5_cross_bear,  kj_m5_cross_bull,  tk_m5,  d_tk_m5,  tk_m5_cross_bear,  tk_m5_cross_bull),
+        ]:
+            # Kijun cross scoring
+            if kj_bear and direction == -1:
+                score += 1; crit.append(f"{tf_label}K")
+            elif kj_bull and direction == 1:
+                score += 1; crit.append(f"{tf_label}K")
+            # Tenkan cross scoring
+            if tk_bear and direction == -1:
+                score += 1; crit.append(f"{tf_label}T")
+            elif tk_bull and direction == 1:
+                score += 1; crit.append(f"{tf_label}T")
+            # Warning always shown for cross
+            if kj_bear:
+                warnings.append(f"{tf_label} Kijun CROSS BEAR {kj_val:.5f} ({d_kj:+.0f}p){" — conflit" if direction >= 0 else " — momentum OK"}")
+            elif kj_bull:
+                warnings.append(f"{tf_label} Kijun CROSS BULL {kj_val:.5f} ({d_kj:+.0f}p){" — conflit" if direction <= 0 else " — momentum OK"}")
+            elif kj_val > 0 and price < kj_val and d_kj < -5:
+                warnings.append(f"Sous {tf_label} Kijun {kj_val:.5f} ({d_kj:+.0f}p) — structure baissiere")
+            if tk_bear:
+                warnings.append(f"{tf_label} Tenkan CROSS BEAR {tk_val:.5f} ({d_tk:+.0f}p){" — conflit" if direction >= 0 else " — momentum OK"}")
+            elif tk_bull:
+                warnings.append(f"{tf_label} Tenkan CROSS BULL {tk_val:.5f} ({d_tk:+.0f}p){" — conflit" if direction <= 0 else " — momentum OK"}")
+            elif tk_val > 0 and price < tk_val and d_tk < -5:
+                warnings.append(f"Sous {tf_label} Tenkan {tk_val:.5f} ({d_tk:+.0f}p) — structure baissiere")
 
-        # ── Warnings (Etape 3b — TOUS les TFs) ──
+        # ── Order Block Scoring ──
+        # H1 OB
+        if ob_h1_bear_level > 0 and ob_h1_bear_pos == "BELOW" and direction == -1:
+            score += 1; crit.append("OBH1")
+        if ob_h1_bull_level > 0 and ob_h1_bull_pos == "ABOVE" and direction == 1:
+            score += 1; crit.append("OBbH1")
+        # H4 OB
+        if ob_h4_bear_level > 0 and ob_h4_bear_pos == "BELOW" and direction == -1:
+            score += 1; crit.append("OBH4")
+        if ob_h4_bull_level > 0 and ob_h4_bull_pos == "ABOVE" and direction == 1:
+            score += 1; crit.append("OBbH4")
+        # D1 OB
+        if ob_d1_bear_level > 0 and ob_d1_bear_pos == "BELOW" and direction == -1:
+            score += 1; crit.append("OBD1")
+        if ob_d1_bull_level > 0 and ob_d1_bull_pos == "ABOVE" and direction == 1:
+            score += 1; crit.append("OBbD1")
+        # Alignment bonus if OB detected on multiple TFs
+        ob_tfs = 0
+        if ob_h1_bear_level > 0 or ob_h1_bull_level > 0: ob_tfs += 1
+        if ob_h4_bear_level > 0 or ob_h4_bull_level > 0: ob_tfs += 1
+        if ob_d1_bear_level > 0 or ob_d1_bull_level > 0: ob_tfs += 1
+        if ob_tfs >= 2:
+            score += 1; crit.append("OBx2")
+        if ob_tfs >= 3:
+            score += 1; crit.append("OBx3"); alignment += 1
+
+        # ── Market Structure (MSS/BOS) Scoring ──
+        # H1 regime
+        if mss_h1_regime == "BULL" and direction == 1:
+            score += 1; crit.append("MSSbH1")
+        elif mss_h1_regime == "BEAR" and direction == -1:
+            score += 1; crit.append("MSSH1")
+        # H4 regime
+        if mss_h4_regime == "BULL" and direction == 1:
+            score += 1; crit.append("MSSbH4")
+        elif mss_h4_regime == "BEAR" and direction == -1:
+            score += 1; crit.append("MSSH4")
+        # D1 regime
+        if mss_d1_regime == "BULL" and direction == 1:
+            score += 1; crit.append("MSSbD1")
+        elif mss_d1_regime == "BEAR" and direction == -1:
+            score += 1; crit.append("MSSD1")
+        # BOS bonus (confirmation de momentum)
+        for tf_label, bos_val in [("H1", mss_h1_bos), ("H4", mss_h4_bos), ("D1", mss_d1_bos)]:
+            if (bos_val == "BULL" and direction == 1) or (bos_val == "BEAR" and direction == -1):
+                score += 1; crit.append(f"BOS{tf_label}")
+        # MSS shift bonus (retournement potentiel)
+        for tf_label, shift_val in [("H1", mss_h1_shift), ("H4", mss_h4_shift), ("D1", mss_d1_shift)]:
+            if (shift_val == "BULL" and direction == 1) or (shift_val == "BEAR" and direction == -1):
+                score += 1; crit.append(f"CHoCH{tf_label}")
+
+        # ── Volume Scoring ──
+        # Volume spike + direction alignment
+        if vol_spike_h1 and direction != 0:
+            score += 1; crit.append("VOLh1")
+        if vol_spike_h4 and direction != 0:
+            score += 1; crit.append("VOLh4")
+        if vol_spike_d1 and direction != 0:
+            score += 1; crit.append("VOLd1")
+        # HVN proximity (support si price > hvn, resistance si price < hvn)
+        if vol_hvn_h1 > 0 and ((direction == 1 and price > vol_hvn_h1) or (direction == -1 and price < vol_hvn_h1)):
+            score += 1; crit.append("HVNh1")
+        if vol_hvn_h4 > 0 and ((direction == 1 and price > vol_hvn_h4) or (direction == -1 and price < vol_hvn_h4)):
+            score += 1; crit.append("HVNh4")
+        if vol_hvn_d1 > 0 and ((direction == 1 and price > vol_hvn_d1) or (direction == -1 and price < vol_hvn_d1)):
+            score += 1; crit.append("HVNd1")
+        # LVN ahead (dans la direction du trade = mouvement rapide attendu)
+        if vol_lvn_h1 > 0 and ((direction == 1 and vol_lvn_h1 > price) or (direction == -1 and vol_lvn_h1 < price)):
+            score += 1; crit.append("LVNh1")
+        if vol_lvn_h4 > 0 and ((direction == 1 and vol_lvn_h4 > price) or (direction == -1 and vol_lvn_h4 < price)):
+            score += 1; crit.append("LVNh4")
+        if vol_lvn_d1 > 0 and ((direction == 1 and vol_lvn_d1 > price) or (direction == -1 and vol_lvn_d1 < price)):
+            score += 1; crit.append("LVNd1")
+
+        # ── Warnings (TOUS les TFs) ──
         # Tenkan/Kijun barrier warnings (when price near but NOT aligned)
         if direction != 0:
             # Tenkan H4 resistance when BULL (price below TK)
@@ -1278,6 +1833,51 @@ class DiamondScanner:
             role = "RESIST" if price < kj4 else "SUPPORT"
             if direction == 0 or (direction == 1 and price < kj4) or (direction == -1 and price > kj4):
                 warnings.append(f"Kijun H4 {role} {kj4:.5f} ({d_kj4:+.0f}p)")
+        # Order Block warnings (H1/H4/D1)
+        for tf_lbl, bear_lv, bear_mit, bear_ps, bull_lv, bull_mit, bull_ps in [
+            ("H1", ob_h1_bear_level, ob_h1_bear_mitigated, ob_h1_bear_pos,
+             ob_h1_bull_level, ob_h1_bull_mitigated, ob_h1_bull_pos),
+            ("H4", ob_h4_bear_level, ob_h4_bear_mitigated, ob_h4_bear_pos,
+             ob_h4_bull_level, ob_h4_bull_mitigated, ob_h4_bull_pos),
+            ("D1", ob_d1_bear_level, ob_d1_bear_mitigated, ob_d1_bear_pos,
+             ob_d1_bull_level, ob_d1_bull_mitigated, ob_d1_bull_pos),
+        ]:
+            if bear_lv > 0 and not bear_mit:
+                warnings.append(f"OB BEAR {tf_lbl} {bear_lv:.5f} ({self._pips(sym, price, bear_lv):+.0f}p) — resistance intacte")
+            if bull_lv > 0 and not bull_mit:
+                warnings.append(f"OB BULL {tf_lbl} {bull_lv:.5f} ({self._pips(sym, price, bull_lv):+.0f}p) — support intact")
+        # MSS/BOS warnings
+        for tf_lbl, regime, bos, shift in [
+            ("H1", mss_h1_regime, mss_h1_bos, mss_h1_shift),
+            ("H4", mss_h4_regime, mss_h4_bos, mss_h4_shift),
+            ("D1", mss_d1_regime, mss_d1_bos, mss_d1_shift),
+        ]:
+            if regime in ("BULL", "BEAR"):
+                if (direction == 1 and regime == "BEAR") or (direction == -1 and regime == "BULL"):
+                    warnings.append(f"MSS {tf_lbl} CONFLIT: marche {regime}, direction opposee")
+            if bos != "N/A":
+                if (direction == 1 and bos == "BULL") or (direction == -1 and bos == "BEAR"):
+                    pass  # BOS aligns with direction — no warning needed
+                else:
+                    warnings.append(f"BOS {tf_lbl} {bos} — structure cassee")
+            if shift != "N/A":
+                if (direction == 1 and shift == "BULL") or (direction == -1 and shift == "BEAR"):
+                    warnings.append(f"MSS {tf_lbl} {shift} — retournement potentiel")
+
+        # Volume warnings (spike + HVN/LVN proximity)
+        for tf_lbl, avg_v, spike, hvn, lvn in [
+            ("H1", vol_avg_h1, vol_spike_h1, vol_hvn_h1, vol_lvn_h1),
+            ("H4", vol_avg_h4, vol_spike_h4, vol_hvn_h4, vol_lvn_h4),
+            ("D1", vol_avg_d1, vol_spike_d1, vol_hvn_d1, vol_lvn_d1),
+        ]:
+            if avg_v <= 0:
+                continue
+            if spike:
+                warnings.append(f"VOL {tf_lbl} SPIKE {avg_v:.0f}×2 — volume anormal")
+            if hvn > 0 and abs(self._pips(sym, price, hvn)) < 10:
+                warnings.append(f"HVN {tf_lbl} {hvn:.5f} — zone de fort volume proche")
+            if lvn > 0 and abs(self._pips(sym, price, lvn)) < 10:
+                warnings.append(f"LVN {tf_lbl} {lvn:.5f} — zone de faible volume proche")
 
         # FVG warnings (H1 + H4 + D1, bearish + bullish)
         for tf_name, fvg_t, fvg_b, fvg_m, fvg_p, fvg_d, fvg_pf, fvg_bt, fvg_bb, fvg_bm, fvg_bp, fvg_bd, fvg_bpf in [
@@ -1510,6 +2110,37 @@ class DiamondScanner:
             london_high_swept_session=lh_sess, london_low_swept_session=ll_sess,
             kj_m30=kj_m30, kj_m30_cross_bear=kj_m30_cross_bear,
             kj_m30_cross_bull=kj_m30_cross_bull, d_kj_m30=d_kj_m30,
+            tk_m30=tk_m30, tk_m30_cross_bear=tk_m30_cross_bear,
+            tk_m30_cross_bull=tk_m30_cross_bull, d_tk_m30=d_tk_m30,
+            kj_m15=kj_m15, kj_m15_cross_bear=kj_m15_cross_bear,
+            kj_m15_cross_bull=kj_m15_cross_bull, d_kj_m15=d_kj_m15,
+            tk_m15=tk_m15, tk_m15_cross_bear=tk_m15_cross_bear,
+            tk_m15_cross_bull=tk_m15_cross_bull, d_tk_m15=d_tk_m15,
+            kj_m5=kj_m5, kj_m5_cross_bear=kj_m5_cross_bear,
+            kj_m5_cross_bull=kj_m5_cross_bull, d_kj_m5=d_kj_m5,
+            tk_m5=tk_m5, tk_m5_cross_bear=tk_m5_cross_bear,
+            tk_m5_cross_bull=tk_m5_cross_bull, d_tk_m5=d_tk_m5,
+            ob_h1_bear_level=ob_h1_bear_level, ob_h1_bear_pos=ob_h1_bear_pos,
+            ob_h1_bear_mitigated=ob_h1_bear_mitigated,
+            ob_h1_bull_level=ob_h1_bull_level, ob_h1_bull_pos=ob_h1_bull_pos,
+            ob_h1_bull_mitigated=ob_h1_bull_mitigated,
+            ob_h4_bear_level=ob_h4_bear_level, ob_h4_bear_pos=ob_h4_bear_pos,
+            ob_h4_bear_mitigated=ob_h4_bear_mitigated,
+            ob_h4_bull_level=ob_h4_bull_level, ob_h4_bull_pos=ob_h4_bull_pos,
+            ob_h4_bull_mitigated=ob_h4_bull_mitigated,
+            ob_d1_bear_level=ob_d1_bear_level, ob_d1_bear_pos=ob_d1_bear_pos,
+            ob_d1_bear_mitigated=ob_d1_bear_mitigated,
+            ob_d1_bull_level=ob_d1_bull_level, ob_d1_bull_pos=ob_d1_bull_pos,
+            ob_d1_bull_mitigated=ob_d1_bull_mitigated,
+            mss_h1_regime=mss_h1_regime, mss_h1_bos=mss_h1_bos, mss_h1_shift=mss_h1_shift,
+            mss_h4_regime=mss_h4_regime, mss_h4_bos=mss_h4_bos, mss_h4_shift=mss_h4_shift,
+            mss_d1_regime=mss_d1_regime, mss_d1_bos=mss_d1_bos, mss_d1_shift=mss_d1_shift,
+            vol_avg_h1=vol_avg_h1, vol_spike_h1=vol_spike_h1,
+            vol_hvn_h1=vol_hvn_h1, vol_lvn_h1=vol_lvn_h1,
+            vol_avg_h4=vol_avg_h4, vol_spike_h4=vol_spike_h4,
+            vol_hvn_h4=vol_hvn_h4, vol_lvn_h4=vol_lvn_h4,
+            vol_avg_d1=vol_avg_d1, vol_spike_d1=vol_spike_d1,
+            vol_hvn_d1=vol_hvn_d1, vol_lvn_d1=vol_lvn_d1,
             sl=sl, tp=tp, rr=rr, tp_label=tp_label, horizon=horizon,
             criteria=crit, warnings=warnings,
         )
