@@ -1788,11 +1788,12 @@ def _render_diamond_results(results: list, scanned_symbols: list, volume_only: b
         f"{'T/Kx H1':>8} {'T/Kx H4':>8} {'T/Kx D1':>8}  "
         f"{'Kumo H1':>8} {'Kumo H4':>8} {'Kumo D1':>8}  "
         f"{'Flat H1':>8} {'Flat H4':>8}  "
-        f"{'Lon H':>10} {'Lon L':>10} {'Lon Swp':>8}"
+        f"{'Lon H':>10} {'Lon L':>10} {'Lon Swp':>8}  "
+        f"{'ML%':>6}"
         f"{RESET}"
     )
     lines.append(header)
-    lines.append(f"{GRAY}{'─'*100}{RESET}")
+    lines.append(f"{GRAY}{'─'*120}{RESET}")
 
     for r in results:
         # Score color (relative to max_score)
@@ -1859,6 +1860,20 @@ def _render_diamond_results(results: list, scanned_symbols: list, volume_only: b
                 return f"{GREEN}LL{RESET}"
             return f"{GRAY}--{RESET}"
 
+        def _ml_pct(r_ml) -> str:
+            """Probabilite ML de trade gagnant avec couleur."""
+            pct = getattr(r_ml, 'ml_win_pct', None)
+            if pct is None:
+                return f"{GRAY}  N/A{RESET}"
+            pct_val = float(pct) * 100
+            if pct_val >= 60:
+                return f"{GREEN}{pct_val:5.0f}%{RESET}"
+            elif pct_val >= 50:
+                return f"{YELLOW}{pct_val:5.0f}%{RESET}"
+            elif pct_val >= 40:
+                return f"{DIM}{pct_val:5.0f}%{RESET}"
+            return f"{RED}{pct_val:5.0f}%{RESET}"
+
         lines.append(
             f"{MAGENTA}{r.symbol:<10}{RESET} "
             f"{_pad_cell(sc_col, 6)} "
@@ -1868,10 +1883,11 @@ def _render_diamond_results(results: list, scanned_symbols: list, volume_only: b
             f"{_pad_cell(_tkc(r.tkx_h1), 8)} {_pad_cell(_tkc(r.tkx_h4), 8)} {_pad_cell(_tkc(r.tkx_d1), 8)}  "
             f"{_pad_cell(_kc(r.kumo_h1), 8)} {_pad_cell(_kc(r.kumo_h4), 8)} {_pad_cell(_kc(r.kumo_d1), 8)}  "
             f"{_pad_cell(_ff(r.flat_h1), 8)} {_pad_cell(_ff(r.flat_h4), 8)}  "
-            f"{_fmt_price(r.london_high):>10} {_fmt_price(r.london_low):>10} {_pad_cell(_london_swp(r), 8)}"
+            f"{_fmt_price(r.london_high):>10} {_fmt_price(r.london_low):>10} {_pad_cell(_london_swp(r), 8)}  "
+            f"{_pad_cell(_ml_pct(r), 6)}"
         )
 
-    lines.append(f"{GRAY}{'─'*100}{RESET}")
+    lines.append(f"{GRAY}{'─'*120}{RESET}")
     lines.append("")
 
     # ── Detail des setups actifs ──

@@ -75,6 +75,9 @@ CREATE TABLE IF NOT EXISTS diamond_trades (
     created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at      TEXT    NOT NULL DEFAULT (datetime('now')),
 
+    -- Features ML complètes (80+ features du DiamondResult, stockées en JSON)
+    features_json   TEXT,                      -- JSON: extraction complète de extract_features()
+
     UNIQUE(session_id, symbol)
 );
 
@@ -256,13 +259,20 @@ class TradeTracker:
     # ── Private ────────────────────────────────────────────────────────────
 
     def _ensure_schema(self):
-        """Crée les tables si elles n'existent pas."""
+        """Crée les tables si elles n'existent pas + migration des colonnes."""
         conn = self.db.conn
         if conn is None:
             logger.error("Impossible d'ouvrir la DB pour TradeTracker")
             return
         try:
             conn.executescript(_SCHEMA_SQL)
+            # Migration: ajouter features_json si la colonne n'existe pas encore
+            try:
+                conn.execute("ALTER TABLE diamond_trades ADD COLUMN features_json TEXT")
+                conn.commit()
+                logger.info("Migration: colonne features_json ajoutee a diamond_trades")
+            except Exception:
+                pass  # La colonne existe deja
             conn.commit()
             logger.debug("Schema diamond_trades ensure")
         except Exception as e:
@@ -334,8 +344,26 @@ class TradeTracker:
             logger.info("Aucun setup actif a sauvegarder")
             return 0
 
+        # Préparer l'extraction des features ML (non-bloquant si xgboost/joblib pas installé)
+        _feature_extractor = None
+        try:
+            from src.ml_predictor import extract_features as _ef
+            _feature_extractor = _ef
+        except ImportError:
+            pass
+
         for r in active:
             try:
+                # Extraire les features ML complètes
+                features_json = None
+                if _feature_extractor is not None:
+                    try:
+                        feats = _feature_extractor(r)
+                        # Nettoyer: supprimer les clés non-numériques (bool/float déjà géré)
+                        features_json = json.dumps(feats, ensure_ascii=False)
+                    except Exception as e:
+                        logger.debug("Extraction features ML échouée pour %s: %s", r.symbol, e)
+
                 # UPSERT: si le trade existe déjà (même symbol + session), on met à jour
                 conn.execute(
                     """
@@ -344,11 +372,13 @@ class TradeTracker:
                         scan_time, price, score, max_score, bias, quality, alignment,
                         sl, tp, tp_label, rr, horizon,
                         asian_high, asian_low, kj_h4, kj_d1, d_kj4, d_kj_d1,
+                        features_json,
                         updated_at
                     ) VALUES (?, ?, 'OPEN',
                               ?, ?, ?, ?, ?, ?, ?,
                               ?, ?, ?, ?, ?,
                               ?, ?, ?, ?, ?, ?,
+                              ?,
                               datetime('now'))
                     ON CONFLICT(session_id, symbol) DO UPDATE SET
                         status = 'OPEN',
@@ -370,6 +400,7 @@ class TradeTracker:
                         kj_d1 = excluded.kj_d1,
                         d_kj4 = excluded.d_kj4,
                         d_kj_d1 = excluded.d_kj_d1,
+                        features_json = excluded.features_json,
                         updated_at = datetime('now')
                     """,
                     (
@@ -377,6 +408,7 @@ class TradeTracker:
                         now, r.price, r.score, r.max_score, r.bias, r.quality, r.alignment,
                         r.sl, r.tp, r.tp_label, r.rr, r.horizon,
                         r.asian_high, r.asian_low, r.kj_h4, r.kj_d1, r.d_kj4, r.d_kj_d1,
+                        features_json,
                     ),
                 )
 

@@ -182,6 +182,9 @@ class DiamondResult:
     compression_pips: float = 0.0
     compression_zone: str = ""
 
+    # ── ML prediction ──
+    ml_win_pct: Optional[float] = None  # probabilité de trade gagnant (0.0 → 1.0), None si modèle non chargé
+
     # Distance Kijun D1 (confluence ICT x Ichimoku)
     d_kj_d1: float = 0.0     # distance prix vs Kijun D1 en pips
 
@@ -440,6 +443,7 @@ class DiamondScanner:
         self.symbols: List[str] = list(symbols or [])
         self.tz_mode: str = (tz_mode or DEFAULT_TZ_MODE).upper()
         self._initialized = False
+        self._ml_predictor = None  # lazy-load (type: Optional[MLPredictor])
 
     # ── Public API ──
 
@@ -448,6 +452,20 @@ class DiamondScanner:
         if not mt5.initialize():
             logger.error("MT5 initialization failed")
             return False
+        # Tenter de charger le modèle ML (non-bloquant, lazy import)
+        if self._ml_predictor is None:
+            try:
+                from src.ml_predictor import MLPredictor
+                self._ml_predictor = MLPredictor()
+                self._ml_predictor.load()
+            except ImportError as e:
+                logger.info("ML non disponible (dépendances manquantes: %s)", e)
+                self._ml_predictor = None
+        return True
+
+    @property
+    def ml_available(self) -> bool:
+        return self._ml_predictor is not None and self._ml_predictor.is_loaded
         for sym in self.symbols:
             mt5.symbol_select(sym, True)
         self._initialized = True
@@ -2829,6 +2847,9 @@ class DiamondScanner:
         r.compression_pips = compression_pips
         r.compression_zone = compression_zone
 
+        # ── ML Prediction ──
+        self._predict_ml(r)
+
         # ── News Risk Filter ──
         # ── Correctif P0 : Contre-biais HIGH NEWS DAY ──
         # Lecon #8 du backtest 16-17/07 : 15/15 trades declares BULL mais
@@ -2849,6 +2870,15 @@ class DiamondScanner:
                 )
 
         return r
+
+    def _predict_ml(self, r: DiamondResult) -> None:
+        """Ajoute la prédiction ML au DiamondResult (non-bloquant)."""
+        if self._ml_predictor is None or not self._ml_predictor.is_loaded:
+            return
+        try:
+            r.ml_win_pct = self._ml_predictor.predict(r)
+        except Exception:
+            pass  # silencieux — le ML est optionnel
 
 
 # ── DXY helpers ──
