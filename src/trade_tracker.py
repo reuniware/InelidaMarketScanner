@@ -279,12 +279,15 @@ class TradeTracker:
 
     # ── Save: enregistre les résultats d'un scan ──────────────────────────
 
-    def save_setups(self, results: List[DiamondResult], session_id: Optional[str] = None) -> int:
+    def save_setups(self, results: List[DiamondResult], session_id: Optional[str] = None,
+                     force: bool = False) -> int:
         """Sauvegarde les setups actifs (BULL/BEAR non WAIT) d'un scan Diamond.
 
         Args:
             results: Liste des DiamondResult du scan.
             session_id: Optionnel, pour grouper plusieurs scans.
+            force: Si True, sauvegarde TOUS les setups y compris WAIT/FLAT
+                   (utile pour tracker un scalp manuel).
 
         Returns:
             Nombre de trades sauvegardés.
@@ -299,7 +302,11 @@ class TradeTracker:
         saved = 0
 
         # Ne garder que les setups actifs (non FLAT, non WAIT)
-        active = [r for r in results if r.bias != "FLAT" and r.quality != "WAIT"]
+        # Sauf si force=True : on prend TOUT sans filtre (scalp manuel)
+        if force:
+            active = list(results)
+        else:
+            active = [r for r in results if r.bias != "FLAT" and r.quality != "WAIT"]
 
         if not active:
             logger.info("Aucun setup actif a sauvegarder")

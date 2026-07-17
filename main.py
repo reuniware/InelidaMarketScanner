@@ -1172,12 +1172,14 @@ def cmd_track(args):
             return 2
         try:
             results = scanner.scan_all()
-            saved = tracker.save_setups(results)
+            saved = tracker.save_setups(results, force=args.force)
             if saved > 0:
                 print(f"{GREEN}{saved} setup(s) Diamond sauvegarde(s).{RESET}")
                 print(f"{GRAY}Utilise 'track update' pour mettre a jour les prix, 'track report' pour le P&L.{RESET}")
             else:
-                print(f"{YELLOW}Aucun setup actif (STRONG/GOOD) a sauvegarder.{RESET}")
+                print(f"{YELLOW}Aucun setup actif a sauvegarder.{RESET}")
+                if not args.force:
+                    print(f"{DIM}Astuce: utilise --force pour sauvegarder aussi les setups WAIT (scalp manuel).{RESET}")
         finally:
             scanner.shutdown()
         return 0
@@ -2478,6 +2480,8 @@ def build_parser() -> argparse.ArgumentParser:
                          help="Session ID pour verify/watchlist (ex: abcd1234)")
     p_track.add_argument("--limit", type=int, default=20,
                          help="Nombre max de trades/sessions a afficher")
+    p_track.add_argument("--force", action="store_true",
+                         help="Sauvegarde TOUS les setups (y compris WAIT/FLAT) pour tracker un scalp manuel.")
 
     # ── asian-liquidity ───────────────────────────────────────────────────
     p_asian_liq = sub.add_parser(
