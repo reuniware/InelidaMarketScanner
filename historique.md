@@ -1276,3 +1276,115 @@ USDJPY : [HIGH NEWS DAY: biais BULL downgrade] ✅
 ```
 
 ---
+
+## 📅 RÉTROSPECTIVE SEMAINE 13–17 JUILLET 2026
+
+> **Rédigé le vendredi 17/07/2026 à 22:45 BROKER — clôture NY, marché fermé.**
+
+---
+
+### 📊 Résumé global de la semaine
+
+| Date | Trades détectés | Gagnants | Perdants | Win Rate | P&L net (est.) |
+|:---|---:|---:|---:|:---:|:---:|
+| 13/07–15/07 | — | — | — | — | Développement scanner |
+| 16/07 (mer) | 5 (backtest) | 0 | 4 | 0% | −364 pips |
+| 17/07 (jeu) | 10 (backtest) | 7 | 3 | 70% | +370 pips |
+| **TOTAL** | **15** | **7** | **7** | **50%** | **~+6 pips** |
+
+---
+
+### 🔬 16/07 — Le désastre BULL (0% win rate)
+
+| Symbole | Résultat | MFE | Cause |
+|:---|---:|:---:|:---|
+| US30.cash | SL −234 pts | 0.0 | BULL forcé |
+| US500.cash | SL −29 pts | 0.0 | BULL forcé |
+| GBPUSD | SL −71 p | 0.0 | BULL forcé |
+| AUDUSD | SL −32 p | 0.0 | BULL forcé |
+| USDJPY | OPEN +32 p | +40 p | Seul survivant |
+
+> **Leçon #7 :** 4/5 trades ont eu MFE = 0.0 — jamais respiré.
+
+---
+
+### 🟢 17/07 — Le rebond BEAR (70% win rate)
+
+**Contexte :** HIGH NEWS DAY (6 événements majeurs). Marché structurellement BEAR.
+
+| Biais | Trades | Gagnants | Win Rate |
+|:---|---:|---:|:---:|
+| BEAR | 4 | 4 | 100% |
+| BULL JPY crosses | 3 | 3 | 100% |
+| BULL non-JPY | 3 | 0 | 0% |
+
+---
+
+### 🧠 Les 9 leçons de la semaine
+
+| # | Leçon | Impact | Implémentée |
+|:---|:---|:---|:---:|
+| 1 | MFE=0 après 30 barres → couper | 100% prédictif (4/4) | ✅ P0 |
+| 2 | T/Kx H1 conflit + biais → trade condamné | 100% (5/5) | ✅ P1 |
+| 3 | HIGH NEWS DAY → downgrade BULL | 15/15 erreurs évitées | ✅ P0 |
+| 4 | Le scoring brut ne suffit pas | Score ≠ trade gagnant | ✅ |
+| 5 | DXY↔Forex corrélation casse les news days | Paradoxe EURUSD/DXY | ✅ |
+| 6 | JPY crosses plus fiables en BULL | 3/3 vs 0/6 non-JPY | 🔜 |
+| 7 | Vendredi soir = pas de trade | Liquidité nulle | ✅ |
+| 8 | H1 domine H4/D1 | Conflit H1 = mort | ✅ |
+| 9 | Backtest M1 > intuition | 70% vs 0% sans filtre | ✅ |
+
+---
+
+### 🛠️ Améliorations du scanner (14→17 juillet)
+
+| Date | Features |
+|:---|:---|
+| 14/07 | Diamond Scanner v1 Ichimoku multi-TF + Tenkan flat history + W1/MN |
+| 15/07 | FVG H1/H4/D1 + TK/KJ S/R proximity + Discord webhook |
+| 16/07 | Fib extensions/retracements + Asian Range M5 + P&L Tracker + London sweeps + OB + MSS/BOS + Volume + Breaker |
+| 17/07 | Reversal Pipeline + FVG M5/M15/M30 + % mitigation + Timezone BROKER/UTC/PARIS + News Risk + 3 correctifs P0/P1 + track --force + --sl/--tp manuels + Watchlist 13 symboles + GUIDE_UTILISATEUR.md |
+
+### 📈 Évolution du scoring
+
+| Date | Critères | TFs |
+|:---|:---:|:---|
+| 14/07 | 12 | H1/H4/D1 |
+| 15/07 | 25 | H1→MN |
+| 16/07 | 58 | M5→MN |
+| 17/07 | **109** | M5→MN |
+
+---
+
+### 🎯 Ce qui a marché
+
+1. **Backtest M1** : a révélé les failles du scoring brut
+2. **3 filtres P0/P1** : 13/13 WAIT vendredi soir = exactement ce qu'il fallait
+3. **USDJPY** : seul BULL cohérent toute la semaine (TKx aligné, Kumo ABOVE)
+4. **Détection FVG** : identification des zones de réaction
+5. **Corrélation DXY↔XAUUSD** : explication de la baisse de l'or
+
+### ❌ Ce qui n'a pas marché
+
+1. **Biais BULL systématique** : le scanner voyait BULL partout, marché BEAR
+2. **Absence filtre macro** : HIGH NEWS DAY non détectés avant le 17/07
+3. **Confusion Tenkan/Kijun** : obstacles mal priorisés
+4. **FVG threshold** : filtrait les petits gaps
+5. **Timezone** : confusion UTC/BROKER/PARIS
+
+### 🔮 Priorités semaine du 20/07
+
+| P | Tâche |
+|:---:|:---|
+| P0 | Vérifier watchlist weekend lundi matin |
+| P1 | Backtest 3 correctifs sur 30 jours |
+| P1 | Corrélation DXY→XAUUSD automatique |
+| P2 | Auto-close si MFE=0 après 30 barres |
+| P2 | Score fiabilité par symbole (JPY > autres) |
+
+---
+
+> **Total commits :** ~15 | **Fichier phare :** `diamond_scanner.py` (2840+ lignes)  
+> **Plus grosse leçon :** Sans filtres = 0% win rate. Avec les 3 correctifs = tout bloqué quand il faut.  
+> **La confiance vient du backtest, pas du scoring.**
+
