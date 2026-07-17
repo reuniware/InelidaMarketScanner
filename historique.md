@@ -868,3 +868,30 @@ H1 non affecté (use_priority=True avec système temporel).
 Ajout du format `%H:%M` pour les TFs M5/M15/M30 (était `%d/%m` sans heure).
 
 ---
+
+## 17/07/2026 — Timezone configurable : --timezone BROKER/UTC/PARIS
+
+### Nouveau : --timezone {BROKER,UTC,PARIS}
+
+Le label FTMO a ete renomme en **BROKER** (generique pour tout serveur MT5)
+et le fuseau horaire est maintenant configurable via --timezone :
+
+```bash
+# Temps serveur MT5 (BROKER, defaut) — typiquement GMT+3 ete / +2 hiver
+python main.py diamond --symbols EURUSD --timezone BROKER
+
+# UTC (temps universel)
+python main.py diamond --symbols EURUSD --timezone UTC
+
+# Paris (CEST/CET avec DST automatique)
+python main.py diamond --symbols EURUSD --timezone PARIS
+```
+
+**Fichiers modifies :**
+- `src/config.py` : Nouveau module timezone (`tz_offset()`, `tz_label()`, `format_epoch()`, `_dst_eu_summer()`)
+- `src/diamond_scanner.py` : `tz_mode` dans `__init__`, `_detect_fvg()` utilise `self.tz_mode`
+- `main.py` : `--timezone` dans `_add_common()` → disponible sur toutes les commandes
+
+**Commits :** `35d2009` (feature), `5812b14` (FTMO → BROKER)
+
+---
