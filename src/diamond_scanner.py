@@ -2580,14 +2580,14 @@ class DiamondScanner:
             (direction == 1 and tkx1 == "BEAR") or
             (direction == -1 and tkx1 == "BULL")
         )
-        # TKx H1 unavailable: can't confirm alignment -> treat as potential conflict
-        if direction != 0 and tkx1 == "N/A":
-            warnings.append("TKx H1 INDISPONIBLE — alignement H1 non verifiable, prudence")
 
         # ── Correctif P0 : Filtre MFE / respiration recente ──
         # Lecon #7 du backtest : si le prix n'a pas respire (> 5% du range)
         # dans la direction du biais, le trade est probablement mort.
         # Proxy : flat bars H1 >= 8 + Kumo INSIDE = prix coince, pas de respiration.
+        # NOTE : ce proxy detecte la consolidation (sideways). Le cas contre-tendance
+        # (MFE=0 parce que le prix trend contre le biais) est couvert par le filtre
+        # tkx1_conflict ci-dessus. Les deux filtres sont complementaires.
         no_breathing = (flat1 >= 8 and kumo1 == "INSIDE") or (flat4 >= 6 and kumo4 == "INSIDE")
 
         if direction != 0:

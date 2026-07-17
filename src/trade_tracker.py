@@ -280,7 +280,9 @@ class TradeTracker:
     # ── Save: enregistre les résultats d'un scan ──────────────────────────
 
     def save_setups(self, results: List[DiamondResult], session_id: Optional[str] = None,
-                     force: bool = False) -> int:
+                     force: bool = False,
+                     manual_sl: Optional[float] = None,
+                     manual_tp: Optional[float] = None) -> int:
         """Sauvegarde les setups actifs (BULL/BEAR non WAIT) d'un scan Diamond.
 
         Args:
@@ -288,6 +290,9 @@ class TradeTracker:
             session_id: Optionnel, pour grouper plusieurs scans.
             force: Si True, sauvegarde TOUS les setups y compris WAIT/FLAT
                    (utile pour tracker un scalp manuel).
+            manual_sl: Stop-loss manuel (override les valeurs du scan).
+                       Utile avec --force quand le setup est WAIT (SL=0).
+            manual_tp: Take-profit manuel (override les valeurs du scan).
 
         Returns:
             Nombre de trades sauvegardés.
@@ -307,6 +312,23 @@ class TradeTracker:
             active = list(results)
         else:
             active = [r for r in results if r.bias != "FLAT" and r.quality != "WAIT"]
+
+        # ── Override SL/TP manuels (pour les scalps WAIT avec --force) ──
+        # Ne s'applique qu'aux setups sans SL (scanner n'a pas calcule de niveaux)
+        if force and (manual_sl is not None or manual_tp is not None):
+            for r in active:
+                if r.sl > 0:
+                    continue  # garder le SL/TP calcule par le scanner
+                if manual_sl is not None and manual_sl > 0:
+                    r.sl = manual_sl
+                if manual_tp is not None and manual_tp > 0:
+                    r.tp = manual_tp
+                    r.tp_label = "MANUAL"
+                # Recalculer RR si SL et TP sont tous les deux definis
+                if r.sl > 0 and r.tp > 0:
+                    risk = abs(r.price - r.sl)
+                    reward = abs(r.tp - r.price)
+                    r.rr = round(reward / risk, 2) if risk > 0 else 0.0
 
         if not active:
             logger.info("Aucun setup actif a sauvegarder")
