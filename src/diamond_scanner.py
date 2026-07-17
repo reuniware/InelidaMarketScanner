@@ -2573,6 +2573,23 @@ class DiamondScanner:
         good_threshold = max_score - 4
         strong_threshold = max_score - 2
 
+        # ── Correctif P1 : Regle T/Kx H1 ──
+        # Lecon #9 du backtest 16-17/07 : si T/Kx H1 contredit le biais,
+        # le trade est condamne (5/5 perdants). Le TF le plus court domine.
+        tkx1_conflict = (
+            (direction == 1 and tkx1 == "BEAR") or
+            (direction == -1 and tkx1 == "BULL")
+        )
+        # TKx H1 unavailable: can't confirm alignment -> treat as potential conflict
+        if direction != 0 and tkx1 == "N/A":
+            warnings.append("TKx H1 INDISPONIBLE — alignement H1 non verifiable, prudence")
+
+        # ── Correctif P0 : Filtre MFE / respiration recente ──
+        # Lecon #7 du backtest : si le prix n'a pas respire (> 5% du range)
+        # dans la direction du biais, le trade est probablement mort.
+        # Proxy : flat bars H1 >= 8 + Kumo INSIDE = prix coince, pas de respiration.
+        no_breathing = (flat1 >= 8 and kumo1 == "INSIDE") or (flat4 >= 6 and kumo4 == "INSIDE")
+
         if direction != 0:
             sl = kj4
             # Compute TP from real technical levels (Kijun, Tenkan, FVG, SSB, cloud)
@@ -2594,7 +2611,27 @@ class DiamondScanner:
                 asian_high=asian_high, asian_low=asian_low
             )
             has_warnings = any("TenkanD1" in w for w in warnings)
-            if score >= strong_threshold and not has_warnings:
+
+            # ── Correctif P1 : T/Kx H1 conflit → force WAIT ──
+            if tkx1_conflict:
+                quality = "WAIT"
+                warnings.append(
+                    f"T/Kx H1 CONFLIT: biais {bias} mais TKx H1 {tkx1} "
+                    f"— trade condamne (Lecon #9, 5/5 perdants)"
+                )
+            # ── Correctif P0 : Pas de respiration → downgrade ──
+            elif no_breathing:
+                if score >= strong_threshold:
+                    quality = "GOOD"  # downgrade STRONG → GOOD
+                elif score >= good_threshold:
+                    quality = "WAIT"  # downgrade GOOD → WAIT
+                else:
+                    quality = "WAIT"
+                warnings.append(
+                    f"MFE PROXY: flat bars H1={flat1}b H4={flat4}b + Kumo INSIDE "
+                    f"— pas de respiration detectee (Lecon #7)"
+                )
+            elif score >= strong_threshold and not has_warnings:
                 quality = "STRONG"
             elif score >= good_threshold:
                 quality = "GOOD"
@@ -2793,12 +2830,23 @@ class DiamondScanner:
         r.compression_zone = compression_zone
 
         # ── News Risk Filter ──
-        # Si >=2 evenements macro majeurs (Trump, FOMC, CPI, NFP, UoM...)
-        # la correlation DXY↔Forex casse → setups directionnels non fiables.
-        # Base sur l'analyse du 17/07 (50% d'heures ANORMALES).
-        _ncount, _nwarn, _nhigh = get_news_risk()
+        # ── Correctif P0 : Contre-biais HIGH NEWS DAY ──
+        # Lecon #8 du backtest 16-17/07 : 15/15 trades declares BULL mais
+        # le marche etait structurellement BEAR (Trump, FOMC, CPI, UoM, GDP).
+        # Si >=2 evenements macro majeurs → downgrade BULL + avertissement.
+        _, _nwarn, _nhigh = get_news_risk()  # _ncount unused, kept for API compat
         if _nhigh:
             r.warnings.append(_nwarn)
+            if r.bias == "BULL":
+                # Downgrade quality for BULL on HIGH NEWS DAY
+                if r.quality == "STRONG":
+                    r.quality = "GOOD"
+                elif r.quality == "GOOD":
+                    r.quality = "WAIT"
+                r.warnings.append(
+                    "HIGH NEWS DAY: biais BULL downgrade — "
+                    "setups BULL non fiables, privilegier BEAR ou attendre (Lecon #8, 15/15 erreurs)"
+                )
 
         return r
 

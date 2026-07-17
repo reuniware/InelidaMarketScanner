@@ -163,6 +163,19 @@ python main.py <commande> [options]
 | `db` | Statistiques et requêtes SQLite |
 | `watchlist` | Affiche la watchlist configurée |
 
+### 🛡️ Garde-fous automatiques (Leçons du backtest 16-17/07/2026)
+
+Le Diamond Scanner applique **3 filtres de sécurité** basés sur l'analyse
+rétrospective de 15 trades réels :
+
+| Filtre | Règle | Effet |
+|:---|:---|:---|
+| **T/Kx H1 conflit** | Si le biais contredit le croisement Tenkan/Kijun H1 | Qualité → WAIT |
+| **Respiration MFE** | Si Kijun plat + prix coincé dans le Kumo | Downgrade -1 niveau |
+| **HIGH NEWS DAY** | Si ≥2 événements macro (Trump, FOMC, CPI...) | BULL downgradé |
+
+> 📖 Guide complet : [GUIDE_UTILISATEUR.md](GUIDE_UTILISATEUR.md)
+
 ### Exemples
 
 ```bash
@@ -192,6 +205,12 @@ python main.py diamond --discord
 
 # Diamond Analysis + sauvegarde P&L des setups actifs
 python main.py track save
+
+# Diamond Analysis + fuseau horaire BROKER
+python main.py diamond --timezone BROKER
+
+# Volume uniquement (HVN/LVN)
+python main.py diamond --volume-only
 
 # Backtest 30 jours Asian BSL/SSL → London continuation
 python backtest_asian_bsl_ssl.py --days 30

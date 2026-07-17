@@ -1355,3 +1355,31 @@ Ne jamais présenter un trade comme une certitude.
 - [ ] RR affiché avec comparaison au meilleur trade du jour
 - [ ] Discord : embed direct HTTP, pas via discord_notifier.py pour du contenu personnalisé
 - [ ] **Aucun trade recommandé avec obstacle Tenkan/SSB non résolu entre prix et TP** ⚠️
+- [ ] **T/Kx H1 aligné avec le biais ? Si conflit → trade condamné (Leçon #9)** ⚠️
+- [ ] **Respiration détectée ? Si flat bars ≥ 8 + Kumo INSIDE → MFE risque 0 (Leçon #7)** ⚠️
+- [ ] **HIGH NEWS DAY ? Si ≥2 événements majeurs → biais BULL downgradé (Leçon #8)** ⚠️
+
+---
+
+## 🔬 Leçons du backtest 16-17/07/2026 (15 trades, granularité M1)
+
+### Leçon #7 : MFE zéro dans les 30 premières barres = sortir immédiatement
+
+> **Donnée :** 4/4 perdants ont MFE = 0.0. 7/7 gagnants ont MFE > 40% du range.
+> **Règle :** Si après 30 barres M1 le trade n'a jamais respiré de > 5% du range →
+> couper la position. Ne pas attendre le SL.
+> **Implémentation :** Filtre `no_breathing` dans le Diamond Scanner (flat bars + Kumo INSIDE).
+
+### Leçon #8 : Le biais BULL généralisé est une erreur systématique en HIGH NEWS DAY
+
+> **Donnée :** 15/15 trades déclarés BULL mais le marché était structurellement BEAR.
+> **Règle :** Si ≥2 événements macro majeurs (Trump, FOMC, CPI, NFP, UoM, GDP) →
+> les setups BULL sont systématiquement non fiables. Privilégier BEAR ou attendre.
+> **Implémentation :** Filtre HIGH NEWS DAY dans le Diamond Scanner (downgrade BULL automatique).
+
+### Leçon #9 : T/Kx H1 BEAR + biais BULL = trade condamné
+
+> **Donnée :** 5/5 perdants avec ce pattern. Même quand H4/D1 sont alignés BULL.
+> **Règle :** Le timeframe le plus court (H1) domine. Si T/Kx H1 contredit le biais,
+> le trade est invalide, peu importe l'alignement des TFs supérieurs.
+> **Implémentation :** Filtre `tkx1_conflict` dans le Diamond Scanner (force WAIT).

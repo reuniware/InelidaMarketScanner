@@ -1201,3 +1201,78 @@ avec entry simulée à l'open de la première barre M1 après le scan.
 > qui l'a rendu contre-productif sur 2 jours consécutifs de marché baissier.
 
 ---
+
+## 17/07/2026 — 🔧 Implémentation des 3 correctifs P0/P1 dans le Diamond Scanner
+
+### Contexte
+
+Suite au backtest M1 des 15 trades (16-17/07) révélant 3 patterns d'échec systématiques,
+3 filtres correctifs ont été implémentés directement dans `src/diamond_scanner.py`.
+
+### Correctif P0 — Contre-biais HIGH NEWS DAY (Leçon #8)
+
+**Problème :** 15/15 trades déclarés BULL mais le marché était structurellement BEAR
+(Trump, FOMC, CPI, UoM, GDP le 17/07).
+
+**Solution :** Après construction du `DiamondResult`, si `get_news_risk()` détecte
+≥2 événements majeurs, les trades BULL sont downgradés :
+- `STRONG` → `GOOD`
+- `GOOD` → `WAIT`
+- Un avertissement explicite est ajouté.
+
+```python
+if _nhigh and r.bias == "BULL":
+    r.quality = "GOOD" if r.quality == "STRONG" else "WAIT"
+```
+
+### Correctif P0 — Filtre MFE / respiration proxy (Leçon #7)
+
+**Problème :** 4/4 trades perdants avaient MFE = 0.0 (jamais respiré).
+
+**Solution :** Proxy de détection de respiration basé sur les flat bars et le Kumo :
+- Si Kijun H1 est plat depuis ≥8 barres ET prix dans le Kumo H1 → pas de respiration
+- Si Kijun H4 est plat depuis ≥6 barres ET prix dans le Kumo H4 → pas de respiration
+- Downgrade : `STRONG` → `GOOD`, `GOOD` → `WAIT`
+
+```python
+no_breathing = (flat1 >= 8 and kumo1 == "INSIDE") or (flat4 >= 6 and kumo4 == "INSIDE")
+```
+
+### Correctif P1 — Règle T/Kx H1 conflit (Leçon #9)
+
+**Problème :** 5/5 trades perdants avaient T/Kx H1 BEAR avec un biais BULL.
+Le timeframe le plus court domine, même si H4/D1 sont alignés.
+
+**Solution :** Si `direction == BULL` et `tkx1 == BEAR` (ou l'inverse) →
+qualité forcée à `WAIT` avec avertissement explicite.
+
+```python
+tkx1_conflict = (direction==1 and tkx1=="BEAR") or (direction==-1 and tkx1=="BULL")
+if tkx1_conflict: quality = "WAIT"
+```
+
+### Chaîne de priorité des downgrades
+
+```
+1. T/Kx H1 conflit ?         → WAIT (leçon #9, priorité maximale)
+2. Pas de respiration ?      → downgrade -1 niveau (leçon #7)
+3. Score normal ?            → STRONG / GOOD / WAIT
+4. SL proximity safety net   → WAIT si <10% du range
+5. HIGH NEWS DAY + BULL ?    → downgrade -1 niveau (leçon #8)
+```
+
+### Fichiers modifiés
+
+| Fichier | Changement |
+|:---|---|
+| `src/diamond_scanner.py` | +45 lignes : 3 filtres + variables + warnings |
+
+### Test de validation
+
+```
+EURUSD : [T/Kx H1 CONFLIT: biais BULL mais TKx H1 BEAR] ✅
+EURUSD : [HIGH NEWS DAY: biais BULL downgrade] ✅
+USDJPY : [HIGH NEWS DAY: biais BULL downgrade] ✅
+```
+
+---
