@@ -23,10 +23,12 @@ Usage:
 import logging
 import time as _time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Tuple
 
 import MetaTrader5 as mt5
+
+from src.config import tz_offset as _tz_off, tz_label as _tz_lbl, DEFAULT_TZ_MODE
 
 logger = logging.getLogger("DiamondScanner")
 
@@ -189,7 +191,7 @@ class DiamondResult:
     # FVG H1 recent — bearish (gap down, low[i] > high[i+2])
     fvg_h1_bear_top: float = 0.0
     fvg_h1_bear_bot: float = 0.0
-    fvg_h1_bear_mitigated: bool = False
+    fvg_h1_bear_mitigated_pct: float = 0.0
     fvg_h1_bear_price_pos: str = "N/A"  # "ABOVE", "BELOW", "INSIDE"
     fvg_h1_bear_date: str = ""          # "15/07 18h" format
     fvg_h1_bear_pip_factor: float = 10000.0
@@ -197,7 +199,7 @@ class DiamondResult:
     # FVG H1 recent — bullish (gap up, high[i] < low[i+2])
     fvg_h1_bull_top: float = 0.0
     fvg_h1_bull_bot: float = 0.0
-    fvg_h1_bull_mitigated: bool = False
+    fvg_h1_bull_mitigated_pct: float = 0.0
     fvg_h1_bull_price_pos: str = "N/A"  # "ABOVE", "BELOW", "INSIDE"
     fvg_h1_bull_date: str = ""
     fvg_h1_bull_pip_factor: float = 10000.0
@@ -205,7 +207,7 @@ class DiamondResult:
     # FVG H4 recent — bearish
     fvg_h4_bear_top: float = 0.0
     fvg_h4_bear_bot: float = 0.0
-    fvg_h4_bear_mitigated: bool = False
+    fvg_h4_bear_mitigated_pct: float = 0.0
     fvg_h4_bear_price_pos: str = "N/A"
     fvg_h4_bear_date: str = ""
     fvg_h4_bear_pip_factor: float = 10000.0
@@ -213,7 +215,7 @@ class DiamondResult:
     # FVG H4 recent — bullish
     fvg_h4_bull_top: float = 0.0
     fvg_h4_bull_bot: float = 0.0
-    fvg_h4_bull_mitigated: bool = False
+    fvg_h4_bull_mitigated_pct: float = 0.0
     fvg_h4_bull_price_pos: str = "N/A"
     fvg_h4_bull_date: str = ""
     fvg_h4_bull_pip_factor: float = 10000.0
@@ -221,7 +223,7 @@ class DiamondResult:
     # FVG D1 recent — bearish
     fvg_d1_bear_top: float = 0.0
     fvg_d1_bear_bot: float = 0.0
-    fvg_d1_bear_mitigated: bool = False
+    fvg_d1_bear_mitigated_pct: float = 0.0
     fvg_d1_bear_price_pos: str = "N/A"
     fvg_d1_bear_date: str = ""
     fvg_d1_bear_pip_factor: float = 10000.0
@@ -229,7 +231,7 @@ class DiamondResult:
     # FVG D1 recent — bullish
     fvg_d1_bull_top: float = 0.0
     fvg_d1_bull_bot: float = 0.0
-    fvg_d1_bull_mitigated: bool = False
+    fvg_d1_bull_mitigated_pct: float = 0.0
     fvg_d1_bull_price_pos: str = "N/A"
     fvg_d1_bull_date: str = ""
     fvg_d1_bull_pip_factor: float = 10000.0
@@ -298,34 +300,34 @@ class DiamondResult:
     # ── FVG M5/M15/M30 ──
     fvg_m5_bear_top: float = 0.0
     fvg_m5_bear_bot: float = 0.0
-    fvg_m5_bear_mitigated: bool = False
+    fvg_m5_bear_mitigated_pct: float = 0.0
     fvg_m5_bear_price_pos: str = "N/A"
     fvg_m5_bear_date: str = ""
     fvg_m5_bull_top: float = 0.0
     fvg_m5_bull_bot: float = 0.0
-    fvg_m5_bull_mitigated: bool = False
+    fvg_m5_bull_mitigated_pct: float = 0.0
     fvg_m5_bull_price_pos: str = "N/A"
     fvg_m5_bull_date: str = ""
     fvg_m5_pip_factor: float = 10000.0
     fvg_m15_bear_top: float = 0.0
     fvg_m15_bear_bot: float = 0.0
-    fvg_m15_bear_mitigated: bool = False
+    fvg_m15_bear_mitigated_pct: float = 0.0
     fvg_m15_bear_price_pos: str = "N/A"
     fvg_m15_bear_date: str = ""
     fvg_m15_bull_top: float = 0.0
     fvg_m15_bull_bot: float = 0.0
-    fvg_m15_bull_mitigated: bool = False
+    fvg_m15_bull_mitigated_pct: float = 0.0
     fvg_m15_bull_price_pos: str = "N/A"
     fvg_m15_bull_date: str = ""
     fvg_m15_pip_factor: float = 10000.0
     fvg_m30_bear_top: float = 0.0
     fvg_m30_bear_bot: float = 0.0
-    fvg_m30_bear_mitigated: bool = False
+    fvg_m30_bear_mitigated_pct: float = 0.0
     fvg_m30_bear_price_pos: str = "N/A"
     fvg_m30_bear_date: str = ""
     fvg_m30_bull_top: float = 0.0
     fvg_m30_bull_bot: float = 0.0
-    fvg_m30_bull_mitigated: bool = False
+    fvg_m30_bull_mitigated_pct: float = 0.0
     fvg_m30_bull_price_pos: str = "N/A"
     fvg_m30_bull_date: str = ""
     fvg_m30_pip_factor: float = 10000.0
@@ -433,8 +435,9 @@ class DiamondResult:
 class DiamondScanner:
     """Scanner Diamond Analysis multi-symboles avec Etapes 3b, 5, 7, 7b integrees."""
 
-    def __init__(self, symbols: Optional[List[str]] = None):
+    def __init__(self, symbols: Optional[List[str]] = None, tz_mode: str = ""):
         self.symbols: List[str] = list(symbols or [])
+        self.tz_mode: str = (tz_mode or DEFAULT_TZ_MODE).upper()
         self._initialized = False
 
     # ── Public API ──
@@ -888,8 +891,8 @@ class DiamondScanner:
         self, highs: List[float], lows: List[float],
         timestamps: List[int], price: float, sym: str,
         scan_window: int = 72, use_priority: bool = True, tf_label: str = "H1"
-    ) -> Tuple[float, float, bool, str, str, float,
-               float, float, bool, str, str, float]:
+    ) -> Tuple[float, float, float, str, str, float,
+               float, float, float, str, str, float]:
         """Detecte les FVGs bearish (low[i] > high[i+2]) et bullish (high[i] < low[i+2]).
 
         Pour H1, utilise un systeme de priorite (18h-20h Paris = 10, hier = 5).
@@ -913,6 +916,10 @@ class DiamondScanner:
             date_fmt = "%d/%m %Hh"
         else:
             date_fmt = "%d/%m"
+        # Timezone offset + label (configurable: FTMO, PARIS, UTC)
+        _off = _tz_off(self.tz_mode)
+        _lbl = _tz_lbl(self.tz_mode)
+        _tz_tag = f" {_lbl}"
 
         best_bear: Optional[Tuple[int, float, float, str, int]] = None
         best_bull: Optional[Tuple[int, float, float, str, int]] = None
@@ -936,54 +943,73 @@ class DiamondScanner:
 
             # Bearish FVG: low[i-2] > high[i]
             if lows[i - 2] > highs[i]:
-                label = dt_i2.strftime(date_fmt)
+                dt_local = dt_i2 + timedelta(hours=_off)
+                label = f"{dt_local.strftime(date_fmt)}{_tz_tag}"
                 if best_bear is None or priority > best_bear[0]:
                     best_bear = (priority, lows[i - 2], highs[i], label, i)
 
             # Bullish FVG: high[i-2] < low[i]
             if highs[i - 2] < lows[i]:
-                label = dt_i2.strftime(date_fmt)
+                dt_local = dt_i2 + timedelta(hours=_off)
+                label = f"{dt_local.strftime(date_fmt)}{_tz_tag}"
                 if best_bull is None or priority > best_bull[0]:
                     best_bull = (priority, lows[i], highs[i - 2], label, i)
 
-        # ── Resolve bearish FVG ──
-        bear_top, bear_bot, bear_mitigated, bear_pos, bear_date = 0.0, 0.0, False, "N/A", ""
+        # ── Resolve bearish FVG (mitigation %) ──
+        bear_top, bear_bot, bear_mitigated_pct, bear_pos, bear_date = 0.0, 0.0, 0.0, "N/A", ""
         if best_bear is not None:
             bear_top, bear_bot = best_bear[1], best_bear[2]
             bear_date = best_bear[3]
             fvg_idx = best_bear[4]
-            bear_mitigated = False
-            for k in range(fvg_idx + 1, n):
-                if highs[k] >= bear_bot:
-                    bear_mitigated = True
-                    break
-            if not bear_mitigated and price >= bear_bot:
-                bear_mitigated = True
+            gap = bear_top - bear_bot
+            if gap > 0:
+                # Trouver le niveau le plus profond dans le gap
+                deepest = 0.0
+                for k in range(fvg_idx + 1, n):
+                    if highs[k] >= bear_bot:
+                        entry = min(highs[k], bear_top)  # cap au top du gap
+                        if entry > deepest:
+                            deepest = entry
+                if price >= bear_bot:
+                    entry = min(price, bear_top)
+                    if entry > deepest:
+                        deepest = entry
+                if deepest > 0:
+                    bear_mitigated_pct = (deepest - bear_bot) / gap * 100.0
+                    bear_mitigated_pct = min(100.0, max(0.0, bear_mitigated_pct))
             if bear_bot > 0:
                 if price > bear_top: bear_pos = "ABOVE"
                 elif price < bear_bot: bear_pos = "BELOW"
                 else: bear_pos = "INSIDE"
 
-        # ── Resolve bullish FVG ──
-        bull_top, bull_bot, bull_mitigated, bull_pos, bull_date = 0.0, 0.0, False, "N/A", ""
+        # ── Resolve bullish FVG (mitigation %) ──
+        bull_top, bull_bot, bull_mitigated_pct, bull_pos, bull_date = 0.0, 0.0, 0.0, "N/A", ""
         if best_bull is not None:
             bull_top, bull_bot = best_bull[1], best_bull[2]
             bull_date = best_bull[3]
             fvg_idx = best_bull[4]
-            bull_mitigated = False
-            for k in range(fvg_idx + 1, n):
-                if lows[k] <= bull_top:
-                    bull_mitigated = True
-                    break
-            if not bull_mitigated and price <= bull_top:
-                bull_mitigated = True
+            gap = bull_top - bull_bot
+            if gap > 0:
+                # Trouver le niveau le plus profond dans le gap (par le haut)
+                deepest = bull_top  # start from top
+                for k in range(fvg_idx + 1, n):
+                    if lows[k] <= bull_top:
+                        entry = max(lows[k], bull_bot)  # cap au bottom du gap
+                        if entry < deepest:
+                            deepest = entry
+                if price <= bull_top:
+                    entry = max(price, bull_bot)
+                    if entry < deepest:
+                        deepest = entry
+                bull_mitigated_pct = (bull_top - deepest) / gap * 100.0
+                bull_mitigated_pct = min(100.0, max(0.0, bull_mitigated_pct))
             if bull_bot > 0:
                 if price > bull_top: bull_pos = "ABOVE"
                 elif price < bull_bot: bull_pos = "BELOW"
                 else: bull_pos = "INSIDE"
 
-        return (bear_top, bear_bot, bear_mitigated, bear_pos, bear_date, pip_factor,
-                bull_top, bull_bot, bull_mitigated, bull_pos, bull_date, pip_factor)
+        return (bear_top, bear_bot, bear_mitigated_pct, bear_pos, bear_date, pip_factor,
+                bull_top, bull_bot, bull_mitigated_pct, bull_pos, bull_date, pip_factor)
 
     # ── Order Blocks (OB) ICT detection — generic TF ──
 
@@ -2451,13 +2477,13 @@ class DiamondScanner:
         ]:
             if fvg_t > 0 and fvg_b > 0:
                 gap = abs(fvg_t - fvg_b) * fvg_pf
-                mit = "MITIGE" if fvg_m else "NON MITIGE"
+                mit = f"MITIGE {fvg_m:.0f}%" if fvg_m > 0 else "NON MITIGE"
                 warnings.append(
                     f"FVG {tf_name} BEAR {fvg_d}: {fvg_b:.5f}-{fvg_t:.5f} ({gap:.1f}p) [{mit}] [{fvg_p}]"
                 )
             if fvg_bt > 0 and fvg_bb > 0:
                 gap = abs(fvg_bt - fvg_bb) * fvg_bpf
-                mit = "MITIGE" if fvg_bm else "NON MITIGE"
+                mit = f"MITIGE {fvg_bm:.0f}%" if fvg_bm > 0 else "NON MITIGE"
                 warnings.append(
                     f"FVG {tf_name} BULL {fvg_bd}: {fvg_bb:.5f}-{fvg_bt:.5f} ({gap:.1f}p) [{mit}] [{fvg_bp}]"
                 )
@@ -2644,22 +2670,22 @@ class DiamondScanner:
             d_kj_d1=d_kj_d1,
             d_tk_h4=d_tk_h4, d_tk_d1=d_tk_d1,
             fvg_h1_bear_top=fvg_top, fvg_h1_bear_bot=fvg_bot,
-            fvg_h1_bear_mitigated=fvg_mitigated, fvg_h1_bear_price_pos=fvg_pos,
+            fvg_h1_bear_mitigated_pct=fvg_mitigated, fvg_h1_bear_price_pos=fvg_pos,
             fvg_h1_bear_date=fvg_date, fvg_h1_bear_pip_factor=fvg_pip_factor,
             fvg_h1_bull_top=fvg_bull_top, fvg_h1_bull_bot=fvg_bull_bot,
-            fvg_h1_bull_mitigated=fvg_bull_mitigated, fvg_h1_bull_price_pos=fvg_bull_pos,
+            fvg_h1_bull_mitigated_pct=fvg_bull_mitigated, fvg_h1_bull_price_pos=fvg_bull_pos,
             fvg_h1_bull_date=fvg_bull_date, fvg_h1_bull_pip_factor=fvg_bull_pip_factor,
             fvg_h4_bear_top=fvg4_top, fvg_h4_bear_bot=fvg4_bot,
-            fvg_h4_bear_mitigated=fvg4_mitigated, fvg_h4_bear_price_pos=fvg4_pos,
+            fvg_h4_bear_mitigated_pct=fvg4_mitigated, fvg_h4_bear_price_pos=fvg4_pos,
             fvg_h4_bear_date=fvg4_date, fvg_h4_bear_pip_factor=fvg4_pip_factor,
             fvg_h4_bull_top=fvg4_bull_top, fvg_h4_bull_bot=fvg4_bull_bot,
-            fvg_h4_bull_mitigated=fvg4_bull_mitigated, fvg_h4_bull_price_pos=fvg4_bull_pos,
+            fvg_h4_bull_mitigated_pct=fvg4_bull_mitigated, fvg_h4_bull_price_pos=fvg4_bull_pos,
             fvg_h4_bull_date=fvg4_bull_date, fvg_h4_bull_pip_factor=fvg4_bull_pip_factor,
             fvg_d1_bear_top=fvg_d1_top, fvg_d1_bear_bot=fvg_d1_bot,
-            fvg_d1_bear_mitigated=fvg_d1_mitigated, fvg_d1_bear_price_pos=fvg_d1_pos,
+            fvg_d1_bear_mitigated_pct=fvg_d1_mitigated, fvg_d1_bear_price_pos=fvg_d1_pos,
             fvg_d1_bear_date=fvg_d1_date, fvg_d1_bear_pip_factor=fvg_d1_pip_factor,
             fvg_d1_bull_top=fvg_d1_bull_top, fvg_d1_bull_bot=fvg_d1_bull_bot,
-            fvg_d1_bull_mitigated=fvg_d1_bull_mitigated, fvg_d1_bull_price_pos=fvg_d1_bull_pos,
+            fvg_d1_bull_mitigated_pct=fvg_d1_bull_mitigated, fvg_d1_bull_price_pos=fvg_d1_bull_pos,
             fvg_d1_bull_date=fvg_d1_bull_date, fvg_d1_bull_pip_factor=fvg_d1_bull_pip_factor,
             asian_high=asian_high, asian_low=asian_low,
             asian_high_swept=ah_swept, asian_low_swept=al_swept,
@@ -2707,21 +2733,21 @@ class DiamondScanner:
             brk_d1_bear_level=brk_d1_bear_level, brk_d1_bull_level=brk_d1_bull_level,
             # FVG M5/M15/M30
             fvg_m5_bear_top=fvg_m5_bear_top, fvg_m5_bear_bot=fvg_m5_bear_bot,
-            fvg_m5_bear_mitigated=fvg_m5_bear_mitigated, fvg_m5_bear_price_pos=fvg_m5_bear_price_pos,
+            fvg_m5_bear_mitigated_pct=fvg_m5_bear_mitigated, fvg_m5_bear_price_pos=fvg_m5_bear_price_pos,
             fvg_m5_bear_date=fvg_m5_bear_date, fvg_m5_bull_top=fvg_m5_bull_top,
-            fvg_m5_bull_bot=fvg_m5_bull_bot, fvg_m5_bull_mitigated=fvg_m5_bull_mitigated,
+            fvg_m5_bull_bot=fvg_m5_bull_bot, fvg_m5_bull_mitigated_pct=fvg_m5_bull_mitigated,
             fvg_m5_bull_price_pos=fvg_m5_bull_price_pos, fvg_m5_bull_date=fvg_m5_bull_date,
             fvg_m5_pip_factor=fvg_m5_pip_factor,
             fvg_m15_bear_top=fvg_m15_bear_top, fvg_m15_bear_bot=fvg_m15_bear_bot,
-            fvg_m15_bear_mitigated=fvg_m15_bear_mitigated, fvg_m15_bear_price_pos=fvg_m15_bear_price_pos,
+            fvg_m15_bear_mitigated_pct=fvg_m15_bear_mitigated, fvg_m15_bear_price_pos=fvg_m15_bear_price_pos,
             fvg_m15_bear_date=fvg_m15_bear_date, fvg_m15_bull_top=fvg_m15_bull_top,
-            fvg_m15_bull_bot=fvg_m15_bull_bot, fvg_m15_bull_mitigated=fvg_m15_bull_mitigated,
+            fvg_m15_bull_bot=fvg_m15_bull_bot, fvg_m15_bull_mitigated_pct=fvg_m15_bull_mitigated,
             fvg_m15_bull_price_pos=fvg_m15_bull_price_pos, fvg_m15_bull_date=fvg_m15_bull_date,
             fvg_m15_pip_factor=fvg_m15_pip_factor,
             fvg_m30_bear_top=fvg_m30_bear_top, fvg_m30_bear_bot=fvg_m30_bear_bot,
-            fvg_m30_bear_mitigated=fvg_m30_bear_mitigated, fvg_m30_bear_price_pos=fvg_m30_bear_price_pos,
+            fvg_m30_bear_mitigated_pct=fvg_m30_bear_mitigated, fvg_m30_bear_price_pos=fvg_m30_bear_price_pos,
             fvg_m30_bear_date=fvg_m30_bear_date, fvg_m30_bull_top=fvg_m30_bull_top,
-            fvg_m30_bull_bot=fvg_m30_bull_bot, fvg_m30_bull_mitigated=fvg_m30_bull_mitigated,
+            fvg_m30_bull_bot=fvg_m30_bull_bot, fvg_m30_bull_mitigated_pct=fvg_m30_bull_mitigated,
             fvg_m30_bull_price_pos=fvg_m30_bull_price_pos, fvg_m30_bull_date=fvg_m30_bull_date,
             fvg_m30_pip_factor=fvg_m30_pip_factor,
             # OB M5/M15/M30

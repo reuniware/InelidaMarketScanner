@@ -22,6 +22,7 @@ from datetime import datetime as _dt, timezone as _tz
 
 from src.config import (
     DB, MT5, OUT, SWEEP, ASIAN, resolve_watchlist, DEFAULT_WATCHLIST,
+    tz_label as _tz_lbl, tz_offset as _tz_off, DEFAULT_TZ_MODE,
 )
 from src.mt5_connector import MT5Connector
 from src.market_scanner import MarketScanner
@@ -1100,20 +1101,21 @@ def cmd_diamond(args):
         print("Aucune watchlist. Spécifie --symbols ou configure INELIDA_WATCHLIST.")
         return 1
 
-    scanner = DiamondScanner(symbols)
+    tz_mode = getattr(args, 'timezone', None) or DEFAULT_TZ_MODE
+    scanner = DiamondScanner(symbols, tz_mode=tz_mode)
     if not scanner.initialize():
         print(f"{RED}Connexion MT5 impossible pour Diamond Scanner.{RESET}")
         return 2
 
     try:
         results = scanner.scan_all()
-        _render_diamond_results(results, symbols, volume_only=getattr(args, 'volume_only', False))
+        _render_diamond_results(results, symbols, volume_only=getattr(args, 'volume_only', False), tz_mode=tz_mode)
 
         # ── Discord posting ────────────────────────────────────────────
         if getattr(args, 'discord', False):
             webhook_url = _load_discord_webhook()
             if webhook_url:
-                ok = _post_diamond_to_discord(webhook_url, results, symbols)
+                ok = _post_diamond_to_discord(webhook_url, results, symbols, tz_mode=tz_mode)
                 if ok:
                     print(f"\n{GREEN}📤 Resultats postes sur Discord.{RESET}")
                 else:
@@ -1151,7 +1153,8 @@ def cmd_track(args):
             print(f"{YELLOW}Aucun symbole. Specifie --symbols ou configure INELIDA_WATCHLIST.{RESET}")
             return 1
 
-        scanner = DiamondScanner(symbols)
+        tz_mode = getattr(args, 'timezone', None) or DEFAULT_TZ_MODE
+        scanner = DiamondScanner(symbols, tz_mode=tz_mode)
         if not scanner.initialize():
             print(f"{RED}Connexion MT5 impossible.{RESET}")
             return 2
@@ -1352,7 +1355,8 @@ def cmd_track(args):
             print(f"{YELLOW}Aucun symbole. Specifie --symbols.{RESET}")
             return 1
 
-        scanner = DiamondScanner(symbols)
+        tz_mode = getattr(args, 'timezone', None) or DEFAULT_TZ_MODE
+        scanner = DiamondScanner(symbols, tz_mode=tz_mode)
         if not scanner.initialize():
             print(f"{RED}Connexion MT5 impossible.{RESET}")
             return 2
@@ -1418,7 +1422,8 @@ def cmd_track(args):
             print(f"{YELLOW}Aucun symbole specifie.{RESET}")
             return 1
 
-        scanner = DiamondScanner(symbols)
+        tz_mode = getattr(args, 'timezone', None) or DEFAULT_TZ_MODE
+        scanner = DiamondScanner(symbols, tz_mode=tz_mode)
         if not scanner.initialize():
             print(f"{RED}Connexion MT5 impossible.{RESET}")
             return 2
@@ -1529,9 +1534,10 @@ def _fmt(v):
     return str(v)
 
 
-def _build_diamond_discord_embed(results, symbols_count: int) -> dict:
+def _build_diamond_discord_embed(results, symbols_count: int, tz_mode: str = "") -> dict:
     """Construit un embed Discord a partir des resultats du Diamond Scanner."""
-    now_str = _dt.now(_tz.utc).strftime("%Y-%m-%d %H:%M UTC")
+    _tz = tz_mode or DEFAULT_TZ_MODE
+    now_str = _dt.now(_tz.utc).strftime("%Y-%m-%d %H:%M") + f" {_tz_lbl(_tz)}"
 
     active = [r for r in results if r.bias != "FLAT" and r.quality != "WAIT"]
     n_strong = sum(1 for r in results if r.quality == "STRONG")
@@ -1626,9 +1632,9 @@ def _build_diamond_discord_embed(results, symbols_count: int) -> dict:
     }
 
 
-def _post_diamond_to_discord(webhook_url: str, results, symbols) -> bool:
+def _post_diamond_to_discord(webhook_url: str, results, symbols, tz_mode: str = "") -> bool:
     """Envoie le scan Diamond sur Discord."""
-    embed = _build_diamond_discord_embed(results, len(symbols))
+    embed = _build_diamond_discord_embed(results, len(symbols), tz_mode=tz_mode)
     payload = json.dumps({"embeds": [embed]}, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(
         webhook_url,
@@ -1647,14 +1653,15 @@ def _post_diamond_to_discord(webhook_url: str, results, symbols) -> bool:
         return False
 
 
-def _render_volume_only(results: list, scanned_symbols: list):
+def _render_volume_only(results: list, scanned_symbols: list, tz_mode: str = ""):
     """Mode --volume-only : affiche uniquement les HVN/LVN/SPIKE."""
+    _tz = tz_mode or DEFAULT_TZ_MODE
     now_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
     lines: list = []
     lines.append(f"{BOLD}{CYAN}{'='*60}{RESET}")
     lines.append(f"{BOLD}{CYAN}  📊 VOLUME ANALYSIS — HVN / LVN / Volume Spike{RESET}")
     lines.append(f"{BOLD}{CYAN}{'='*60}{RESET}")
-    lines.append(f"  {GRAY}UTC:{RESET} {now_str}  |  "
+    lines.append(f"  {GRAY}{_tz_lbl(_tz)}:{RESET} {now_str}  |  "
                  f"{GRAY}Symboles:{RESET} {len(scanned_symbols)}")
     lines.append("")
 
@@ -1718,12 +1725,13 @@ def _render_volume_only(results: list, scanned_symbols: list):
     print("\n".join(lines))
 
 
-def _render_diamond_results(results: list, scanned_symbols: list, volume_only: bool = False):
+def _render_diamond_results(results: list, scanned_symbols: list, volume_only: bool = False, tz_mode: str = ""):
     """Affichage complet du scan Diamond Analysis."""
+    _tz = tz_mode or DEFAULT_TZ_MODE
 
     # ── Mode volume-only : queue reduite avec seulement les HVN/LVN/SPIKE ──
     if volume_only:
-        _render_volume_only(results, scanned_symbols)
+        _render_volume_only(results, scanned_symbols, tz_mode=_tz)
         return
 
     lines: list = []
@@ -1731,7 +1739,7 @@ def _render_diamond_results(results: list, scanned_symbols: list, volume_only: b
     lines.append(f"{BOLD}{CYAN}{'='*100}{RESET}")
     lines.append(f"{BOLD}{CYAN}  💎 DIAMOND ANALYSIS — Scan Ichimoku Multi-TF + Memoire Institutionnelle (Etape 3b){RESET}")
     lines.append(f"{BOLD}{CYAN}{'='*100}{RESET}")
-    lines.append(f"  {GRAY}UTC:{RESET} {now_str}  |  "
+    lines.append(f"  {GRAY}{_tz_lbl(_tz)}:{RESET} {now_str}  |  "
                  f"{GRAY}Symboles scannes:{RESET} {len(scanned_symbols)}  |  "
                  f"{GRAY}Setups Diamond:{RESET} {len(results)}")
 
@@ -2092,7 +2100,8 @@ def _render_diamond_detail(r, lines: list):
     # FVG H1 (bearish gap — e.g. 18h-20h Paris)
     if r.fvg_h1_bear_top > 0 and r.fvg_h1_bear_bot > 0:
         gap_pips = abs(r.fvg_h1_bear_top - r.fvg_h1_bear_bot) * r.fvg_h1_bear_pip_factor
-        mit = "MITIGE" if r.fvg_h1_bear_mitigated else "NON MITIGE"
+        mit_pct = r.fvg_h1_bear_mitigated_pct
+        mit = f"MITIGE {mit_pct:.0f}%" if mit_pct > 0 else "NON MITIGE"
         pos_col = GREEN if r.fvg_h1_bear_price_pos == "ABOVE" else (RED if r.fvg_h1_bear_price_pos == "BELOW" else YELLOW)
         lines.append(
             f"    {RED}FVG H1 Bear {r.fvg_h1_bear_date}:{RESET} {_fmt_price(r.fvg_h1_bear_bot)}-{_fmt_price(r.fvg_h1_bear_top)} "
@@ -2100,7 +2109,8 @@ def _render_diamond_detail(r, lines: list):
         )
     if r.fvg_h1_bull_top > 0 and r.fvg_h1_bull_bot > 0:
         gap_pips = abs(r.fvg_h1_bull_top - r.fvg_h1_bull_bot) * r.fvg_h1_bull_pip_factor
-        mit = "MITIGE" if r.fvg_h1_bull_mitigated else "NON MITIGE"
+        mit_pct = r.fvg_h1_bull_mitigated_pct
+        mit = f"MITIGE {mit_pct:.0f}%" if mit_pct > 0 else "NON MITIGE"
         pos_col = GREEN if r.fvg_h1_bull_price_pos == "ABOVE" else (RED if r.fvg_h1_bull_price_pos == "BELOW" else YELLOW)
         lines.append(
             f"    {GREEN}FVG H1 Bull {r.fvg_h1_bull_date}:{RESET} {_fmt_price(r.fvg_h1_bull_bot)}-{_fmt_price(r.fvg_h1_bull_top)} "
@@ -2110,7 +2120,8 @@ def _render_diamond_detail(r, lines: list):
     # FVG H4
     if r.fvg_h4_bear_top > 0 and r.fvg_h4_bear_bot > 0:
         gap_pips = abs(r.fvg_h4_bear_top - r.fvg_h4_bear_bot) * r.fvg_h4_bear_pip_factor
-        mit = "MITIGE" if r.fvg_h4_bear_mitigated else "NON MITIGE"
+        mit_pct = r.fvg_h4_bear_mitigated_pct
+        mit = f"MITIGE {mit_pct:.0f}%" if mit_pct > 0 else "NON MITIGE"
         pos_col = GREEN if r.fvg_h4_bear_price_pos == "ABOVE" else (RED if r.fvg_h4_bear_price_pos == "BELOW" else YELLOW)
         lines.append(
             f"    {RED}FVG H4 Bear {r.fvg_h4_bear_date}:{RESET} {_fmt_price(r.fvg_h4_bear_bot)}-{_fmt_price(r.fvg_h4_bear_top)} "
@@ -2118,7 +2129,8 @@ def _render_diamond_detail(r, lines: list):
         )
     if r.fvg_h4_bull_top > 0 and r.fvg_h4_bull_bot > 0:
         gap_pips = abs(r.fvg_h4_bull_top - r.fvg_h4_bull_bot) * r.fvg_h4_bull_pip_factor
-        mit = "MITIGE" if r.fvg_h4_bull_mitigated else "NON MITIGE"
+        mit_pct = r.fvg_h4_bull_mitigated_pct
+        mit = f"MITIGE {mit_pct:.0f}%" if mit_pct > 0 else "NON MITIGE"
         pos_col = GREEN if r.fvg_h4_bull_price_pos == "ABOVE" else (RED if r.fvg_h4_bull_price_pos == "BELOW" else YELLOW)
         lines.append(
             f"    {GREEN}FVG H4 Bull {r.fvg_h4_bull_date}:{RESET} {_fmt_price(r.fvg_h4_bull_bot)}-{_fmt_price(r.fvg_h4_bull_top)} "
@@ -2128,7 +2140,8 @@ def _render_diamond_detail(r, lines: list):
     # FVG D1
     if r.fvg_d1_bear_top > 0 and r.fvg_d1_bear_bot > 0:
         gap_pips = abs(r.fvg_d1_bear_top - r.fvg_d1_bear_bot) * r.fvg_d1_bear_pip_factor
-        mit = "MITIGE" if r.fvg_d1_bear_mitigated else "NON MITIGE"
+        mit_pct = r.fvg_d1_bear_mitigated_pct
+        mit = f"MITIGE {mit_pct:.0f}%" if mit_pct > 0 else "NON MITIGE"
         pos_col = GREEN if r.fvg_d1_bear_price_pos == "ABOVE" else (RED if r.fvg_d1_bear_price_pos == "BELOW" else YELLOW)
         lines.append(
             f"    {RED}FVG D1 Bear {r.fvg_d1_bear_date}:{RESET} {_fmt_price(r.fvg_d1_bear_bot)}-{_fmt_price(r.fvg_d1_bear_top)} "
@@ -2136,7 +2149,8 @@ def _render_diamond_detail(r, lines: list):
         )
     if r.fvg_d1_bull_top > 0 and r.fvg_d1_bull_bot > 0:
         gap_pips = abs(r.fvg_d1_bull_top - r.fvg_d1_bull_bot) * r.fvg_d1_bull_pip_factor
-        mit = "MITIGE" if r.fvg_d1_bull_mitigated else "NON MITIGE"
+        mit_pct = r.fvg_d1_bull_mitigated_pct
+        mit = f"MITIGE {mit_pct:.0f}%" if mit_pct > 0 else "NON MITIGE"
         pos_col = GREEN if r.fvg_d1_bull_price_pos == "ABOVE" else (RED if r.fvg_d1_bull_price_pos == "BELOW" else YELLOW)
         lines.append(
             f"    {GREEN}FVG D1 Bull {r.fvg_d1_bull_date}:{RESET} {_fmt_price(r.fvg_d1_bull_bot)}-{_fmt_price(r.fvg_d1_bull_top)} "
@@ -2149,12 +2163,12 @@ def _render_diamond_detail(r, lines: list):
         bear_or_bull = "bear" if color == RED else "bull"
         top = getattr(r, f"fvg_{side_prefix}_{bear_or_bull}_top", 0.0)
         bot = getattr(r, f"fvg_{side_prefix}_{bear_or_bull}_bot", 0.0)
-        mit = getattr(r, f"fvg_{side_prefix}_{bear_or_bull}_mitigated", False)
+        mit_pct = getattr(r, f"fvg_{side_prefix}_{bear_or_bull}_mitigated_pct", 0.0)
         pos = getattr(r, f"fvg_{side_prefix}_{bear_or_bull}_price_pos", "N/A")
         date = getattr(r, f"fvg_{side_prefix}_{bear_or_bull}_date", "")
         if top > 0 and bot > 0:
             gap_pips = abs(top - bot) * (getattr(r, f"fvg_{side_prefix}_pip_factor", 10000.0))
-            mit_str = "MITIGE" if mit else "NON MITIGE"
+            mit_str = f"MITIGE {mit_pct:.0f}%" if mit_pct > 0 else "NON MITIGE"
             pos_col = GREEN if pos == "ABOVE" else (RED if pos == "BELOW" else YELLOW)
             label = f"FVG {tf_lbl} {'Bear' if color == RED else 'Bull'} {date}"
             lines.append(
@@ -2263,11 +2277,14 @@ def _render_diamond_detail(r, lines: list):
 
 # ─── Parser ──────────────────────────────────────────────────────────────────
 def _add_common(subparser: argparse.ArgumentParser) -> None:
-    """Attache --verbose et --symbols à un subparser (pattern parents=[common])."""
+    """Attache --verbose, --symbols et --timezone à un subparser (pattern parents=[common])."""
     subparser.add_argument("-v", "--verbose", action="store_true",
                            help="Active le logging DEBUG.")
     subparser.add_argument("--symbols", nargs="*", default=None,
                            help="Liste de symboles (surcharge la watchlist / scan manuel).")
+    subparser.add_argument("--timezone", default=None,
+                           choices=["UTC", "FTMO", "PARIS"],
+                           help="Fuseau horaire pour les timestamps (defaut: FTMO)")
 
 
 def build_parser() -> argparse.ArgumentParser:

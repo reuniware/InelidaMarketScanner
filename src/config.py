@@ -4,7 +4,71 @@ Configuration centralisee pour le scanner de marche temps reel InelidaMarketScan
 
 import os
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
+
+
+# ─── Timezone Config ───────────────────────────────────────────────────────────
+# Mode: "UTC", "FTMO" (MT5 server time, GMT+3/+2), "PARIS" (CEST/CET)
+# Defini via --timezone CLI, ou variable d'env TIMEZONE_MODE, ou defaut FTMO
+DEFAULT_TZ_MODE = "FTMO"
+TZ_LABELS = {"UTC": "UTC", "FTMO": "FTMO", "PARIS": "Paris"}
+
+
+def _dst_eu_summer(dt: Optional[datetime] = None) -> bool:
+    """Detecte si l'heure d'ete europeenne est en vigueur.
+
+    DST Europe : dernier dimanche de Mars → dernier dimanche d'Octobre.
+    """
+    if dt is None:
+        dt = datetime.now()
+    year = dt.year
+    # Dernier dimanche de Mars
+    mar_last = datetime(year, 3, 31).date()
+    mar_dst = mar_last - timedelta(days=(mar_last.weekday() - 6) % 7)
+    # Dernier dimanche d'Octobre
+    oct_last = datetime(year, 10, 31).date()
+    oct_dst = oct_last - timedelta(days=(oct_last.weekday() - 6) % 7)
+    return mar_dst <= dt.date() < oct_dst
+
+
+def tz_offset(mode: str = "") -> int:
+    """Retourne le decalage en heures par rapport a UTC pour le mode donne.
+
+    Args:
+        mode: "UTC" (0), "FTMO" (serveur MT5, +3 ete/+2 hiver),
+              "PARIS" (CEST +2 / CET +1). Chaine vide = defaut DEFAULT_TZ_MODE.
+    """
+    m = (mode or DEFAULT_TZ_MODE).upper()
+    dst = _dst_eu_summer()
+    if m == "UTC":
+        return 0
+    if m == "PARIS":
+        return 2 if dst else 1
+    if m == "FTMO":
+        return 3 if dst else 2       # Serveur FTMO = EEST/EET
+    return 0
+
+
+def tz_label(mode: str = "") -> str:
+    """Retourne le label lisible (ex: "FTMO", "Paris", "UTC")."""
+    m = (mode or DEFAULT_TZ_MODE).upper()
+    return TZ_LABELS.get(m, "UTC")
+
+
+def format_epoch(epoch: float, fmt: str = "%d/%m %H:%M", mode: str = "") -> str:
+    """Formate un timestamp epoch dans la timezone configuree avec le label.
+
+    Exemples:
+        format_epoch(ts, "%d/%m %Hh", "FTMO") -> "17/07 14h FTMO"
+        format_epoch(ts, "%d/%m %H:%M", "PARIS") -> "17/07 13:30 Paris"
+        format_epoch(ts, "%d/%m", "FTMO") -> "17/07 FTMO"   (label meme sans heure)
+    """
+    m = (mode or DEFAULT_TZ_MODE).upper()
+    off = tz_offset(m)
+    lbl = tz_label(m)
+    dt = datetime.fromtimestamp(epoch, timezone.utc) + timedelta(hours=off)
+    return f"{dt.strftime(fmt)} {lbl}"
 
 
 def load_dotenv(env_path: Optional[str] = None) -> None:
