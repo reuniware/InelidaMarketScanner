@@ -895,3 +895,104 @@ python main.py diamond --symbols EURUSD --timezone PARIS
 **Commits :** `35d2009` (feature), `5812b14` (FTMO → BROKER)
 
 ---
+
+## 17/07/2026 — 🔬 Backtest M1 des 5 trades détectés le 16/07
+
+### Méthodologie
+
+- **Données :** Barres M1 MT5 (`copy_rates_range`) du 16/07 11:00 UTC au 17/07 23:59 UTC
+- **Entry :** Open de la première barre M1 après 12:00 UTC (simule entrée au marché)
+- **Tracking :** Chaque barre M1 testée — SL vérifié sur le low (BULL) ou high (BEAR)
+- **MFE :** Maximum Favorable Excursion (meilleur prix atteint avant SL/TP)
+- **MAE :** Maximum Adverse Excursion (pire prix atteint)
+- **Script :** `backtest_trades_detected.py`
+
+### Résultats bruts
+
+| # | Symbole | Qualité | Score | Entry | SL | TP | Résultat | P&L | MFE | MAE | Durée |
+|:---:|:---|---:|:---:|---:|---:|---:|---|---:|---:|---:|---:|
+| 1 | **US30.cash** | STRONG | 19/19 | 52 660 | 52 426 | 53 495 | 🔴 SL @ 22:10 | **−234 pts** | +0.0 | −240 | 10h11 |
+| 2 | **US500.cash** | WAIT | 15/17 | 7 567 | 7 538 | 7 597 | 🔴 SL @ 14:49 | **−29 pts** | +0.0 | −29 | 2h50 |
+| 3 | **GBPUSD** | GOOD | 15/19 | 1.35208 | 1.3450 | 1.3628 | 🟡 OPEN | **−62.9 p** | +0.3 p | −64 p | 22h30 |
+| 4 | **USDJPY** | GOOD | 15/19 | 162.142 | 161.88 | 162.90 | 🟡 OPEN | **+14.5 p** | +40.0 p | −3.4 p | 22h32 |
+| 5 | **AUDUSD** | GOOD | 15/19 | 0.69986 | 0.6967 | 0.7091 | 🟡 OPEN | **−11.9 p** | +13.8 p | −22.4 p | 22h33 |
+
+### Résultats 17/07 — Top 3 WAIT (scan 03:47 UTC)
+
+| Symbole | Biais Scanner | Changement | Range | Réalité |
+|:---|---:|---:|---:|:---|
+| GBPUSD | BULL | **−12.7 p** | 22.5 p | 📉 Baissier |
+| GBPJPY | BULL | **−18.2 p** | 38.5 p | 📉 Baissier |
+| EURJPY | BULL | **−7.5 p** | 27.0 p | 📉 Baissier |
+
+### Verdict
+
+#### ❌ Pertes confirmées
+
+| Trade | Perte | Détail |
+|:---|---:|:---|
+| **US30** STRONG 19/19 | −234 pts | MFE = **0.0** — jamais monté d'un seul point. Score parfait, trade désastreux. |
+| **US500** WAIT | −29 pts | SL à 3.2 pts du prix → tué en 2h50. Le flag WAIT était le bon call. |
+
+#### ⚠️ En danger
+
+| Trade | Perte latente | Distance SL |
+|:---|---:|:---|
+| **GBPUSD** | −62.9 p | **6 pips** du SL — quasi condamné. MFE +0.3p = n'a jamais respiré. |
+| **AUDUSD** | −11.9 p | 20 pips du SL — respire encore mais MAE −22.4p. |
+
+#### ✅ Seul gagnant
+
+| Trade | Gain | Détail |
+|:---|---:|:---|
+| **USDJPY** | **+14.5 p** | MFE +40 pips = 40% du chemin vers TP. Seul trade avec une dynamique réelle. |
+
+### 🎯 Analyse : pourquoi USDJPY est le seul gagnant ?
+
+1. **MFE +40 pips** — le prix a parcouru 40% du range SL→TP avant de consolider
+2. **MAE −3.4 pips** — drawdown quasi nul, jamais menacé
+3. **Structure D1 claire** — TK D1 BULL, KJ D1 support lointain (161.19)
+4. **Double sweep Asian** détecté à 08:55 et 10:05 UTC — liquidité nettoyée
+5. **FVG H1 Bear à 162.22** agissait comme aimant (TP smart)
+6. **Contrairement aux 4 autres :** le biais BULL était ancré dans une tendance D1
+
+### 🎯 Analyse : pourquoi les 4 autres ont échoué ?
+
+| Trade | Cause racine |
+|:---|---|
+| **US30** | MFE 0.0 : entrée pile au plus haut du jour. Le score 19/19 n'a servi à rien. |
+| **US500** | SL à 3.2 pts = 5% du range. Trop serré, tué en 2h50. |
+| **GBPUSD** | MFE +0.3p : le prix n'a jamais décollé. Compression 14p = range mort. |
+| **AUDUSD** | Kumo D1 ROUGE = vent contraire structurel. MFE +13.8p insuffisant. |
+
+### 📊 Statistiques globales
+
+| Métrique | Valeur |
+|:---|---:|
+| Trades résolus (SL touché) | 2/5 (40%) |
+| Trades encore ouverts | 3/5 (60%) |
+| Win rate (résolus) | **0%** (0W/2L) |
+| Win rate (si fermeture maintenant) | **20%** (1W/4L) |
+| MFE moyen (forex seulement) | ~5 pips (quasi nul hors USDJPY : 0.3 + 13.8 + 40 = 18p → sans USDJPY = ~7p) |
+| MAE (drawdown max) | GBPUSD −64p, US30 −240 pts, US500 −29 pts — significatif sur tous |
+| Biais BULL correct ? | **1/8** (12.5%) — tous les trades BULL ont baissé sauf USDJPY |
+
+### 🔥 5 Leçons critiques
+
+| # | Leçon | Donnée |
+|:---:|:---|:---|
+| 1 | **Score ≠ Qualité** | US30 19/19 = −234 pts. Le scoring récompense la conformité aux critères, pas la probabilité de succès. |
+| 2 | **MFE 0.0 = signal d'alarme absolu** | 2 trades n'ont jamais eu un seul tick vert. Entrée au pire moment. |
+| 3 | **Biais BULL généralisé = faux** | 7/8 trades déclarés BULL, 7 ont baissé. Le scanner a un biais haussier systémique. |
+| 4 | **FVG court terme > Ichimoku long terme** | Les 3 trades du 17/07 avaient des FVG M5/M15/M30 baissiers non mitigés → tous ont baissé, contre le biais Ichimoku BULL. |
+| 5 | **MFE doit être > 20% du range dans les 10 premières barres** | Si le prix ne décolle pas rapidement, le trade est probablement mort. USDJPY avait MFE +40p rapidement. |
+
+### 💡 Recommandations pour le scoring
+
+1. **Pénalité MFE :** Si le trade n'a jamais eu MFE > 10% du range → dégrader STRONG→GOOD, GOOD→WAIT
+2. **Filtre anti-biais généralisé :** Si > 60% des symboles ont le même biais → alerter "biais systémique"
+3. **Check FVG court terme vs Ichimoku :** Si FVG M5/M15/M30 contredisent le biais H4/D1 → WAIT automatique
+4. **SL minimum absolu :** Jamais de SL < 15% du range SL→TP, même si le niveau technique le justifie
+5. **MFE tracker temps réel :** Ajouter un compteur de barres post-entry — si pas de MFE > 5% après 30 barres → warning
+
+---
