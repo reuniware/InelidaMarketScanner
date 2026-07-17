@@ -18,12 +18,24 @@ import sys
 import time
 import urllib.request
 import urllib.error
-from datetime import datetime as _dt, timezone as _tz
+from datetime import datetime as _dt, timedelta as _td, timezone as _tz
 
 from src.config import (
     DB, MT5, OUT, SWEEP, ASIAN, resolve_watchlist, DEFAULT_WATCHLIST,
     tz_label as _tz_lbl, tz_offset as _tz_off, DEFAULT_TZ_MODE,
 )
+
+
+def _now_local(tz_mode: str, fmt: str = "%Y-%m-%d %H:%M:%S") -> str:
+    """Retourne l'heure actuelle dans la timezone configuree.
+    
+    Args:
+        tz_mode: "BROKER", "UTC", "PARIS"
+        fmt: Format strftime (defaut: "%Y-%m-%d %H:%M:%S")
+    """
+    off = _tz_off(tz_mode)
+    now = _dt.now(_tz.utc) + _td(hours=off)
+    return now.strftime(fmt)
 from src.mt5_connector import MT5Connector
 from src.market_scanner import MarketScanner
 from src.display import (
@@ -1537,7 +1549,7 @@ def _fmt(v):
 def _build_diamond_discord_embed(results, symbols_count: int, tz_mode: str = "") -> dict:
     """Construit un embed Discord a partir des resultats du Diamond Scanner."""
     _tz = tz_mode or DEFAULT_TZ_MODE
-    now_str = _dt.now(_tz.utc).strftime("%Y-%m-%d %H:%M") + f" {_tz_lbl(_tz)}"
+    now_str = f"{_now_local(_tz, '%Y-%m-%d %H:%M')} {_tz_lbl(_tz)}"
 
     active = [r for r in results if r.bias != "FLAT" and r.quality != "WAIT"]
     n_strong = sum(1 for r in results if r.quality == "STRONG")
@@ -1656,7 +1668,7 @@ def _post_diamond_to_discord(webhook_url: str, results, symbols, tz_mode: str = 
 def _render_volume_only(results: list, scanned_symbols: list, tz_mode: str = ""):
     """Mode --volume-only : affiche uniquement les HVN/LVN/SPIKE."""
     _tz = tz_mode or DEFAULT_TZ_MODE
-    now_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+    now_str = _now_local(_tz)
     lines: list = []
     lines.append(f"{BOLD}{CYAN}{'='*60}{RESET}")
     lines.append(f"{BOLD}{CYAN}  📊 VOLUME ANALYSIS — HVN / LVN / Volume Spike{RESET}")
@@ -1735,7 +1747,7 @@ def _render_diamond_results(results: list, scanned_symbols: list, volume_only: b
         return
 
     lines: list = []
-    now_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+    now_str = _now_local(_tz)
     lines.append(f"{BOLD}{CYAN}{'='*100}{RESET}")
     lines.append(f"{BOLD}{CYAN}  💎 DIAMOND ANALYSIS — Scan Ichimoku Multi-TF + Memoire Institutionnelle (Etape 3b){RESET}")
     lines.append(f"{BOLD}{CYAN}{'='*100}{RESET}")
