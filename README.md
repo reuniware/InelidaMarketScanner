@@ -120,9 +120,9 @@ GEMINI_API_KEY=ta_cle_ici
 | Fonctionnalité | Description |
 |---------------|-------------|
 | 🔍 **Scan multi-actifs** | Forex, Métaux, Indices, Crypto — tous les symboles disponibles chez le broker |
-| 🌏 **Session Asiatique** | Calcul du range AH/AL (00-08 UTC) + sweeps post-Asian + extensions Fibonacci ±1.618 à ±4.0 |
+| 🌏 **Session Asiatique** | Calcul du range AH/AL (00-08 UTC) + sweeps post-Asian + extensions Fibonacci ±1.618 à ±4.0 + timestamps de sweep |
 | 🔷 **BSL/SSL Sweeps** | Détection Williams fractals (N=2) avec sweep detection sur M15 à H4 |
-| 💎 **Diamond Analysis** | Ichimoku multi-TF (H1/H4/D1/W1/MN) + mémoire institutionnelle (Tenkan/Kijun flat history) + **scoring 25 critères** (incl. FVG H1/H4/D1, AH/AL sweeps, TK/KJ barriers) + **Smart TP** (niveaux réels: Kijun, FVG, SSB, nuages) + **SL proximity safety net** (dégradation STRONG→WAIT si SL < 10% du range) + **--discord** flag pour publication automatique |
+| 💎 **Diamond Analysis** | Ichimoku multi-TF (M5/M15/M30/H1/H4/D1/W1/MN) + mémoire institutionnelle (Tenkan/Kijun flat history) + **scoring 109 critères** (FVG 6 TFs, OB 6 TFs, MSS/BOS 6 TFs, Volume HVN/LVN 6 TFs, Breaker Blocks 6 TFs, AH/AL sweeps, Reversal Pipeline) + **Smart TP** (Kijun, FVG, SSB, nuages, Ext Fibonacci) + **SL proximity safety net** + **--discord** flag + **P&L Tracker** intégré |
 | 📈 **Backtest Asian** | Backtest 30 jours BSL/SSL asiatique → sweep London → continuation vers l'autre liquidité |
 | 🏛️ **Niveaux Daily/Weekly** | PDH/PDL / PWH/PWL avec sweeps, breaches et direction cible |
 | 🎯 **ICT FVG** | Stratégie complète en 5 étapes : DOL → Raid → FVG → Retracement → SL/TP |
@@ -131,9 +131,12 @@ GEMINI_API_KEY=ta_cle_ici
 | 📊 **Rapports PDF** | Générateur de rapports horodatés avec tous les scans |
 | 🎨 **Dashboard Streamlit** | Interface web pour visualiser et filtrer les données |
 | 🗄️ **Base SQLite** | Enregistrement automatique des sessions, sweeps et niveaux |
-| 📊 **P&L Tracker** | Suivi automatisé des setups Diamond : save → update → rapport win rate / P&L |
+| 📊 **P&L Tracker** | Suivi automatisé des setups Diamond : save → update → rapport win rate / P&L + watchlist niveaux LH/LL |
+| ⏱️ **M5/M15/M30 Extension** | Détection FVG, OB, MSS/BOS, CHoCH, Volume HVN/LVN et Breaker Blocks sur M5/M15/M30 (6 TFs simultanés, 36+ critères de scoring) |
+| 🔄 **Reversal Pipeline** | Détection sweep → retournement → confirmation (FVG post-sweep, retest LH/LL) avec compteur de barres pour entrée tardive |
+| 🔗 **Sweep Watchlist** | Sauvegarde des niveaux LH/LL London avec obstacles Ichimoku inter-TF pour vérification de sweep en fin de session NY |
 | 🐛 **Intra-Asian Sweep Fix** | Détection des sweeps AH/AL pendant la session asiatique (avant 08:00 UTC) — corrigé 16/07 |
-| 💎 **Asian Sweep Scoring** | Les sweeps AH/AL sont maintenant des critères de scoring dans le Diamond Scanner (max_score: 25) avec affichage console + Discord |
+| 💎 **Asian Sweep Scoring** | Les sweeps AH/AL sont des critères de scoring dans le Diamond Scanner (max_score: 109) avec affichage console + Discord |
 
 ---
 
