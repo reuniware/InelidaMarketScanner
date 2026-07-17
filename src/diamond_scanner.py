@@ -29,6 +29,7 @@ from typing import List, Optional, Tuple
 import MetaTrader5 as mt5
 
 from src.config import tz_offset as _tz_off, tz_label as _tz_lbl, DEFAULT_TZ_MODE
+from src.news_calendar import get_news_risk
 
 logger = logging.getLogger("DiamondScanner")
 
@@ -2790,6 +2791,14 @@ class DiamondScanner:
         compression_pips, compression_zone = self._detect_compression(r, sym)
         r.compression_pips = compression_pips
         r.compression_zone = compression_zone
+
+        # ── News Risk Filter ──
+        # Si >=2 evenements macro majeurs (Trump, FOMC, CPI, NFP, UoM...)
+        # la correlation DXY↔Forex casse → setups directionnels non fiables.
+        # Base sur l'analyse du 17/07 (50% d'heures ANORMALES).
+        _ncount, _nwarn, _nhigh = get_news_risk()
+        if _nhigh:
+            r.warnings.append(_nwarn)
 
         return r
 
