@@ -16,6 +16,7 @@ import logging
 import os
 import sys
 from datetime import datetime, timezone
+from typing import Any, Dict, Optional
 
 import joblib
 import numpy as np
@@ -61,7 +62,29 @@ def load_data(csv_path: str):
 
     if "outcome" not in df.columns:
         logger.error("Colonne 'outcome' manquante dans le CSV.")
-        return None, None
+        return None, None, None
+
+    # Filtrer les lignes sans outcome (NaN, vide, ou NULL)
+    # Important: le mode scan génère des outcomes vides (à remplir manuellement)
+    before = len(df)
+    df = df.dropna(subset=["outcome"])
+    # Supprimer les lignes où outcome est une string vide
+    df = df[df["outcome"].astype(str).str.strip() != ""]
+    # Convertir en numérique et forcer 0/1
+    df["outcome"] = pd.to_numeric(df["outcome"], errors="coerce")
+    df = df.dropna(subset=["outcome"])
+    # Garder uniquement 0.0 ou 1.0
+    df = df[df["outcome"].isin([0.0, 1.0])]
+
+    after = len(df)
+    n_filtered = before - after
+    if n_filtered > 0:
+        logger.warning("%d ligne(s) sans outcome valide filtrée(s) (sur %d total)", n_filtered, before)
+
+    if df.empty:
+        logger.error("Aucune ligne avec outcome valide (0 ou 1) dans le CSV.")
+        logger.info("Pour le mode scan: remplis la colonne 'outcome' manuellement avant d'entraîner.")
+        return None, None, None
 
     y = df.pop("outcome").values.astype(int)
     feature_names = list(df.columns)
@@ -74,8 +97,21 @@ def load_data(csv_path: str):
     return X, y, feature_names
 
 
-def train(X, y, feature_names, test_size: float = 0.2):
-    """Entraîne le modèle et retourne les métriques."""
+def train(X, y, feature_names, test_size: float = 0.2,
+          params_override: Optional[Dict[str, Any]] = None):
+    """Entraîne le modèle et retourne les métriques.
+
+    Args:
+        X: Matrice de features.
+        y: Vecteur des outcomes (0/1).
+        feature_names: Noms des colonnes de features.
+        test_size: Fraction de l'ensemble de test.
+        params_override: Dictionnaire optionnel pour surcharger les hyperparamètres
+                         DEFAULT_PARAMS. Évite de muter le module global.
+
+    Returns:
+        (model, feature_names, metrics)
+    """
     if len(X) < 10:
         logger.warning("Seulement %d échantillons — entraînement peu fiable.", len(X))
 
@@ -87,8 +123,13 @@ def train(X, y, feature_names, test_size: float = 0.2):
     # Poids de classe pour compenser le déséquilibre
     scale_pos_weight = (len(y_train) - sum(y_train)) / max(sum(y_train), 1)
 
+    # Fusionner les params par défaut avec les overrides (sans muter le module)
+    merged_params = {**DEFAULT_PARAMS, "scale_pos_weight": scale_pos_weight}
+    if params_override:
+        merged_params.update(params_override)
+
     model = xgb.XGBClassifier(
-        **{**DEFAULT_PARAMS, "scale_pos_weight": scale_pos_weight},
+        **merged_params,
         early_stopping_rounds=20,
     )
 

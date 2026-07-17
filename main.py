@@ -1795,6 +1795,56 @@ def _render_diamond_results(results: list, scanned_symbols: list, volume_only: b
     lines.append(header)
     lines.append(f"{GRAY}{'─'*120}{RESET}")
 
+    # ── Helpers pour le tableau (definis une seule fois en dehors de la boucle) ──
+    def _kc(val):
+        if val == "ABOVE":
+            return f"{GREEN}ABOVE{RESET}"
+        elif val == "BELOW":
+            return f"{RED}BELOW{RESET}"
+        return f"{YELLOW}INSIDE{RESET}"
+
+    def _tkc(val):
+        if val == "BULL":
+            return f"{GREEN}BULL{RESET}"
+        if val == "BEAR":
+            return f"{RED}BEAR{RESET}"
+        return f"{GRAY}N/A{RESET}"
+
+    def _ff(val):
+        if val >= 8:
+            return f"{GREEN}{val:>3}b{RESET}"
+        elif val >= 4:
+            return f"{YELLOW}{val:>3}b{RESET}"
+        elif val > 0:
+            return f"{DIM}{val:>3}b{RESET}"
+        return f"{GRAY}  0{RESET}"
+
+    def _london_swp(r_lo) -> str:
+        """Indicateur de sweep London (LH/LL) pour le tableau principal."""
+        if r_lo.london_high <= 0 or r_lo.london_low <= 0:
+            return f"{GRAY}--{RESET}"
+        if r_lo.london_high_swept and r_lo.london_low_swept:
+            return f"{YELLOW}H+L{RESET}"
+        if r_lo.london_high_swept:
+            return f"{RED}LH{RESET}"
+        if r_lo.london_low_swept:
+            return f"{GREEN}LL{RESET}"
+        return f"{GRAY}--{RESET}"
+
+    def _ml_pct(r_ml) -> str:
+        """Probabilite ML de trade gagnant avec couleur."""
+        pct = getattr(r_ml, 'ml_win_pct', None)
+        if pct is None:
+            return f"{GRAY}  N/A{RESET}"
+        pct_val = float(pct) * 100
+        if pct_val >= 60:
+            return f"{GREEN}{pct_val:5.0f}%{RESET}"
+        elif pct_val >= 50:
+            return f"{YELLOW}{pct_val:5.0f}%{RESET}"
+        elif pct_val >= 40:
+            return f"{DIM}{pct_val:5.0f}%{RESET}"
+        return f"{RED}{pct_val:5.0f}%{RESET}"
+
     for r in results:
         # Score color (relative to max_score)
         score_pct = r.score / r.max_score if r.max_score > 0 else 0
@@ -1822,57 +1872,6 @@ def _render_diamond_results(results: list, scanned_symbols: list, volume_only: b
             qual_col = f"{YELLOW}GOOD{RESET}"
         else:
             qual_col = f"{DIM}WAIT{RESET}"
-
-        # Kumo colors
-        def _kc(val):
-            if val == "ABOVE":
-                return f"{GREEN}ABOVE{RESET}"
-            elif val == "BELOW":
-                return f"{RED}BELOW{RESET}"
-            return f"{YELLOW}INSIDE{RESET}"
-
-        # T/K cross colors
-        def _tkc(val):
-            if val == "BULL":
-                return f"{GREEN}BULL{RESET}"
-            if val == "BEAR":
-                return f"{RED}BEAR{RESET}"
-            return f"{GRAY}N/A{RESET}"
-
-        def _ff(val):
-            if val >= 8:
-                return f"{GREEN}{val:>3}b{RESET}"
-            elif val >= 4:
-                return f"{YELLOW}{val:>3}b{RESET}"
-            elif val > 0:
-                return f"{DIM}{val:>3}b{RESET}"
-            return f"{GRAY}  0{RESET}"
-
-        def _london_swp(r_lo) -> str:
-            """Indicateur de sweep London (LH/LL) pour le tableau principal."""
-            if r_lo.london_high <= 0 or r_lo.london_low <= 0:
-                return f"{GRAY}--{RESET}"
-            if r_lo.london_high_swept and r_lo.london_low_swept:
-                return f"{YELLOW}H+L{RESET}"
-            if r_lo.london_high_swept:
-                return f"{RED}LH{RESET}"
-            if r_lo.london_low_swept:
-                return f"{GREEN}LL{RESET}"
-            return f"{GRAY}--{RESET}"
-
-        def _ml_pct(r_ml) -> str:
-            """Probabilite ML de trade gagnant avec couleur."""
-            pct = getattr(r_ml, 'ml_win_pct', None)
-            if pct is None:
-                return f"{GRAY}  N/A{RESET}"
-            pct_val = float(pct) * 100
-            if pct_val >= 60:
-                return f"{GREEN}{pct_val:5.0f}%{RESET}"
-            elif pct_val >= 50:
-                return f"{YELLOW}{pct_val:5.0f}%{RESET}"
-            elif pct_val >= 40:
-                return f"{DIM}{pct_val:5.0f}%{RESET}"
-            return f"{RED}{pct_val:5.0f}%{RESET}"
 
         lines.append(
             f"{MAGENTA}{r.symbol:<10}{RESET} "

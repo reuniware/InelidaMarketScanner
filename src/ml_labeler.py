@@ -383,14 +383,14 @@ def scan_for_features(symbols: List[str], tz_mode: str = "BROKER") -> List[Dict[
 
     labeled: List[Dict[str, float]] = []
     for r in results:
-        if r.bias == "FLAT" or r.quality == "WAIT":
-            continue  # skip les setups sans direction
-
+        # En mode scan, on garde TOUS les symboles, même WAIT/FLAT.
+        # Le but est de collecter un maximum de data points pour le dataset ML.
+        # L'utilisateur remplira manuellement la colonne 'outcome' plus tard.
         feats = extract_full_features(r)
-        feats["outcome"] = ""  # placeholder: à remplir manuellement (string vide = NaN pour pandas)
         labeled.append(feats)
 
-    logger.info("Scan: %d setups extraits (features seulement, outcome à remplir)", len(labeled))
+    logger.info("Scan: %d setups extraits sur %d symboles (features seulement, outcome à remplir)",
+                len(labeled), len(results))
     return labeled
 
 
