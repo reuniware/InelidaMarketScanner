@@ -1189,6 +1189,7 @@ class DiamondScanner:
         h1_data: list, asian_high: float, asian_low: float,
         ah_swept: bool, al_swept: bool, ah_at: float, al_at: float,
         lh_swept: bool, ll_swept: bool, lh_at: float, ll_at: float,
+        london_high: float, london_low: float,
         session_date: str,
         h1_h: list, h1_l: list, h1_c: list, h1_t: list,
         h4_h: list, h4_l: list, h4_c: list, h4_t: list,
@@ -1312,20 +1313,18 @@ class DiamondScanner:
             bar_date = dt.strftime("%Y-%m-%d")
             if bar_date != session_date:
                 continue
-            bar_high, bar_low, bar_close = bar[1], bar[2], bar[3]
-            if bar_ts := bar[0] <= last_sweep_ts:
+            bar_high, bar_low, _ = bar[1], bar[2], bar[3]
+            if bar[0] <= last_sweep_ts:
                 continue
             for _, label in sweep_timestamps:
-                if label == "AH" and asian_high > 0:
-                    # Retest : barre revient dans les 5 pips du niveau sweepé
-                    dist_h = abs(self._pips(symbol, bar_high, asian_high))
-                    dist_l = abs(self._pips(symbol, bar_low, asian_high))
-                    if min(dist_h, dist_l) < 5:
-                        retest_sweep_level = True
-                        retest_sweep_pips = min(dist_h, dist_l)
-                elif label == "AL" and asian_low > 0:
-                    dist_h = abs(self._pips(symbol, bar_high, asian_low))
-                    dist_l = abs(self._pips(symbol, bar_low, asian_low))
+                level = 0.0
+                if label == "AH": level = asian_high
+                elif label == "AL": level = asian_low
+                elif label == "LH": level = london_high
+                elif label == "LL": level = london_low
+                if level > 0:
+                    dist_h = abs(self._pips(symbol, bar_high, level))
+                    dist_l = abs(self._pips(symbol, bar_low, level))
                     if min(dist_h, dist_l) < 5:
                         retest_sweep_level = True
                         retest_sweep_pips = min(dist_h, dist_l)
@@ -1846,6 +1845,7 @@ class DiamondScanner:
             h1_data=h1, asian_high=asian_high, asian_low=asian_low,
             ah_swept=ah_swept, al_swept=al_swept, ah_at=ah_at, al_at=al_at,
             lh_swept=lh_swept, ll_swept=ll_swept, lh_at=lh_at, ll_at=ll_at,
+            london_high=london_high, london_low=london_low,
             session_date=session_date,
             h1_h=h1_h, h1_l=h1_l, h1_c=h1_c, h1_t=h1_t,
             h4_h=h4_h, h4_l=h4_l, h4_c=h4_c, h4_t=h4_t,
@@ -1856,12 +1856,11 @@ class DiamondScanner:
             fvg4_top=fvg4_top, fvg4_bot=fvg4_bot, fvg4_date=fvg4_date,
             fvg4_bull_top=fvg4_bull_top, fvg4_bull_bot=fvg4_bull_bot, fvg4_bull_date=fvg4_bull_date,
         )
-        (
-            bars_since_sweep, reversal_h1, reversal_h4,
-            fvg_post_sweep, fvg_post_sweep_dir,
-            retest_sweep_level, retest_sweep_pips,
-            cho_post_sweep, reversal_chaine
-        ) = reversal
+        r = reversal
+        bars_since_sweep, reversal_h1, reversal_h4 = r[0], r[1], r[2]
+        fvg_post_sweep, fvg_post_sweep_dir = r[3], r[4]
+        retest_sweep_level, retest_sweep_pips = r[5], r[6]
+        cho_post_sweep, reversal_chaine = r[7], r[8]
 
         # ═══ Scoring (58 criteres max avec Reversal Pipeline + Breaker + vol + MSS + OB + TK4/TKd1/Kj4/KjD1 + Asian Sweep + M30 cross) ═══
         score = 0
