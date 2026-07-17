@@ -2143,8 +2143,27 @@ def _render_diamond_detail(r, lines: list):
             f"({gap_pips:.0f}p) [{mit}] [{pos_col}{r.fvg_d1_bull_price_pos}{RESET}]"
         )
 
-    # Order Blocks (H1/H4/D1)
-    for tf_lbl in ["H1", "H4", "D1"]:
+    # FVG M5/M15/M30
+    for tf_lbl, color, side_prefix in [("M5", RED, "m5"), ("M15", RED, "m15"), ("M30", RED, "m30"),
+                                         ("M5", GREEN, "m5"), ("M15", GREEN, "m15"), ("M30", GREEN, "m30")]:
+        bear_or_bull = "bear" if color == RED else "bull"
+        top = getattr(r, f"fvg_{side_prefix}_{bear_or_bull}_top", 0.0)
+        bot = getattr(r, f"fvg_{side_prefix}_{bear_or_bull}_bot", 0.0)
+        mit = getattr(r, f"fvg_{side_prefix}_{bear_or_bull}_mitigated", False)
+        pos = getattr(r, f"fvg_{side_prefix}_{bear_or_bull}_price_pos", "N/A")
+        date = getattr(r, f"fvg_{side_prefix}_{bear_or_bull}_date", "")
+        if top > 0 and bot > 0:
+            gap_pips = abs(top - bot) * (getattr(r, f"fvg_{side_prefix}_pip_factor", 10000.0))
+            mit_str = "MITIGE" if mit else "NON MITIGE"
+            pos_col = GREEN if pos == "ABOVE" else (RED if pos == "BELOW" else YELLOW)
+            label = f"FVG {tf_lbl} {'Bear' if color == RED else 'Bull'} {date}"
+            lines.append(
+                f"    {color}{label}:{RESET} {_fmt_price(bot)}-{_fmt_price(top)} "
+                f"({gap_pips:.0f}p) [{mit_str}] [{pos_col}{pos}{RESET}]"
+            )
+
+    # Order Blocks (H1/H4/D1 + M5/M15/M30)
+    for tf_lbl in ["M5", "M15", "M30", "H1", "H4", "D1"]:
         bear_lv = getattr(r, f"ob_{tf_lbl.lower()}_bear_level", 0.0)
         bear_pos = getattr(r, f"ob_{tf_lbl.lower()}_bear_pos", "N/A")
         bear_mit = getattr(r, f"ob_{tf_lbl.lower()}_bear_mitigated", False)
@@ -2164,7 +2183,7 @@ def _render_diamond_detail(r, lines: list):
             lines.append(f"    {GRAY}OB {tf_lbl}:{RESET} {' | '.join(ob_parts)}")
 
     # Volume analysis (HVN/LVN + spike)
-    for tf_lbl in ["H1", "H4", "D1"]:
+    for tf_lbl in ["M5", "M15", "M30", "H1", "H4", "D1"]:
         avg_v = getattr(r, f"vol_avg_{tf_lbl.lower()}", 0.0)
         spike = getattr(r, f"vol_spike_{tf_lbl.lower()}", False)
         hvn = getattr(r, f"vol_hvn_{tf_lbl.lower()}", 0.0)
@@ -2182,7 +2201,7 @@ def _render_diamond_detail(r, lines: list):
             lines.append(f"    {GRAY}Vol {tf_lbl}:{RESET} {' | '.join(vol_parts)}")
 
     # Breaker Blocks (OB inverse)
-    for tf_lbl in ["H1", "H4", "D1"]:
+    for tf_lbl in ["M5", "M15", "M30", "H1", "H4", "D1"]:
         brk_bear = getattr(r, f"brk_{tf_lbl.lower()}_bear_level", 0.0)
         brk_bull = getattr(r, f"brk_{tf_lbl.lower()}_bull_level", 0.0)
         brk_parts = []
@@ -2213,8 +2232,8 @@ def _render_diamond_detail(r, lines: list):
         if r.reversal_chaine:
             lines.append(f"    {GRAY}Chaine:{RESET} {r.reversal_chaine}")
 
-    # Market Structure (MSS/BOS) — H1, H4, D1
-    for tf_lbl in ["H1", "H4", "D1"]:
+    # Market Structure (MSS/BOS) — all TFs
+    for tf_lbl in ["M5", "M15", "M30", "H1", "H4", "D1"]:
         regime = getattr(r, f"mss_{tf_lbl.lower()}_regime", "N/A")
         bos = getattr(r, f"mss_{tf_lbl.lower()}_bos", "N/A")
         shift = getattr(r, f"mss_{tf_lbl.lower()}_shift", "N/A")

@@ -639,24 +639,16 @@ Warnings:
 | +Volume | 58/56 | VOL spike + HVN + LVN H1/H4/D1 |
 | +Breaker Blocks | 64/62 | BRK (OB inverse) H1/H4/D1 |
 | +Reversal Pipeline | 73/71 | Sweep→retournement→confirmation (9 criteres) |
-
-| Métrique | Valeur |
-|:---|---:|
-| Lignes de code `diamond_scanner.py` | ~2000 |
-| Méthodes de détection | 12+ |
-| Critères de scoring | 58 |
-| Timeframes analysés | M5, M15, M30, H1, H4, D1, W1, MN |
-| Concepts ICT | Sweeps, FVG, OB, MSS/BOS, CHoCH, HVN/LVN |
-
-| +Reversal Pipeline | 73/71 | Sweep→retournement→confirmation (9 criteres) |
+| +M5/M15/M30 Extension | 109/107 | FVG + OB + MSS + Volume + BRK sur M5/M15/M30 (36 criteres) |
 
 | Metrique | Valeur |
 |:---|---:|
-| Lignes de code `diamond_scanner.py` | ~2350 |
-| Methodes de detection | 15+ |
-| Criteres de scoring | 73 |
+| Lignes de code `diamond_scanner.py` | ~2750 |
+| Methodes de detection | 16+ |
+| Criteres de scoring | 109 (avec W1/MN) / 107 (sans MN) |
 | Timeframes analyses | M5, M15, M30, H1, H4, D1, W1, MN |
 | Concepts ICT | Sweeps, FVG, OB, MSS/BOS, CHoCH, HVN/LVN, Breaker Blocks, Reversal Pipeline |
+| Nouveautes 18/07 | FVG/OB/MSS/Volume/BRK etendus a M5/M15/M30 |
 
 ---
 
@@ -744,6 +736,63 @@ Affichage : Vol H1/H4/D1 avec volume moyen, HVN, LVN, SPIKE.
 
 **DXY :** 100.721 — AU-DESSUS du Kijun H1 (100.582)
 **Tous en WAIT** — aucun setup STRONG/GOOD actuellement.
+
+---
+
+## 18/07/2026 — Extension M5/M15/M30 (5 concepts ICT sur 3 nouveaux TFs)
+
+### 🆕 Extension massive : FVG, OB, MSS, Volume, BRK → M5/M15/M30
+
+Les 5 concepts ICT précédemment limités à H1/H4/D1 sont désormais détectés
+sur M5, M15 et M30 timeframes.
+
+#### Nouveaux champs DiamondResult : 81 ajoutés
+
+| Concept | Champs par TF | Total (3 TFs) |
+|:---|---:|---:|
+| **FVG** | bear_top/bot/mitigated/price_pos/date + bull_top/bot/mitigated/price_pos/date + pip_factor | 33 |
+| **OB** | bear_level/pos/mitigated + bull_level/pos/mitigated | 18 |
+| **MSS** | regime + bos + shift | 9 |
+| **Volume** | avg + spike + hvn + lvn | 12 |
+| **BRK** | bear_level + bull_level | 6 |
+| **Total** | | **81** |
+
+#### Scoring : 36 nouveaux critères (max_score 73/71 → 109/107)
+
+| Groupe | Critères | Tags |
+|:---|---:|:---|
+| FVG M5/M15/M30 | 6 | FVGM5/FVGbM5, FVGM15/FVGbM15, FVGM30/FVGbM30 |
+| OB M5/M15/M30 | 6 | OBM5/OBbM5, OBM15/OBbM15, OBM30/OBbM30 |
+| MSS M5/M15/M30 | 9 | MSS/BOS/CHoCH pour M5/M15/M30 |
+| Volume M5/M15/M30 | 9 | VOL/HVN/LVN pour M5/M15/M30 |
+| BRK M5/M15/M30 | 6 | BRM5/BRbM5, BRM15/BRbM15, BRM30/BRbM30 |
+
+#### Bugs corrigés pendant l'implémentation
+
+| Bug | Fix |
+|:---|---|
+| `fvg_m5_pip_factor` toujours à 10000.0 (valeur de `_detect_fvg()` jetée) | Capture du 6e retour (bear_pip_factor) au lieu de `_` |
+| OB alignment bonus ignorait M5/M15/M30 | `ob_tfs` passe de 3 à 6 TFs checkés. OBx3 à 3+/6, OBx5 à 5+/6 |
+
+#### Dernier scan complet (13 symboles)
+
+| Rang | Symbole | Score/109 | Biais |
+|:---:|:---|---:|:---:|
+| 1 | EURJPY | 41 | BULL |
+| 2 | US100.cash | 41 | BEAR |
+| 3 | GBPJPY | 37 | BULL |
+| 4 | US500.cash | 37 | BEAR |
+| 5 | GBPUSD | 34 | BULL |
+| 6 | USDJPY | 33 | BULL |
+| 7 | USDCAD | 32 | BEAR |
+| 8 | DXY.cash | 31 | BEAR |
+| 9 | AUDUSD | 27 | BULL |
+| 10 | EURUSD | 23 | BULL |
+| 11 | US30.cash | 10 | FLAT |
+| 12 | USDCHF | 7 | FLAT |
+| 13 | XAUUSD | 4 | FLAT |
+
+**DXY :** 100.762 — AU-DESSUS Kijun H1 (100.620)
 
 ---
 

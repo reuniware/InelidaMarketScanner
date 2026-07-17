@@ -295,6 +295,94 @@ class DiamondResult:
     brk_d1_bear_level: float = 0.0
     brk_d1_bull_level: float = 0.0
 
+    # ── FVG M5/M15/M30 ──
+    fvg_m5_bear_top: float = 0.0
+    fvg_m5_bear_bot: float = 0.0
+    fvg_m5_bear_mitigated: bool = False
+    fvg_m5_bear_price_pos: str = "N/A"
+    fvg_m5_bear_date: str = ""
+    fvg_m5_bull_top: float = 0.0
+    fvg_m5_bull_bot: float = 0.0
+    fvg_m5_bull_mitigated: bool = False
+    fvg_m5_bull_price_pos: str = "N/A"
+    fvg_m5_bull_date: str = ""
+    fvg_m5_pip_factor: float = 10000.0
+    fvg_m15_bear_top: float = 0.0
+    fvg_m15_bear_bot: float = 0.0
+    fvg_m15_bear_mitigated: bool = False
+    fvg_m15_bear_price_pos: str = "N/A"
+    fvg_m15_bear_date: str = ""
+    fvg_m15_bull_top: float = 0.0
+    fvg_m15_bull_bot: float = 0.0
+    fvg_m15_bull_mitigated: bool = False
+    fvg_m15_bull_price_pos: str = "N/A"
+    fvg_m15_bull_date: str = ""
+    fvg_m15_pip_factor: float = 10000.0
+    fvg_m30_bear_top: float = 0.0
+    fvg_m30_bear_bot: float = 0.0
+    fvg_m30_bear_mitigated: bool = False
+    fvg_m30_bear_price_pos: str = "N/A"
+    fvg_m30_bear_date: str = ""
+    fvg_m30_bull_top: float = 0.0
+    fvg_m30_bull_bot: float = 0.0
+    fvg_m30_bull_mitigated: bool = False
+    fvg_m30_bull_price_pos: str = "N/A"
+    fvg_m30_bull_date: str = ""
+    fvg_m30_pip_factor: float = 10000.0
+
+    # ── OB M5/M15/M30 ──
+    ob_m5_bear_level: float = 0.0
+    ob_m5_bear_pos: str = "N/A"
+    ob_m5_bear_mitigated: bool = False
+    ob_m5_bull_level: float = 0.0
+    ob_m5_bull_pos: str = "N/A"
+    ob_m5_bull_mitigated: bool = False
+    ob_m15_bear_level: float = 0.0
+    ob_m15_bear_pos: str = "N/A"
+    ob_m15_bear_mitigated: bool = False
+    ob_m15_bull_level: float = 0.0
+    ob_m15_bull_pos: str = "N/A"
+    ob_m15_bull_mitigated: bool = False
+    ob_m30_bear_level: float = 0.0
+    ob_m30_bear_pos: str = "N/A"
+    ob_m30_bear_mitigated: bool = False
+    ob_m30_bull_level: float = 0.0
+    ob_m30_bull_pos: str = "N/A"
+    ob_m30_bull_mitigated: bool = False
+
+    # ── MSS M5/M15/M30 ──
+    mss_m5_regime: str = "N/A"
+    mss_m5_bos: str = "N/A"
+    mss_m5_shift: str = "N/A"
+    mss_m15_regime: str = "N/A"
+    mss_m15_bos: str = "N/A"
+    mss_m15_shift: str = "N/A"
+    mss_m30_regime: str = "N/A"
+    mss_m30_bos: str = "N/A"
+    mss_m30_shift: str = "N/A"
+
+    # ── Volume M5/M15/M30 ──
+    vol_avg_m5: float = 0.0
+    vol_spike_m5: bool = False
+    vol_hvn_m5: float = 0.0
+    vol_lvn_m5: float = 0.0
+    vol_avg_m15: float = 0.0
+    vol_spike_m15: bool = False
+    vol_hvn_m15: float = 0.0
+    vol_lvn_m15: float = 0.0
+    vol_avg_m30: float = 0.0
+    vol_spike_m30: bool = False
+    vol_hvn_m30: float = 0.0
+    vol_lvn_m30: float = 0.0
+
+    # ── BRK M5/M15/M30 ──
+    brk_m5_bear_level: float = 0.0
+    brk_m5_bull_level: float = 0.0
+    brk_m15_bear_level: float = 0.0
+    brk_m15_bull_level: float = 0.0
+    brk_m30_bear_level: float = 0.0
+    brk_m30_bull_level: float = 0.0
+
     # Trade setup
     sl: float = 0.0
     tp: float = 0.0
@@ -1839,6 +1927,101 @@ class DiamondScanner:
         brk_d1_bear_level = ob_d1_bull_level if (ob_d1_bull_mitigated and ob_d1_bull_level > 0 and price < ob_d1_bull_level) else 0.0
         brk_d1_bull_level = ob_d1_bear_level if (ob_d1_bear_mitigated and ob_d1_bear_level > 0 and price > ob_d1_bear_level) else 0.0
 
+        # ═══ M5/M15/M30 FVG Detection — fresh data fetch ═══════════════════
+        # Init defaults in case MT5 fetch fails
+        fvg_m5_bear_top = fvg_m5_bear_bot = fvg_m5_bull_top = fvg_m5_bull_bot = 0.0
+        fvg_m5_bear_mitigated = fvg_m5_bull_mitigated = False
+        fvg_m5_bear_price_pos = fvg_m5_bull_price_pos = "N/A"
+        fvg_m5_bear_date = fvg_m5_bull_date = ""
+        fvg_m5_pip_factor = 10000.0
+        fvg_m15_bear_top = fvg_m15_bear_bot = fvg_m15_bull_top = fvg_m15_bull_bot = 0.0
+        fvg_m15_bear_mitigated = fvg_m15_bull_mitigated = False
+        fvg_m15_bear_price_pos = fvg_m15_bull_price_pos = "N/A"
+        fvg_m15_bear_date = fvg_m15_bull_date = ""
+        fvg_m15_pip_factor = 10000.0
+        fvg_m30_bear_top = fvg_m30_bear_bot = fvg_m30_bull_top = fvg_m30_bull_bot = 0.0
+        fvg_m30_bear_mitigated = fvg_m30_bull_mitigated = False
+        fvg_m30_bear_price_pos = fvg_m30_bull_price_pos = "N/A"
+        fvg_m30_bear_date = fvg_m30_bull_date = ""
+        fvg_m30_pip_factor = 10000.0
+        ob_m5_bear_level = ob_m5_bull_level = 0.0; ob_m5_bear_pos = ob_m5_bull_pos = "N/A"
+        ob_m5_bear_mitigated = ob_m5_bull_mitigated = False
+        ob_m15_bear_level = ob_m15_bull_level = 0.0; ob_m15_bear_pos = ob_m15_bull_pos = "N/A"
+        ob_m15_bear_mitigated = ob_m15_bull_mitigated = False
+        ob_m30_bear_level = ob_m30_bull_level = 0.0; ob_m30_bear_pos = ob_m30_bull_pos = "N/A"
+        ob_m30_bear_mitigated = ob_m30_bull_mitigated = False
+        mss_m5_regime = mss_m5_bos = mss_m5_shift = "N/A"
+        mss_m15_regime = mss_m15_bos = mss_m15_shift = "N/A"
+        mss_m30_regime = mss_m30_bos = mss_m30_shift = "N/A"
+        vol_avg_m5 = vol_spike_m5 = vol_hvn_m5 = vol_lvn_m5 = 0.0
+        vol_avg_m15 = vol_spike_m15 = vol_hvn_m15 = vol_lvn_m15 = 0.0
+        vol_avg_m30 = vol_spike_m30 = vol_hvn_m30 = vol_lvn_m30 = 0.0
+        brk_m5_bear_level = brk_m5_bull_level = 0.0
+        brk_m15_bear_level = brk_m15_bull_level = 0.0
+        brk_m30_bear_level = brk_m30_bull_level = 0.0
+
+        m5_raw = self._get_rates(sym, mt5.TIMEFRAME_M5, 120)
+        m15_raw = self._get_rates(sym, mt5.TIMEFRAME_M15, 80)
+        m30_raw = self._get_rates(sym, mt5.TIMEFRAME_M30, 60)
+        if m5_raw and m15_raw and m30_raw:
+            m5_h = [x[1] for x in m5_raw]; m5_l = [x[2] for x in m5_raw]; m5_c = [x[3] for x in m5_raw]; m5_t = [x[0] for x in m5_raw]
+            m15_h = [x[1] for x in m15_raw]; m15_l = [x[2] for x in m15_raw]; m15_c = [x[3] for x in m15_raw]; m15_t = [x[0] for x in m15_raw]
+            m30_h = [x[1] for x in m30_raw]; m30_l = [x[2] for x in m30_raw]; m30_c = [x[3] for x in m30_raw]; m30_t = [x[0] for x in m30_raw]
+
+            fvg_m5_bear_top, fvg_m5_bear_bot, fvg_m5_bear_mitigated, fvg_m5_bear_price_pos, fvg_m5_bear_date, fvg_m5_pip_factor, \
+                fvg_m5_bull_top, fvg_m5_bull_bot, fvg_m5_bull_mitigated, fvg_m5_bull_price_pos, fvg_m5_bull_date, _ = \
+                self._detect_fvg(m5_h, m5_l, m5_t, price, sym, 120, False, "M5")
+            fvg_m15_bear_top, fvg_m15_bear_bot, fvg_m15_bear_mitigated, fvg_m15_bear_price_pos, fvg_m15_bear_date, fvg_m15_pip_factor, \
+                fvg_m15_bull_top, fvg_m15_bull_bot, fvg_m15_bull_mitigated, fvg_m15_bull_price_pos, fvg_m15_bull_date, _ = \
+                self._detect_fvg(m15_h, m15_l, m15_t, price, sym, 80, False, "M15")
+            fvg_m30_bear_top, fvg_m30_bear_bot, fvg_m30_bear_mitigated, fvg_m30_bear_price_pos, fvg_m30_bear_date, fvg_m30_pip_factor, \
+                fvg_m30_bull_top, fvg_m30_bull_bot, fvg_m30_bull_mitigated, fvg_m30_bull_price_pos, fvg_m30_bull_date, _ = \
+                self._detect_fvg(m30_h, m30_l, m30_t, price, sym, 60, False, "M30")
+
+            # ═══ M5/M15/M30 OB Detection ═══════════════════════════════════════
+            ob_m5 = self._detect_order_blocks(m5_h, m5_l, m5_c, m5_t, price, sym, "M5", 120)
+            ob_m15 = self._detect_order_blocks(m15_h, m15_l, m15_c, m15_t, price, sym, "M15", 80)
+            ob_m30 = self._detect_order_blocks(m30_h, m30_l, m30_c, m30_t, price, sym, "M30", 60)
+            ob_m5_bear_level, ob_m5_bear_pos, ob_m5_bear_mitigated, ob_m5_bull_level, ob_m5_bull_pos, ob_m5_bull_mitigated = ob_m5
+            ob_m15_bear_level, ob_m15_bear_pos, ob_m15_bear_mitigated, ob_m15_bull_level, ob_m15_bull_pos, ob_m15_bull_mitigated = ob_m15
+            ob_m30_bear_level, ob_m30_bear_pos, ob_m30_bear_mitigated, ob_m30_bull_level, ob_m30_bull_pos, ob_m30_bull_mitigated = ob_m30
+
+            # ═══ M5/M15/M30 MSS/BOS Detection ═════════════════════════════════
+            mss_m5 = self._detect_market_structure(m5_h, m5_l, m5_c, price, sym, "M5", 120)
+            mss_m15 = self._detect_market_structure(m15_h, m15_l, m15_c, price, sym, "M15", 80)
+            mss_m30 = self._detect_market_structure(m30_h, m30_l, m30_c, price, sym, "M30", 60)
+            mss_m5_regime, mss_m5_bos, mss_m5_shift = mss_m5
+            mss_m15_regime, mss_m15_bos, mss_m15_shift = mss_m15
+            mss_m30_regime, mss_m30_bos, mss_m30_shift = mss_m30
+
+            # ═══ M5/M15/M30 Volume Analysis ═══════════════════════════════════
+            m5_v = self._get_rates_with_volume(sym, mt5.TIMEFRAME_M5, 120)
+            m15_v = self._get_rates_with_volume(sym, mt5.TIMEFRAME_M15, 80)
+            m30_v = self._get_rates_with_volume(sym, mt5.TIMEFRAME_M30, 60)
+            vol_avg_m5 = vol_spike_m5 = vol_hvn_m5 = vol_lvn_m5 = 0.0
+            vol_avg_m15 = vol_spike_m15 = vol_hvn_m15 = vol_lvn_m15 = 0.0
+            vol_avg_m30 = vol_spike_m30 = vol_hvn_m30 = vol_lvn_m30 = 0.0
+            if m5_v:
+                m5_v_h = [x[1] for x in m5_v]; m5_v_l = [x[2] for x in m5_v]
+                m5_v_c = [x[3] for x in m5_v]; m5_v_v = [x[4] for x in m5_v]
+                vol_avg_m5, vol_spike_m5, vol_hvn_m5, vol_lvn_m5 = self._detect_volume_analysis(m5_v_h, m5_v_l, m5_v_c, m5_v_v, price, sym, "M5", 60)
+            if m15_v:
+                m15_v_h = [x[1] for x in m15_v]; m15_v_l = [x[2] for x in m15_v]
+                m15_v_c = [x[3] for x in m15_v]; m15_v_v = [x[4] for x in m15_v]
+                vol_avg_m15, vol_spike_m15, vol_hvn_m15, vol_lvn_m15 = self._detect_volume_analysis(m15_v_h, m15_v_l, m15_v_c, m15_v_v, price, sym, "M15", 40)
+            if m30_v:
+                m30_v_h = [x[1] for x in m30_v]; m30_v_l = [x[2] for x in m30_v]
+                m30_v_c = [x[3] for x in m30_v]; m30_v_v = [x[4] for x in m30_v]
+                vol_avg_m30, vol_spike_m30, vol_hvn_m30, vol_lvn_m30 = self._detect_volume_analysis(m30_v_h, m30_v_l, m30_v_c, m30_v_v, price, sym, "M30", 30)
+
+            # ═══ M5/M15/M30 Breaker Blocks ════════════════════════════════════
+            brk_m5_bear_level = ob_m5_bull_level if (ob_m5_bull_mitigated and ob_m5_bull_level > 0 and price < ob_m5_bull_level) else 0.0
+            brk_m5_bull_level = ob_m5_bear_level if (ob_m5_bear_mitigated and ob_m5_bear_level > 0 and price > ob_m5_bear_level) else 0.0
+            brk_m15_bear_level = ob_m15_bull_level if (ob_m15_bull_mitigated and ob_m15_bull_level > 0 and price < ob_m15_bull_level) else 0.0
+            brk_m15_bull_level = ob_m15_bear_level if (ob_m15_bear_mitigated and ob_m15_bear_level > 0 and price > ob_m15_bear_level) else 0.0
+            brk_m30_bear_level = ob_m30_bull_level if (ob_m30_bull_mitigated and ob_m30_bull_level > 0 and price < ob_m30_bull_level) else 0.0
+            brk_m30_bull_level = ob_m30_bear_level if (ob_m30_bear_mitigated and ob_m30_bear_level > 0 and price > ob_m30_bear_level) else 0.0
+
         # ═══ Reversal Pipeline (sweep → retournement → confirmation) ═══════
         reversal = self._detect_reversal_pipeline(
             symbol=sym, price=price,
@@ -1864,7 +2047,7 @@ class DiamondScanner:
 
         # ═══ Scoring (58 criteres max avec Reversal Pipeline + Breaker + vol + MSS + OB + TK4/TKd1/Kj4/KjD1 + Asian Sweep + M30 cross) ═══
         score = 0
-        max_score = 73 if mn_available else 71
+        max_score = 109 if mn_available else 107
         crit: List[str] = []
         warnings: List[str] = []
         alignment = 0
@@ -2003,13 +2186,16 @@ class DiamondScanner:
             score += 1; crit.append("OBbD1")
         # Alignment bonus if OB detected on multiple TFs
         ob_tfs = 0
+        if ob_m5_bear_level > 0 or ob_m5_bull_level > 0: ob_tfs += 1
+        if ob_m15_bear_level > 0 or ob_m15_bull_level > 0: ob_tfs += 1
+        if ob_m30_bear_level > 0 or ob_m30_bull_level > 0: ob_tfs += 1
         if ob_h1_bear_level > 0 or ob_h1_bull_level > 0: ob_tfs += 1
         if ob_h4_bear_level > 0 or ob_h4_bull_level > 0: ob_tfs += 1
         if ob_d1_bear_level > 0 or ob_d1_bull_level > 0: ob_tfs += 1
-        if ob_tfs >= 2:
-            score += 1; crit.append("OBx2")
         if ob_tfs >= 3:
-            score += 1; crit.append("OBx3"); alignment += 1
+            score += 1; crit.append("OBx3")
+        if ob_tfs >= 5:
+            score += 1; crit.append("OBx5"); alignment += 1
 
         # ── Market Structure (MSS/BOS) Scoring ──
         # H1 regime
@@ -2074,6 +2260,78 @@ class DiamondScanner:
             score += 1; crit.append("BRbH4")
         if brk_d1_bull_level > 0 and direction == 1:
             score += 1; crit.append("BRbD1")
+
+        # ═══ M5/M15/M30 FVG Scoring ════════════════════════════════════
+        if fvg_m5_bear_bot > 0 and direction == -1:
+            score += 1; crit.append("FVGM5")
+        if fvg_m5_bull_bot > 0 and direction == 1:
+            score += 1; crit.append("FVGbM5")
+        if fvg_m15_bear_bot > 0 and direction == -1:
+            score += 1; crit.append("FVGM15")
+        if fvg_m15_bull_bot > 0 and direction == 1:
+            score += 1; crit.append("FVGbM15")
+        if fvg_m30_bear_bot > 0 and direction == -1:
+            score += 1; crit.append("FVGM30")
+        if fvg_m30_bull_bot > 0 and direction == 1:
+            score += 1; crit.append("FVGbM30")
+
+        # ═══ M5/M15/M30 OB Scoring ═════════════════════════════════════
+        if ob_m5_bear_level > 0 and ob_m5_bear_pos == "BELOW" and direction == -1:
+            score += 1; crit.append("OBM5")
+        if ob_m5_bull_level > 0 and ob_m5_bull_pos == "ABOVE" and direction == 1:
+            score += 1; crit.append("OBbM5")
+        if ob_m15_bear_level > 0 and ob_m15_bear_pos == "BELOW" and direction == -1:
+            score += 1; crit.append("OBM15")
+        if ob_m15_bull_level > 0 and ob_m15_bull_pos == "ABOVE" and direction == 1:
+            score += 1; crit.append("OBbM15")
+        if ob_m30_bear_level > 0 and ob_m30_bear_pos == "BELOW" and direction == -1:
+            score += 1; crit.append("OBM30")
+        if ob_m30_bull_level > 0 and ob_m30_bull_pos == "ABOVE" and direction == 1:
+            score += 1; crit.append("OBbM30")
+
+        # ═══ M5/M15/M30 MSS/BOS Scoring ════════════════════════════════
+        for tf_lbl, regime, bos_val, shift_val in [
+            ("M5", mss_m5_regime, mss_m5_bos, mss_m5_shift),
+            ("M15", mss_m15_regime, mss_m15_bos, mss_m15_shift),
+            ("M30", mss_m30_regime, mss_m30_bos, mss_m30_shift),
+        ]:
+            if (regime == "BULL" and direction == 1) or (regime == "BEAR" and direction == -1):
+                score += 1; crit.append(f"MSS{tf_lbl}")
+            if (bos_val == "BULL" and direction == 1) or (bos_val == "BEAR" and direction == -1):
+                score += 1; crit.append(f"BOS{tf_lbl}")
+            if (shift_val == "BULL" and direction == 1) or (shift_val == "BEAR" and direction == -1):
+                score += 1; crit.append(f"CHoCH{tf_lbl}")
+
+        # ═══ M5/M15/M30 Volume Scoring ═════════════════════════════════
+        for tf_lbl, avg_v, spike, hvn, lvn in [
+            ("M5", vol_avg_m5, vol_spike_m5, vol_hvn_m5, vol_lvn_m5),
+            ("M15", vol_avg_m15, vol_spike_m15, vol_hvn_m15, vol_lvn_m15),
+            ("M30", vol_avg_m30, vol_spike_m30, vol_hvn_m30, vol_lvn_m30),
+        ]:
+            if direction != 0 and spike:
+                score += 1; crit.append(f"VOL{tf_lbl}")
+            if direction != 0 and hvn > 0:
+                hvn_pips = self._pips(sym, price, hvn)
+                if (direction == -1 and hvn_pips < 0) or (direction == 1 and hvn_pips > 0):
+                    score += 1; crit.append(f"HVN{tf_lbl}")
+            if direction != 0 and lvn > 0:
+                lvn_pips = self._pips(sym, price, lvn)
+                if (direction == -1 and lvn_pips > 0) or (direction == 1 and lvn_pips < 0):
+                    score += 1; crit.append(f"LVN{tf_lbl}")
+
+        # ═══ M5/M15/M30 Breaker Scoring ════════════════════════════════
+        if brk_m5_bear_level > 0 and direction == -1:
+            score += 1; crit.append("BRM5")
+        if brk_m5_bull_level > 0 and direction == 1:
+            score += 1; crit.append("BRbM5")
+        if brk_m15_bear_level > 0 and direction == -1:
+            score += 1; crit.append("BRM15")
+        if brk_m15_bull_level > 0 and direction == 1:
+            score += 1; crit.append("BRbM15")
+        if brk_m30_bear_level > 0 and direction == -1:
+            score += 1; crit.append("BRM30")
+        if brk_m30_bull_level > 0 and direction == 1:
+            score += 1; crit.append("BRbM30")
 
         # ═══ Reversal Pipeline Scoring (9 criteres) ═══════════════════
         if bars_since_sweep >= 1 and bars_since_sweep <= 20:
@@ -2441,6 +2699,53 @@ class DiamondScanner:
             brk_h1_bear_level=brk_h1_bear_level, brk_h1_bull_level=brk_h1_bull_level,
             brk_h4_bear_level=brk_h4_bear_level, brk_h4_bull_level=brk_h4_bull_level,
             brk_d1_bear_level=brk_d1_bear_level, brk_d1_bull_level=brk_d1_bull_level,
+            # FVG M5/M15/M30
+            fvg_m5_bear_top=fvg_m5_bear_top, fvg_m5_bear_bot=fvg_m5_bear_bot,
+            fvg_m5_bear_mitigated=fvg_m5_bear_mitigated, fvg_m5_bear_price_pos=fvg_m5_bear_price_pos,
+            fvg_m5_bear_date=fvg_m5_bear_date, fvg_m5_bull_top=fvg_m5_bull_top,
+            fvg_m5_bull_bot=fvg_m5_bull_bot, fvg_m5_bull_mitigated=fvg_m5_bull_mitigated,
+            fvg_m5_bull_price_pos=fvg_m5_bull_price_pos, fvg_m5_bull_date=fvg_m5_bull_date,
+            fvg_m5_pip_factor=fvg_m5_pip_factor,
+            fvg_m15_bear_top=fvg_m15_bear_top, fvg_m15_bear_bot=fvg_m15_bear_bot,
+            fvg_m15_bear_mitigated=fvg_m15_bear_mitigated, fvg_m15_bear_price_pos=fvg_m15_bear_price_pos,
+            fvg_m15_bear_date=fvg_m15_bear_date, fvg_m15_bull_top=fvg_m15_bull_top,
+            fvg_m15_bull_bot=fvg_m15_bull_bot, fvg_m15_bull_mitigated=fvg_m15_bull_mitigated,
+            fvg_m15_bull_price_pos=fvg_m15_bull_price_pos, fvg_m15_bull_date=fvg_m15_bull_date,
+            fvg_m15_pip_factor=fvg_m15_pip_factor,
+            fvg_m30_bear_top=fvg_m30_bear_top, fvg_m30_bear_bot=fvg_m30_bear_bot,
+            fvg_m30_bear_mitigated=fvg_m30_bear_mitigated, fvg_m30_bear_price_pos=fvg_m30_bear_price_pos,
+            fvg_m30_bear_date=fvg_m30_bear_date, fvg_m30_bull_top=fvg_m30_bull_top,
+            fvg_m30_bull_bot=fvg_m30_bull_bot, fvg_m30_bull_mitigated=fvg_m30_bull_mitigated,
+            fvg_m30_bull_price_pos=fvg_m30_bull_price_pos, fvg_m30_bull_date=fvg_m30_bull_date,
+            fvg_m30_pip_factor=fvg_m30_pip_factor,
+            # OB M5/M15/M30
+            ob_m5_bear_level=ob_m5_bear_level, ob_m5_bear_pos=ob_m5_bear_pos,
+            ob_m5_bear_mitigated=ob_m5_bear_mitigated,
+            ob_m5_bull_level=ob_m5_bull_level, ob_m5_bull_pos=ob_m5_bull_pos,
+            ob_m5_bull_mitigated=ob_m5_bull_mitigated,
+            ob_m15_bear_level=ob_m15_bear_level, ob_m15_bear_pos=ob_m15_bear_pos,
+            ob_m15_bear_mitigated=ob_m15_bear_mitigated,
+            ob_m15_bull_level=ob_m15_bull_level, ob_m15_bull_pos=ob_m15_bull_pos,
+            ob_m15_bull_mitigated=ob_m15_bull_mitigated,
+            ob_m30_bear_level=ob_m30_bear_level, ob_m30_bear_pos=ob_m30_bear_pos,
+            ob_m30_bear_mitigated=ob_m30_bear_mitigated,
+            ob_m30_bull_level=ob_m30_bull_level, ob_m30_bull_pos=ob_m30_bull_pos,
+            ob_m30_bull_mitigated=ob_m30_bull_mitigated,
+            # MSS M5/M15/M30
+            mss_m5_regime=mss_m5_regime, mss_m5_bos=mss_m5_bos, mss_m5_shift=mss_m5_shift,
+            mss_m15_regime=mss_m15_regime, mss_m15_bos=mss_m15_bos, mss_m15_shift=mss_m15_shift,
+            mss_m30_regime=mss_m30_regime, mss_m30_bos=mss_m30_bos, mss_m30_shift=mss_m30_shift,
+            # Volume M5/M15/M30
+            vol_avg_m5=vol_avg_m5, vol_spike_m5=vol_spike_m5,
+            vol_hvn_m5=vol_hvn_m5, vol_lvn_m5=vol_lvn_m5,
+            vol_avg_m15=vol_avg_m15, vol_spike_m15=vol_spike_m15,
+            vol_hvn_m15=vol_hvn_m15, vol_lvn_m15=vol_lvn_m15,
+            vol_avg_m30=vol_avg_m30, vol_spike_m30=vol_spike_m30,
+            vol_hvn_m30=vol_hvn_m30, vol_lvn_m30=vol_lvn_m30,
+            # BRK M5/M15/M30
+            brk_m5_bear_level=brk_m5_bear_level, brk_m5_bull_level=brk_m5_bull_level,
+            brk_m15_bear_level=brk_m15_bear_level, brk_m15_bull_level=brk_m15_bull_level,
+            brk_m30_bear_level=brk_m30_bear_level, brk_m30_bull_level=brk_m30_bull_level,
             bars_since_sweep=bars_since_sweep,
             reversal_h1=reversal_h1, reversal_h4=reversal_h4,
             fvg_post_sweep=fvg_post_sweep, fvg_post_sweep_dir=fvg_post_sweep_dir,

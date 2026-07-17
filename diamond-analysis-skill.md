@@ -41,7 +41,7 @@ python main.py diamond --symbols DXY.cash EURUSD GBPUSD  # symboles spécifiques
 | `AL{session}` | AL sweepé (ex: `ALNY`) | +1 score +1 alignment |
 | `BOTH` | AH ET AL sweepés | +1 score bonus +1 alignment |
 
-**Scoring max :** 25 critères (23 sans MN)
+**Scoring max :** 109 critères (107 sans MN) — 36 ajoutés le 18/07 (M5/M15/M30 FVG/OB/MSS/Volume/BRK)
 
 ---
 
