@@ -904,12 +904,12 @@ class DiamondScanner:
             return (0.0, 0.0, False, "N/A", "", 10000.0,
                     0.0, 0.0, False, "N/A", "", 10000.0)
 
-        thresh = 0.03 if ('JPY' in sym or sym == 'XAUUSD') else 0.0005
-        tolerance = thresh / 2.0
         pip_factor = 10.0 if sym == 'XAUUSD' else (100.0 if 'JPY' in sym else 10000.0)
 
-        # Date formatter: include hour for H1, just date for H4/D1
-        if tf_label == "H1":
+        # Date formatter: include hour for intraday TFs, date only for higher
+        if tf_label in ("M5", "M15", "M30"):
+            date_fmt = "%d/%m %H:%M"
+        elif tf_label == "H1":
             date_fmt = "%d/%m %Hh"
         else:
             date_fmt = "%d/%m"
@@ -931,17 +931,17 @@ class DiamondScanner:
                 elif dt_i.day != datetime.now(UTC).day:
                     priority = 5
             else:
-                # For H4/D1: just use reverse index as priority (most recent = highest)
-                priority = max_idx - i
+                # For non-H1 TFs: use index as priority (higher i = more recent = higher priority)
+                priority = i
 
             # Bearish FVG: low[i-2] > high[i]
-            if lows[i - 2] > highs[i] and (lows[i - 2] - highs[i]) > thresh:
+            if lows[i - 2] > highs[i]:
                 label = dt_i2.strftime(date_fmt)
                 if best_bear is None or priority > best_bear[0]:
                     best_bear = (priority, lows[i - 2], highs[i], label, i)
 
             # Bullish FVG: high[i-2] < low[i]
-            if highs[i - 2] < lows[i] and (lows[i] - highs[i - 2]) > thresh:
+            if highs[i - 2] < lows[i]:
                 label = dt_i2.strftime(date_fmt)
                 if best_bull is None or priority > best_bull[0]:
                     best_bull = (priority, lows[i], highs[i - 2], label, i)
@@ -954,10 +954,10 @@ class DiamondScanner:
             fvg_idx = best_bear[4]
             bear_mitigated = False
             for k in range(fvg_idx + 1, n):
-                if highs[k] >= bear_bot - tolerance:
+                if highs[k] >= bear_bot:
                     bear_mitigated = True
                     break
-            if not bear_mitigated and price >= bear_bot - tolerance:
+            if not bear_mitigated and price >= bear_bot:
                 bear_mitigated = True
             if bear_bot > 0:
                 if price > bear_top: bear_pos = "ABOVE"
@@ -972,10 +972,10 @@ class DiamondScanner:
             fvg_idx = best_bull[4]
             bull_mitigated = False
             for k in range(fvg_idx + 1, n):
-                if lows[k] <= bull_top + tolerance:
+                if lows[k] <= bull_top:
                     bull_mitigated = True
                     break
-            if not bull_mitigated and price <= bull_top + tolerance:
+            if not bull_mitigated and price <= bull_top:
                 bull_mitigated = True
             if bull_bot > 0:
                 if price > bull_top: bull_pos = "ABOVE"
@@ -2442,6 +2442,12 @@ class DiamondScanner:
              fvg4_bull_top, fvg4_bull_bot, fvg4_bull_mitigated, fvg4_bull_pos, fvg4_bull_date, fvg4_bull_pip_factor),
             ("D1", fvg_d1_top, fvg_d1_bot, fvg_d1_mitigated, fvg_d1_pos, fvg_d1_date, fvg_d1_pip_factor,
              fvg_d1_bull_top, fvg_d1_bull_bot, fvg_d1_bull_mitigated, fvg_d1_bull_pos, fvg_d1_bull_date, fvg_d1_bull_pip_factor),
+            ("M5", fvg_m5_bear_top, fvg_m5_bear_bot, fvg_m5_bear_mitigated, fvg_m5_bear_price_pos, fvg_m5_bear_date, fvg_m5_pip_factor,
+             fvg_m5_bull_top, fvg_m5_bull_bot, fvg_m5_bull_mitigated, fvg_m5_bull_price_pos, fvg_m5_bull_date, fvg_m5_pip_factor),
+            ("M15", fvg_m15_bear_top, fvg_m15_bear_bot, fvg_m15_bear_mitigated, fvg_m15_bear_price_pos, fvg_m15_bear_date, fvg_m15_pip_factor,
+             fvg_m15_bull_top, fvg_m15_bull_bot, fvg_m15_bull_mitigated, fvg_m15_bull_price_pos, fvg_m15_bull_date, fvg_m15_pip_factor),
+            ("M30", fvg_m30_bear_top, fvg_m30_bear_bot, fvg_m30_bear_mitigated, fvg_m30_bear_price_pos, fvg_m30_bear_date, fvg_m30_pip_factor,
+             fvg_m30_bull_top, fvg_m30_bull_bot, fvg_m30_bull_mitigated, fvg_m30_bull_price_pos, fvg_m30_bull_date, fvg_m30_pip_factor),
         ]:
             if fvg_t > 0 and fvg_b > 0:
                 gap = abs(fvg_t - fvg_b) * fvg_pf

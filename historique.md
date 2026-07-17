@@ -833,3 +833,38 @@ Double obstacle H1 — BULL nécessite cassure des deux :
   TK cross H1 = BEAR (Tenkan < Kijun)
   → Pas de BULL H1 tant que les deux ne sont pas franchis
 ```
+
+---
+
+## 17/07/2026 — Correctifs FVG M5/M15/M30
+
+### 🐛 Bug #1 : Threshold artificiel de 5 pips sur les FVGs
+
+**Problème :** Le seuil de 0.0005 (5 pips pour EURUSD) filtrait les gaps plus petits.
+Les FVGs M5 (gap ~1 pip) n'étaient pas détectés.
+
+**Correctif :** Suppression totale du threshold dans `_detect_fvg()`.
+Un FVG est maintenant détecté dès qu'il y a un écart entre bougies :
+- Bearish : `low[i-2] > high[i]`
+- Bullish : `high[i-2] < low[i]`
+
+### 🐛 Bug #2 : Priorité inversée pour les TFs non-H1
+
+**Problème :** `priority = max_idx - i` donnait la priorité aux barres les PLUS ANCIENNES.
+Les FVGs récents (M5) étaient ignorés au profit de FVGs vieux de plusieurs heures.
+
+**Correctif :** `priority = i` — les barres les plus récentes (i élevé) ont la priorité.
+H1 non affecté (use_priority=True avec système temporel).
+
+### 🐛 Bug #3 : FVG M5/M15/M30 non affichés
+
+**Problème :** Les FVG détectés n'étaient pas ajoutés à la section warnings
+(contrairement à H1/H4/D1). Le detail n'était rendu que pour STRONG/GOOD.
+
+**Correctif :** Ajout des 3 TFs à la boucle des warnings FVG dans `_scan_symbol()`.
+
+### 🎨 Amélioration : Format date intraday
+
+Ajout du format `%H:%M` pour les TFs M5/M15/M30 (était `%d/%m` sans heure).
+
+---
