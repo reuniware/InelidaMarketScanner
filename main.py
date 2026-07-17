@@ -2283,8 +2283,8 @@ def _add_common(subparser: argparse.ArgumentParser) -> None:
     subparser.add_argument("--symbols", nargs="*", default=None,
                            help="Liste de symboles (surcharge la watchlist / scan manuel).")
     subparser.add_argument("--timezone", default=None,
-                           choices=["UTC", "FTMO", "PARIS"],
-                           help="Fuseau horaire pour les timestamps (defaut: FTMO)")
+                           choices=["UTC", "BROKER", "PARIS"],
+                           help="Fuseau horaire pour les timestamps (defaut: BROKER = temps serveur MT5)")
 
 
 def build_parser() -> argparse.ArgumentParser:

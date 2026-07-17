@@ -9,10 +9,11 @@ from typing import List, Optional
 
 
 # ─── Timezone Config ───────────────────────────────────────────────────────────
-# Mode: "UTC", "FTMO" (MT5 server time, GMT+3/+2), "PARIS" (CEST/CET)
-# Defini via --timezone CLI, ou variable d'env TIMEZONE_MODE, ou defaut FTMO
-DEFAULT_TZ_MODE = "FTMO"
-TZ_LABELS = {"UTC": "UTC", "FTMO": "FTMO", "PARIS": "Paris"}
+# Mode: "UTC", "BROKER" (temps serveur MT5, typiquement GMT+3 ete/+2 hiver),
+#        "PARIS" (CEST/CET)
+# Defini via --timezone CLI, ou variable d'env TIMEZONE_MODE, ou defaut BROKER
+DEFAULT_TZ_MODE = "BROKER"
+TZ_LABELS = {"UTC": "UTC", "BROKER": "BROKER", "PARIS": "Paris"}
 
 
 def _dst_eu_summer(dt: Optional[datetime] = None) -> bool:
@@ -36,7 +37,7 @@ def tz_offset(mode: str = "") -> int:
     """Retourne le decalage en heures par rapport a UTC pour le mode donne.
 
     Args:
-        mode: "UTC" (0), "FTMO" (serveur MT5, +3 ete/+2 hiver),
+        mode: "UTC" (0), "BROKER" (serveur MT5, typiquement +3 ete/+2 hiver),
               "PARIS" (CEST +2 / CET +1). Chaine vide = defaut DEFAULT_TZ_MODE.
     """
     m = (mode or DEFAULT_TZ_MODE).upper()
@@ -45,13 +46,13 @@ def tz_offset(mode: str = "") -> int:
         return 0
     if m == "PARIS":
         return 2 if dst else 1
-    if m == "FTMO":
-        return 3 if dst else 2       # Serveur FTMO = EEST/EET
+    if m == "BROKER":
+        return 3 if dst else 2       # Serveur MT5 typique = +3 ete/+2 hiver (EEST/EET)
     return 0
 
 
 def tz_label(mode: str = "") -> str:
-    """Retourne le label lisible (ex: "FTMO", "Paris", "UTC")."""
+    """Retourne le label lisible (ex: "BROKER", "Paris", "UTC")."""
     m = (mode or DEFAULT_TZ_MODE).upper()
     return TZ_LABELS.get(m, "UTC")
 
@@ -60,9 +61,9 @@ def format_epoch(epoch: float, fmt: str = "%d/%m %H:%M", mode: str = "") -> str:
     """Formate un timestamp epoch dans la timezone configuree avec le label.
 
     Exemples:
-        format_epoch(ts, "%d/%m %Hh", "FTMO") -> "17/07 14h FTMO"
+        format_epoch(ts, "%d/%m %Hh", "BROKER") -> "17/07 14h BROKER"
         format_epoch(ts, "%d/%m %H:%M", "PARIS") -> "17/07 13:30 Paris"
-        format_epoch(ts, "%d/%m", "FTMO") -> "17/07 FTMO"   (label meme sans heure)
+        format_epoch(ts, "%d/%m", "BROKER") -> "17/07 BROKER"   (label meme sans heure)
     """
     m = (mode or DEFAULT_TZ_MODE).upper()
     off = tz_offset(m)
