@@ -967,6 +967,23 @@ niveau historique, attendre la cassure confirmée avant d'entrer.
 
 **Fichiers concernés :** `diamond-analysis-skill.md` (cette section), scripts de scan Diamond.
 
+### 14. Note : Tenkan + Kijun = double obstacle co-égal (17/07/2026)
+**Constat :** Dans l'analyse EURJPY (185.800, BULL 38/64), j'ai listé la Tenkan H1
+(185.834, −3p) comme obstacle prioritaire et relégué la Kijun H1 (185.866, −7p)
+en 4ème position du tableau. C'est un détail de présentation — les deux niveaux
+étaient dans le tableau, mais le ton suggérait une hiérarchie qui n'existe pas.
+
+**Rappel :**
+- Tenkan ET Kijun sont tous les deux des niveaux Ichimoku valides
+- Quand le prix est sous les deux, les deux sont obstacles pour un BULL
+- Le TK cross donne le contexte (TK < Kj = BEAR, TK > Kj = BULL)
+- L'ordre de listing se fait par distance, pas par importance
+
+**Méthode recommandée :**
+1. Lister Tenkan + Kijun par ordre de distance au prix
+2. Ajouter le TK cross comme contexte
+3. Ne pas qualifier l'un de "vrai verrou" — les deux sont aussi importants
+
 ### 10. Discord — ne pas utiliser `discord_notifier.py` pour un embed personnalisé
 **Problème :** `discord_notifier.py --json` appelle `build_scan_embed()` qui attend
 des clés spécifiques (`scanned`, `trades`, `setups`...). Un embed brut sera ignoré.
@@ -1217,8 +1234,8 @@ Si doute sur une donnée, divergence MT5/TradingView, ou calcul incert
 | +M5/M15/M30 | 34/32 | Kijun+Tenkan M5/M15/M30 |
 | +Order Blocks | 40/38 | OB + multi-TF bonus |
 | +MSS/BOS | 49/47 | Régime + BOS + CHoCH |
-| +Volume | 58/56 | VOL + HVN + LVN |ain →
-je le précise. Pas d'affirmations fausses avec assurance.
+| +Volume | 58/56 | VOL + HVN + LVN |
+| +Reversal Pipeline | 73/71 | Sweep→retournement→confirmation (9 criteres) |
 
 ---
 

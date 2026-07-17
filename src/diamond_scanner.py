@@ -324,6 +324,17 @@ class DiamondResult:
     london_high_swept_session: str = ""
     london_low_swept_session: str = ""
 
+    # Reversal Pipeline (sweep → retournement → confirmation)
+    bars_since_sweep: int = -1       # barres H1 depuis le dernier sweep
+    reversal_h1: str = "N/A"         # "SWEEP_ONLY", "REVERSAL", "CONFIRMED", "FAILED"
+    reversal_h4: str = "N/A"         # idem sur H4
+    fvg_post_sweep: float = 0.0      # niveau du FVG créé APRÈS le sweep (dans la direction du reversal)
+    fvg_post_sweep_dir: str = ""     # "BULL" ou "BEAR"
+    retest_sweep_level: bool = False # prix a retesté le niveau sweepé
+    retest_sweep_pips: float = 0.0   # distance du retest en pips
+    cho_post_sweep: bool = False     # Change of Character (CHoCH) après le sweep
+    reversal_chaine: str = ""        # chaîne complète : "AH sweep → FVG bear H1 → CHoCH → CONFIRMED"
+
     # Metadata
     criteria: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
@@ -1171,6 +1182,202 @@ class DiamondScanner:
 
         return (float(avg_vol), spike, hvn_level, lvn_level)
 
+    # ── Reversal Pipeline (sweep → retournement → confirmation) ──
+
+    def _detect_reversal_pipeline(
+        self, symbol: str, price: float,
+        h1_data: list, asian_high: float, asian_low: float,
+        ah_swept: bool, al_swept: bool, ah_at: float, al_at: float,
+        lh_swept: bool, ll_swept: bool, lh_at: float, ll_at: float,
+        session_date: str,
+        h1_h: list, h1_l: list, h1_c: list, h1_t: list,
+        h4_h: list, h4_l: list, h4_c: list, h4_t: list,
+        mss_h1_regime_detected: str, mss_h1_shift_detected: str,
+        mss_h4_regime_detected: str, mss_h4_shift_detected: str,
+        fvg_top: float, fvg_bot: float, fvg_date: str,
+        fvg_bull_top: float, fvg_bull_bot: float, fvg_bull_date: str,
+        fvg4_top: float, fvg4_bot: float, fvg4_date: str,
+        fvg4_bull_top: float, fvg4_bull_bot: float, fvg4_bull_date: str,
+    ) -> Tuple[int, str, str, float, str, bool, float, bool, str]:
+        """Analyse le pipeline sweep → retournement → confirmation.
+
+        Étape 1 : Compter les barres H1 depuis le dernier sweep
+        Étape 2 : Vérifier si un FVG a été créé APRÈS le sweep
+        Étape 3 : Vérifier si un CHoCH (MSS shift) a eu lieu après le sweep
+        Étape 4 : Vérifier si le prix a retesté le niveau sweepé
+        Étape 5 : Déterminer le statut : SWEEP_ONLY / REVERSAL / CONFIRMED / FAILED
+        Étape 6 : Construire la chaîne de confirmation
+
+        Returns:
+            (bars_since_sweep, reversal_h1, reversal_h4,
+             fvg_post_sweep, fvg_post_sweep_dir,
+             retest_sweep_level, retest_sweep_pips,
+             cho_post_sweep, reversal_chaine)
+        """
+        bars_since_sweep = -1
+        reversal_h1 = "N/A"
+        reversal_h4 = "N/A"
+        fvg_post_sweep = 0.0
+        fvg_post_sweep_dir = ""
+        retest_sweep_level = False
+        retest_sweep_pips = 0.0
+        cho_post_sweep = False
+        reversal_chaine = ""
+
+        # ── Déterminer le dernier sweep (timestamps) ──
+        sweep_timestamps = []
+        if ah_swept and ah_at > 0:
+            sweep_timestamps.append((ah_at, "AH"))
+        if al_swept and al_at > 0:
+            sweep_timestamps.append((al_at, "AL"))
+        if lh_swept and lh_at > 0:
+            sweep_timestamps.append((lh_at, "LH"))
+        if ll_swept and ll_at > 0:
+            sweep_timestamps.append((ll_at, "LL"))
+
+        if not sweep_timestamps or not h1_data:
+            return (bars_since_sweep, reversal_h1, reversal_h4,
+                    fvg_post_sweep, fvg_post_sweep_dir,
+                    retest_sweep_level, retest_sweep_pips,
+                    cho_post_sweep, reversal_chaine)
+
+        # Trier par timestamp (le plus récent en dernier)
+        sweep_timestamps.sort(key=lambda x: x[0])
+        last_sweep_ts = sweep_timestamps[-1][0]
+        last_sweep_label = sweep_timestamps[-1][1]
+
+        # ── Étape 1 : Compter les barres H1 depuis le dernier sweep ──
+        bars_since_sweep = 0
+        now_ts = _time.time()
+        for bar in h1_data:
+            bar_ts = bar[0]
+            dt = datetime.fromtimestamp(bar_ts, UTC)
+            bar_date = dt.strftime("%Y-%m-%d")
+            if bar_date != session_date:
+                continue
+            if bar_ts > last_sweep_ts:
+                bars_since_sweep += 1
+
+        # ── Étape 2 : FVG créé APRÈS le sweep ──
+        # Vérifier si la date du FVG H1 est après le sweep
+        def _bar_ts_from_date(date_str: str) -> float:
+            """Convertit '15/07 18h' → epoch timestamp approximatif."""
+            if not date_str or not h1_t:
+                return 0.0
+            try:
+                # Format: "15/07 18h" ou "15/07"
+                parts = date_str.replace('h', '').split()
+                day, month = parts[0].split('/')
+                hour = int(parts[1]) if len(parts) > 1 else 12
+                year = datetime.now(UTC).year
+                dt = datetime(year, int(month), int(day), hour, 0, 0, tzinfo=UTC)
+                return dt.timestamp()
+            except:
+                return 0.0
+
+        # Initialiser TOUS les timestamps FVG pour éviter les NameError
+        fvg_post_ts = _bar_ts_from_date(fvg_date) if fvg_date else 0.0
+        fvg_bull_post_ts = _bar_ts_from_date(fvg_bull_date) if fvg_bull_date else 0.0
+        fvg4_post_ts = _bar_ts_from_date(fvg4_date) if fvg4_date else 0.0
+        fvg4_bull_post_ts = _bar_ts_from_date(fvg4_bull_date) if fvg4_bull_date else 0.0
+
+        if fvg_post_ts > last_sweep_ts and fvg_top > 0:
+            fvg_post_sweep = fvg_top
+            fvg_post_sweep_dir = "BEAR"
+        elif fvg_bull_post_ts > last_sweep_ts and fvg_bull_top > 0:
+            fvg_post_sweep = fvg_bull_top
+            fvg_post_sweep_dir = "BULL"
+
+        # Vérifier aussi H4 (si pas de FVG H1 post-sweep)
+        if fvg_post_sweep == 0:
+            if fvg4_post_ts > last_sweep_ts and fvg4_top > 0:
+                fvg_post_sweep = fvg4_top
+                fvg_post_sweep_dir = "BEAR"
+            elif fvg4_bull_post_ts > last_sweep_ts and fvg4_bull_top > 0:
+                fvg_post_sweep = fvg4_bull_top
+                fvg_post_sweep_dir = "BULL"
+
+        # ── Étape 3 : CHoCH (MSS shift) après le sweep ──
+        # Si le MSS shift est BULL ou BEAR et qu'il y a un sweep, on considère
+        # que le CHoCH a eu lieu en réaction au sweep
+        if sweep_timestamps:
+            if mss_h1_shift_detected in ("BULL", "BEAR"):
+                cho_post_sweep = True
+            elif mss_h4_shift_detected in ("BULL", "BEAR"):
+                cho_post_sweep = True
+
+        # ── Étape 4 : Retest du niveau sweepé ──
+        for bar in h1_data:
+            dt = datetime.fromtimestamp(bar[0], UTC)
+            bar_date = dt.strftime("%Y-%m-%d")
+            if bar_date != session_date:
+                continue
+            bar_high, bar_low, bar_close = bar[1], bar[2], bar[3]
+            if bar_ts := bar[0] <= last_sweep_ts:
+                continue
+            for _, label in sweep_timestamps:
+                if label == "AH" and asian_high > 0:
+                    # Retest : barre revient dans les 5 pips du niveau sweepé
+                    dist_h = abs(self._pips(symbol, bar_high, asian_high))
+                    dist_l = abs(self._pips(symbol, bar_low, asian_high))
+                    if min(dist_h, dist_l) < 5:
+                        retest_sweep_level = True
+                        retest_sweep_pips = min(dist_h, dist_l)
+                elif label == "AL" and asian_low > 0:
+                    dist_h = abs(self._pips(symbol, bar_high, asian_low))
+                    dist_l = abs(self._pips(symbol, bar_low, asian_low))
+                    if min(dist_h, dist_l) < 5:
+                        retest_sweep_level = True
+                        retest_sweep_pips = min(dist_h, dist_l)
+
+        # ── Étape 5 : Déterminer reversal_h1 (statut sur H1) ──
+        if not sweep_timestamps:
+            reversal_h1 = "N/A"
+            reversal_h4 = "N/A"
+        elif bars_since_sweep > 20:
+            reversal_h1 = "FAILED"  # Trop vieux, plus pertinent
+            reversal_h4 = "FAILED"
+        elif fvg_post_sweep > 0 and cho_post_sweep:
+            reversal_h1 = "CONFIRMED"  # FVG + CHoCH = confirmation
+        elif fvg_post_sweep > 0 or cho_post_sweep:
+            reversal_h1 = "REVERSAL"  # Au moins un signe de retournement
+        else:
+            reversal_h1 = "SWEEP_ONLY"  # Sweep détecté mais pas de retournement
+
+        # reversal_h4 : CHoCH H4
+        if mss_h4_shift_detected in ("BULL", "BEAR") and sweep_timestamps:
+            if fvg4_post_ts > last_sweep_ts or fvg4_bull_post_ts > last_sweep_ts:
+                reversal_h4 = "CONFIRMED"
+            else:
+                reversal_h4 = "REVERSAL"
+        elif sweep_timestamps:
+            reversal_h4 = "SWEEP_ONLY"
+
+        # ── Étape 6 : Chaîne de confirmation ──
+        parts = []
+        if sweep_timestamps:
+            parts.append(f"{last_sweep_label} sweep")
+        if fvg_post_sweep > 0:
+            parts.append(f"FVG {fvg_post_sweep_dir}")
+        if cho_post_sweep:
+            parts.append("CHoCH")
+        if retest_sweep_level:
+            parts.append("retest")
+        if reversal_h1 == "CONFIRMED":
+            parts.append(f"✅ CONFIRMED {fvg_post_sweep_dir}")
+        elif reversal_h1 == "REVERSAL":
+            parts.append("↩️ REVERSAL")
+        elif reversal_h1 == "FAILED":
+            parts.append("❌ FAILED")
+
+        if parts:
+            reversal_chaine = " → ".join(parts)
+
+        return (bars_since_sweep, reversal_h1, reversal_h4,
+                fvg_post_sweep, fvg_post_sweep_dir,
+                retest_sweep_level, retest_sweep_pips,
+                cho_post_sweep, reversal_chaine)
+
     # ── TP calculation based on real levels ──
 
     def _compute_tp(
@@ -1633,9 +1840,32 @@ class DiamondScanner:
         brk_d1_bear_level = ob_d1_bull_level if (ob_d1_bull_mitigated and ob_d1_bull_level > 0 and price < ob_d1_bull_level) else 0.0
         brk_d1_bull_level = ob_d1_bear_level if (ob_d1_bear_mitigated and ob_d1_bear_level > 0 and price > ob_d1_bear_level) else 0.0
 
-        # ═══ Scoring (49 criteres max avec Breaker + vol + MSS + OB + TK4/TKd1/Kj4/KjD1 + Asian Sweep + M30 cross) ═══
+        # ═══ Reversal Pipeline (sweep → retournement → confirmation) ═══════
+        reversal = self._detect_reversal_pipeline(
+            symbol=sym, price=price,
+            h1_data=h1, asian_high=asian_high, asian_low=asian_low,
+            ah_swept=ah_swept, al_swept=al_swept, ah_at=ah_at, al_at=al_at,
+            lh_swept=lh_swept, ll_swept=ll_swept, lh_at=lh_at, ll_at=ll_at,
+            session_date=session_date,
+            h1_h=h1_h, h1_l=h1_l, h1_c=h1_c, h1_t=h1_t,
+            h4_h=h4_h, h4_l=h4_l, h4_c=h4_c, h4_t=h4_t,
+            mss_h1_regime_detected=mss_h1_regime, mss_h1_shift_detected=mss_h1_shift,
+            mss_h4_regime_detected=mss_h4_regime, mss_h4_shift_detected=mss_h4_shift,
+            fvg_top=fvg_top, fvg_bot=fvg_bot, fvg_date=fvg_date,
+            fvg_bull_top=fvg_bull_top, fvg_bull_bot=fvg_bull_bot, fvg_bull_date=fvg_bull_date,
+            fvg4_top=fvg4_top, fvg4_bot=fvg4_bot, fvg4_date=fvg4_date,
+            fvg4_bull_top=fvg4_bull_top, fvg4_bull_bot=fvg4_bull_bot, fvg4_bull_date=fvg4_bull_date,
+        )
+        (
+            bars_since_sweep, reversal_h1, reversal_h4,
+            fvg_post_sweep, fvg_post_sweep_dir,
+            retest_sweep_level, retest_sweep_pips,
+            cho_post_sweep, reversal_chaine
+        ) = reversal
+
+        # ═══ Scoring (58 criteres max avec Reversal Pipeline + Breaker + vol + MSS + OB + TK4/TKd1/Kj4/KjD1 + Asian Sweep + M30 cross) ═══
         score = 0
-        max_score = 64 if mn_available else 62
+        max_score = 73 if mn_available else 71
         crit: List[str] = []
         warnings: List[str] = []
         alignment = 0
@@ -1845,6 +2075,27 @@ class DiamondScanner:
             score += 1; crit.append("BRbH4")
         if brk_d1_bull_level > 0 and direction == 1:
             score += 1; crit.append("BRbD1")
+
+        # ═══ Reversal Pipeline Scoring (9 criteres) ═══════════════════
+        if bars_since_sweep >= 1 and bars_since_sweep <= 20:
+            score += 1; crit.append("RSW")
+        if reversal_h1 == "REVERSAL" or reversal_h1 == "CONFIRMED":
+            score += 1; crit.append("REVh1")
+        if reversal_h4 == "REVERSAL" or reversal_h4 == "CONFIRMED":
+            score += 1; crit.append("REVh4")
+        if reversal_h1 == "CONFIRMED":
+            score += 1; crit.append("CFh1")
+        if reversal_h4 == "CONFIRMED":
+            score += 1; crit.append("CFh4")
+        if fvg_post_sweep > 0:
+            score += 1; crit.append("FVGpost")
+        if retest_sweep_level:
+            score += 1; crit.append("RETEST")
+        if cho_post_sweep:
+            score += 1; crit.append("CHoCHps")
+        if reversal_chaine:
+            score += 1; crit.append("CHAIN")
+            alignment += 1
 
         # ── Warnings (TOUS les TFs) ──
         # Tenkan/Kijun barrier warnings (when price near but NOT aligned)
@@ -2191,6 +2442,11 @@ class DiamondScanner:
             brk_h1_bear_level=brk_h1_bear_level, brk_h1_bull_level=brk_h1_bull_level,
             brk_h4_bear_level=brk_h4_bear_level, brk_h4_bull_level=brk_h4_bull_level,
             brk_d1_bear_level=brk_d1_bear_level, brk_d1_bull_level=brk_d1_bull_level,
+            bars_since_sweep=bars_since_sweep,
+            reversal_h1=reversal_h1, reversal_h4=reversal_h4,
+            fvg_post_sweep=fvg_post_sweep, fvg_post_sweep_dir=fvg_post_sweep_dir,
+            retest_sweep_level=retest_sweep_level, retest_sweep_pips=retest_sweep_pips,
+            cho_post_sweep=cho_post_sweep, reversal_chaine=reversal_chaine,
             sl=sl, tp=tp, rr=rr, tp_label=tp_label, horizon=horizon,
             criteria=crit, warnings=warnings,
         )

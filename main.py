@@ -2193,6 +2193,26 @@ def _render_diamond_detail(r, lines: list):
         if brk_parts:
             lines.append(f"    {GRAY}BRK {tf_lbl}:{RESET} {' | '.join(brk_parts)}")
 
+    # Reversal Pipeline (sweep → retournement → confirmation)
+    if r.bars_since_sweep >= 0:
+        rev_color = {
+            "CONFIRMED": f"{GREEN}CONFIRMED{RESET}",
+            "REVERSAL": f"{YELLOW}REVERSAL{RESET}",
+            "SWEEP_ONLY": f"{DIM}SWEEP_ONLY{RESET}",
+            "FAILED": f"{RED}FAILED{RESET}",
+        }.get(r.reversal_h1, f"{GRAY}{r.reversal_h1}{RESET}")
+        lines.append(f"    {GRAY}Rev H1:{RESET} {rev_color}  "
+                     f"{GRAY}H4:{RESET} {r.reversal_h4}  "
+                     f"{GRAY}bar:{RESET} {r.bars_since_sweep}")
+        if r.fvg_post_sweep > 0:
+            dir_icon = "🔺" if r.fvg_post_sweep_dir == "BULL" else "🔻"
+            lines.append(f"    {GRAY}FVG post: {dir_icon} {r.fvg_post_sweep_dir}{RESET} "
+                         f"{GRAY}@{_fmt_price(r.fvg_post_sweep)}{RESET}")
+        if r.retest_sweep_level:
+            lines.append(f"    {GRAY}Retest:{RESET} {r.retest_sweep_pips:+.0f}p")
+        if r.reversal_chaine:
+            lines.append(f"    {GRAY}Chaine:{RESET} {r.reversal_chaine}")
+
     # Market Structure (MSS/BOS) — H1, H4, D1
     for tf_lbl in ["H1", "H4", "D1"]:
         regime = getattr(r, f"mss_{tf_lbl.lower()}_regime", "N/A")

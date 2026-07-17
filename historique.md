@@ -646,19 +646,53 @@ Warnings:
 | Timeframes analysés | M5, M15, M30, H1, H4, D1, W1, MN |
 | Concepts ICT | Sweeps, FVG, OB, MSS/BOS, CHoCH, HVN/LVN |
 
----
-
-
-| +Breaker Blocks | 64/62 | BRK (OB inverse) H1/H4/D1 |
-| +--volume-only | 64/62 | Option d'affichage filtre volume |
+| +Reversal Pipeline | 73/71 | Sweep→retournement→confirmation (9 criteres) |
 
 | Metrique | Valeur |
 |:---|---:|
-| Lignes de code `diamond_scanner.py` | ~2100 |
-| Methodes de detection | 14+ |
-| Criteres de scoring | 64 |
+| Lignes de code `diamond_scanner.py` | ~2350 |
+| Methodes de detection | 15+ |
+| Criteres de scoring | 73 |
 | Timeframes analyses | M5, M15, M30, H1, H4, D1, W1, MN |
-| Concepts ICT | Sweeps, FVG, OB, MSS/BOS, CHoCH, HVN/LVN, Breaker Blocks |
+| Concepts ICT | Sweeps, FVG, OB, MSS/BOS, CHoCH, HVN/LVN, Breaker Blocks, Reversal Pipeline |
+
+---
+
+## 17/07/2026 — Session Reversal Pipeline (sweep → retournement → confirmation)
+
+### 🆕 Reversal Pipeline — Nouveau concept #5 dans le Diamond Scanner
+
+**Concept :** Détection du pipeline complet sweep → retournement → confirmation,
+quel que soit le moment où le scan est lancé (T+0 ou T+10 barres après le sweep).
+
+**Ajouts dans `DiamondResult` :** 9 nouveaux champs :
+- `bars_since_sweep: int` — barres H1 écoulées depuis le dernier sweep
+- `reversal_h1/rerversal_h4: str` — SWEEP_ONLY / REVERSAL / CONFIRMED / FAILED
+- `fvg_post_sweep: float` + `fvg_post_sweep_dir: str` — FVG créé APRÈS le sweep
+- `retest_sweep_level: bool` + `retest_sweep_pips: float` — retest du niveau sweepé
+- `cho_post_sweep: bool` — Change of Character après le sweep
+- `reversal_chaine: str` — chaîne lisible : "AH sweep → FVG BEAR → CHoCH → ✅ CONFIRMED"
+
+**Méthode :** `_detect_reversal_pipeline(...)`
+1. Compter les barres H1 depuis le dernier sweep
+2. Vérifier si un FVG a été créé APRÈS le sweep (comparaison de timestamps)
+3. Vérifier un CHoCH (MSS shift) en réaction au sweep
+4. Détecter un retest du niveau sweepé (barre revenue dans les 5 pips)
+5. Déterminer le statut : SWEEP_ONLY → REVERSAL → CONFIRMED → FAILED
+6. Construire la chaîne de confirmation lisible
+
+**Scoring (max_score: 73/71) :** 9 critères : RSW, REVh1, REVh4, CFh1, CFh4,
+FVGpost, RETEST, CHoCHps, CHAIN
+
+**Fixes de qualité :**
+- `fvg4_post_ts` initialisé en début de méthode (plus de NameError)
+- `self._pips()` utilisé pour le retest (facteurs corrects XAUUSD/JPY/DXY)
+- Plus de `locals().get()` — accès direct aux variables toujours initialisées
+
+**Affichage console :** `Rev H1: ✅ CONFIRMED  H4: SWEEP_ONLY  bar: 5`
+`FVG post: 🔻 BEAR @1.14433` | `Chaine: AH sweep → FVG BEAR → CHoCH → ✅ CONFIRMED`
+
+**Fichiers modifiés :** `src/diamond_scanner.py`, `main.py`, `historique.md`
 
 ---
 
@@ -710,3 +744,41 @@ Affichage : Vol H1/H4/D1 avec volume moyen, HVN, LVN, SPIKE.
 **Tous en WAIT** — aucun setup STRONG/GOOD actuellement.
 
 ---
+
+## 17/07/2026 — Leçon : Tenkan + Kijun = double obstacle (pas de hiérarchie)
+
+### 📝 Note : Tenkan + Kijun = obstacles co-égaux sur EURJPY
+
+**Contexte :** Analyse détaillée EURJPY à 185.800, biais BULL, score 38/64 (meilleur de la watchlist).
+
+J'ai listé la Tenkan H1 (185.834, −3p) comme obstacle prioritaire en l'appelant
+"le vrai verrou", tout en reléguant la Kijun H1 (185.866, −7p) en 4ème position
+dans le tableau des obstacles. Les deux niveaux étaient présents, mais le ton
+suggérait une hiérarchie qui n'existe pas.
+
+**Rappel :**
+```
+Obstacle #1 : Tenkan H1 185.834 (−3p)
+Obstacle #2 : Kijun H1 185.866 (−7p)
+TK cross H1 = BEAR (Tenkan < Kijun) → le prix doit casser les DEUX
+```
+
+**Les deux sont aussi importants.** Le TK cross donne le contexte (TK < Kj = BEAR,
+TK > Kj = BULL). L'ordre de listing se fait par distance, pas par importance.
+
+### ✓ Ce qui était correct dans l'analyse
+
+- Biais BULL structurel (H4/D1) : correct
+- OB/BRK supports solides : correct
+- Conflit M30 Kijun BEAR : correct
+- Qualité WAIT : correct
+
+### Méthode recommandée pour les obstacles
+
+```
+Double obstacle H1 — BULL nécessite cassure des deux :
+  1. Tenkan H1 185.834 (−3p)
+  2. Kijun H1 185.866 (−7p)
+  TK cross H1 = BEAR (Tenkan < Kijun)
+  → Pas de BULL H1 tant que les deux ne sont pas franchis
+```
