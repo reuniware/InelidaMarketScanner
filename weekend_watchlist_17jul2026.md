@@ -139,9 +139,85 @@
 | Priorité | Symbole | Niveau à surveiller | Scénario |
 |:---:|:---|:---|:---|
 | 🥇 | **USDJPY** | Kijun H1 **162.323** | Si tient → BULL vers 162.584 |
-| 🥈 | **XAUUSD** | Asian High **4008.47** | Rejet probable → short vers 3991/3970 |
-| 🥉 | **DXY.cash** | Kijun D1 **100.588** | Support de semaine, cassure = accélération |
-| 4 | **EURUSD** | Range **1.143–1.145** | Breakout attendu après le week-end |
+| 🥈 | **GBPJPY** 🆕 | TKx H1 flip BULL | Best combo volatilité×score — voir plan détaillé |
+| 🥉 | **XAUUSD** | Asian High **4008.47** | Rejet probable → short vers 3991/3970 |
+| 4 | **DXY.cash** | Kijun D1 **100.588** | Support de semaine, cassure = accélération |
+| 5 | **EURUSD** | Range **1.143–1.145** | Breakout attendu après le week-end |
+
+---
+
+## 🇯🇵 GBPJPY — Plan de trade Lundi 20/07 🆕
+
+> **Meilleur combo volatilité×score : ATR 0.100% + Score 51/109**  
+> **Prix clôture : 218.612 | Biais : BULL | Qualité : WAIT (TKx H1 BEAR)**
+
+### Structure Ichimoku
+
+| TF | T/Kx | Kumo | Prix vs Kijun |
+|:---|:---|:---|:---|
+| H1 | **BEAR** ❌ | INSIDE | Au-dessus (218.464) |
+| H4 | **BULL** ✅ | ABOVE ✅ | Au-dessus (218.132) |
+| D1 | **BULL** ✅ | ABOVE ✅ | Au-dessus (216.000) |
+
+### Niveaux clés
+
+| Niveau | Prix | Rôle |
+|:---|---:|:---|
+| **Prix clôture** | **218.612** | — |
+| LVN H1 | 218.676 | Zone faible volume → accélération possible |
+| HVN H1 | 218.595 | Support volume |
+| OB BULL H1 | 218.478 | Support order block |
+| **Kijun H1** 🔑 | **218.464** | Support clé — SL agressif |
+| **London Low** | **218.230** | SWEEPÉ → signal ICT buy |
+| **Kijun H4** 🛡️ | **218.132** | SL conservateur |
+| Kijun D1 | 216.000 | Support structurel |
+| BRK BULL H4 | 216.064 | Support breaker block |
+
+### Objectifs haussiers
+
+| Niveau | Prix | Rôle |
+|:---|---:|:---|
+| **London High** 🎯 | **218.814** | TP1 — pas encore sweepé |
+| **Round 219.000** 🎯 | **219.000** | TP2 — psychologique |
+
+### FVG non-mitigés (demande fraîche)
+
+| TF | Type | Statut |
+|:---|:---|:---|
+| M5 | BULL | ✅ NON-MITIGÉ |
+| M15 | BULL | ✅ NON-MITIGÉ |
+| M30 | BULL | 47% mitigé |
+| D1 | BULL | ✅ NON-MITIGÉ |
+
+### Signaux
+
+| ✅ Haussiers | ⚠️ Risques |
+|:---|:---|
+| LL sweepé (piège à vendeurs ICT) | TKx H1 BEAR → conflit Leçon #9 |
+| FVG M5/M15 BULL non-mitigés | Kumo H1 INSIDE → indécision |
+| OB BULL H1 218.478 intact | HIGH NEWS DAY → downgrade BULL |
+| M5/M15 Tenkan cross BULL | Vendredi soir → gaps possibles |
+| BRK BULL H4 216.064 support | |
+| HVN 218.595 support volume | |
+
+### Plan d'entrée
+
+| Scénario | Déclencheur | Entry | SL | TP1 | TP2 |
+|:---|:---|:---|:---|:---|:---|
+| **A 🟢** | TKx H1 flip BULL + prix > 218.60 | 218.60 | 218.13 | 218.81 | 219.00 |
+| **B 🟡** | Pullback Kijun H1 sans casser | 218.46 | 218.23 | 218.81 | 219.00 |
+| **C 🔴** | Cassure LH 218.81 | 218.85 | 218.46 | 219.00 | 219.40 |
+
+### ⏱️ Timing
+
+| Heure Paris | Action |
+|:---|:---|
+| 09:00 | Vérifier TKx H1 — a-t-il flipé BULL ? |
+| 09:30 | Si TKx H1 BULL + prix > Kj H1 → scénario A |
+| 10:00 | Confirmation bougie H1 Londres |
+| 15:30 | Si pas de cassure LH → setup affaibli |
+
+> **🔑 Condition unique : TKx H1 doit passer BULL.** Tant que TK < KJ sur H1, le trade est condamné (0/5 gagnants en backtest). Dès que TK > KJ, tout s'aligne.
 
 ---
 
