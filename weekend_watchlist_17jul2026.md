@@ -233,4 +233,62 @@
 
 ---
 
-*Généré automatiquement par InelidaMarketScan — Diamond Scanner v109 critères — 17/07/2026 22:00 BROKER*
+## 🧲 BSL/SSL — Liquidités en attente (31 niveaux non sweepés)
+
+> **BSL** = Buy-Side Liquidity (résistance au-dessus, aimant haussier)  
+> **SSL** = Sell-Side Liquidity (support en-dessous, aimant baissier)
+
+### Top 5 les plus proches du prix
+
+| Symbole | Type | Source | Niveau | Distance | Contexte |
+|:---|:---|:---|:---|:---|:---|
+| NZDUSD | BSL | AH | 0.58485 | 0.5p | AH non sweepé |
+| EURGBP | SSL | LL | 0.84947 | 0.7p | LL non sweepé |
+| AUDUSD | BSL | LH | 0.69903 | 0.7p | London High intact |
+| EURUSD | BSL | LH | 1.14522 | 1.3p | AH+AL sweepés, LH intact |
+| USDCHF | BSL | AH=LH | 0.80927 | 1.8p | 🔥 Confluence AH=LH |
+
+### 🔥 Confluences BSL/SSL (double aimant)
+
+| Symbole | Niveau | Type | Pourquoi |
+|:---|:---|:---|:---|
+| **GBPAUD** | **1.92972** | BSL AH = BSL LH | Ni AH ni LH sweepés → aimant monstrueux |
+| **USDCHF** | **0.80927** | BSL AH = BSL LH | Même setup, confluence parfaite |
+| **GBPJPY** | **218.814** | BSL LH | Confirme le plan — objectif naturel lundi |
+
+---
+
+## 📊 Synthèse décisionnelle — Lundi 20/07/2026
+
+### Contexte
+
+| Facteur | Statut |
+|:---|:---|
+| Marché | Clôture NY vendredi — tous les symboles WAIT |
+| Scoring | 0 STRONG / 0 GOOD / 13 WAIT (3 filtres P0/P1) |
+| Volatilité | XAUUSD 0.40% ATR > US30 0.32% > US500 0.29% > GBPJPY 0.10% |
+| Liquidité | 31 niveaux BSL/SSL en attente sur 17 symboles |
+| Macro | HIGH NEWS DAY (6 événements) — attendre lundi pour reset |
+
+### Plan d'action lundi
+
+| Heure Paris | Action |
+|:---|:---|
+| 09:00 | Scan Diamond GBPJPY + GBPAUD — vérifier TKx H1 |
+| 09:00 | Vérifier si NZDUSD a gappé au-dessus de son BSL AH (0.58485) |
+| 09:30 | Si GBPJPY TKx H1 BULL → scénario A (entry 218.60, SL 218.13) |
+| 10:00 | Confirmation bougie H1 Londres pour tous les setups |
+| 15:30 | Si LH non sweepées → setups affaiblis, attendre mardi |
+
+### Check-list ouverture
+
+- [ ] GBPJPY : TKx H1 flip BULL ? (condition unique)
+- [ ] GBPAUD : BSL AH=LH @ 1.92972 toujours intact ?
+- [ ] USDCHF : BSL AH=LH @ 0.80927 toujours intact ?
+- [ ] NZDUSD : gap au-dessus de 0.58485 ?
+- [ ] DXY : Kijun D1 @ 100.588 tient ?
+- [ ] XAUUSD : rejet sous 4008 confirmé ?
+
+---
+
+*Généré automatiquement par InelidaMarketScan — Diamond Scanner v109 critères — 17/07/2026 23:00 BROKER*
