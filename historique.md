@@ -637,6 +637,8 @@ Warnings:
 | +Order Blocks | 40/38 | OB H1/H4/D1 bear+bull + multi-TF bonus |
 | +MSS/BOS | 49/47 | Régime + BOS + CHoCH H1/H4/D1 |
 | +Volume | 58/56 | VOL spike + HVN + LVN H1/H4/D1 |
+| +Breaker Blocks | 64/62 | BRK (OB inverse) H1/H4/D1 |
+| +Reversal Pipeline | 73/71 | Sweep→retournement→confirmation (9 criteres) |
 
 | Métrique | Valeur |
 |:---|---:|
