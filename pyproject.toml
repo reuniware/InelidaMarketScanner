@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "inelida-marketscan"
-version = "1.0.1"
+version = "1.0.2"
 description = "Scanner multi-TF ICT x Ichimoku automatise — Diamond Analysis, Asian Sweeps, P&L Tracker"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/reuniware/InelidaMarketScanner"
+Homepage = "https://reuniware.vercel.app"
 Documentation = "https://github.com/reuniware/InelidaMarketScanner/blob/main/GUIDE_UTILISATEUR.md"
 Repository = "https://github.com/reuniware/InelidaMarketScanner"
 Issues = "https://github.com/reuniware/InelidaMarketScanner/issues"
