@@ -127,7 +127,26 @@ def train(X, y, feature_names, test_size: float = 0.2,
     if len(X) < 10:
         logger.warning("Seulement %d échantillons — entraînement peu fiable.", len(X))
 
+    # Vérifier qu'on a au moins 2 classes pour l'entraînement binaire
+    unique_classes = np.unique(y)
+    if len(unique_classes) < 2:
+        msg = (
+            f"Impossible d'entraîner un classifieur binaire avec {len(X)} échantillon(s) "
+            f"d'une seule classe ({list(unique_classes)}). "
+            f"Il faut au moins 1 trade GAGNÉ (outcome=1) ET 1 trade PERDU (outcome=0). "
+            f"Ajoute des trades avec l'outcome manquant au CSV."
+        )
+        logger.error(msg)
+        raise ValueError(msg)
+
     # Split train/test (gère les très petits datasets)
+    # Helper: stratify seulement si chaque classe a ≥2 échantillons (sinon sklearn crash)
+    def _safe_stratify(y_arr):
+        if len(np.unique(y_arr)) < 2:
+            return None
+        _, counts = np.unique(y_arr, return_counts=True)
+        return y_arr if np.min(counts) >= 2 else None
+
     if len(X) < 2:
         # Pas de split possible — on entraîne sur 100% des données
         logger.warning("Seulement %d échantillon — pas de split train/test", len(X))
@@ -140,12 +159,12 @@ def train(X, y, feature_names, test_size: float = 0.2,
         actual_test_size = n_test / len(X)
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=actual_test_size, random_state=42,
-            stratify=y if len(np.unique(y)) > 1 else None
+            stratify=_safe_stratify(y)
         )
     else:
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=test_size, random_state=42,
-            stratify=y if len(np.unique(y)) > 1 else None
+            stratify=_safe_stratify(y)
         )
         actual_test_size = test_size
 
@@ -159,7 +178,7 @@ def train(X, y, feature_names, test_size: float = 0.2,
 
     model = xgb.XGBClassifier(
         **merged_params,
-        early_stopping_rounds=20,
+        early_stopping_rounds=20 if len(X_test) > 0 else None,
     )
 
     logger.info("Entraînement XGBoost (%d features, %d échantillons)...", len(feature_names), len(X_train))
@@ -186,10 +205,22 @@ def train(X, y, feature_names, test_size: float = 0.2,
     logger.info("  F1 Score  : %.3f", f1)
     logger.info("=" * 60)
 
-    # Cross-validation (si assez de données)
+    # Cross-validation manuelle (évite le bug XGBoost 2.0+ avec early_stopping + cross_val_score)
     if len(X) >= 30:
-        cv_scores = cross_val_score(model, X, y, cv=min(5, len(X) // 5), scoring="accuracy")
-        logger.info("  CV Accuracy: %.1f%% (+/- %.1f%%)", cv_scores.mean() * 100, cv_scores.std() * 100)
+        from sklearn.model_selection import KFold
+        kf = KFold(n_splits=min(5, len(X) // 5), shuffle=True, random_state=42)
+        cv_scores = []
+        for train_idx, val_idx in kf.split(X):
+            model_cv = xgb.XGBClassifier(**merged_params)
+            model_cv.fit(X[train_idx], y[train_idx],
+                         eval_set=[(X[val_idx], y[val_idx])],
+                         verbose=False)
+            preds = model_cv.predict(X[val_idx])
+            cv_scores.append(accuracy_score(y[val_idx], preds))
+        if cv_scores:
+            cv_mean = np.mean(cv_scores)
+            cv_std = np.std(cv_scores)
+            logger.info("  CV Accuracy: %.1f%% (+/- %.1f%%)", cv_mean * 100, cv_std * 100)
 
     # Matrice de confusion
     cm = confusion_matrix(y_test, y_pred)

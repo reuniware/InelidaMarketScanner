@@ -418,6 +418,9 @@ class DiamondResult:
     london_high_swept_session: str = ""
     london_low_swept_session: str = ""
 
+    # FOMC Day flag (mercredi — volatilite elevee)
+    is_fomc_day: bool = False
+
     # Reversal Pipeline (sweep → retournement → confirmation)
     bars_since_sweep: int = -1       # barres H1 depuis le dernier sweep
     reversal_h1: str = "N/A"         # "SWEEP_ONLY", "REVERSAL", "CONFIRMED", "FAILED"
@@ -2849,6 +2852,19 @@ class DiamondScanner:
 
         # ── ML Prediction ──
         self._predict_ml(r)
+
+        # ── FOMC Day (Wednesday) Flag ──
+        # Lecon #6b : day_wednesday est la feature #1 du modele DXY (gain=1.92)
+        # et la #6 du modele unifie (gain=6.4). Les mercredis FOMC changent
+        # radicalement la dynamique du dollar et des marches.
+        # Ce flag est autonome (hors ML) pour alerter le trader visuellement.
+        _fomc_now = datetime.now(UTC)
+        if _fomc_now.weekday() == 2:  # Mercredi = 2
+            r.is_fomc_day = True
+            r.warnings.append(
+                "FOMC WEDNESDAY: volatilite elevee — les tendances directionnelles "
+                "sont moins fiables, privilegier les retracements/breakouts hesitants"
+            )
 
         # ── News Risk Filter ──
         # ── Correctif P0 : Contre-biais HIGH NEWS DAY ──

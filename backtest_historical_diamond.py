@@ -750,8 +750,17 @@ class HistoricalDiamondScanner:
             compression_pips=0.0,
         )
 
+        # DXY price at scan date (for cross-pair features, avoid data leakage)
+        _dxy_price_ht = 0.0
+        try:
+            _dxy_h1 = self._fetch_rates("DXY.cash", mt5.TIMEFRAME_H1, 2)
+            if _dxy_h1 and len(_dxy_h1) > 1:
+                _dxy_price_ht = float(_dxy_h1[-1][3])  # close of last H1 before scan_date
+        except Exception:
+            pass
+
         # Extraire les 100+ features nommées via le vrai extract_features()
-        feats = extract_features(result, scan_time=self.scan_date)
+        feats = extract_features(result, scan_time=self.scan_date, dxy_price_ht=_dxy_price_ht)
 
         # Ajouter la colonne outcome (cible ML)
         feats["outcome"] = float(outcome)
