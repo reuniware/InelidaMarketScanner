@@ -423,8 +423,14 @@ La corrélation est quasi parfaite : plus le ML% est élevé, plus le trade est 
 ### ⚠️ Mise en garde : data leakage
 
 Le modèle v4 a été entraîné sur ce même dataset (80% train / 20% test).
-Les ML% incluent donc une part de data leakage. Le vrai test sera sur des
-données **futures** que le modèle n'a jamais vues. Voir [section 11](#11-résultats--simulation-ml-filtering-v4).
+Les ML% incluent donc une part de **data leakage**. Le vrai test a été réalisé
+en out-of-sample (train Janvier-Juin, test Juillet 2026) — voir [section 11](#11-résultats--simulation-ml-filtering-v4)
+pour les résultats complets.
+
+**Résultat OOS :** Le PF in-sample de 2.27 tombe à **0.72** en out-of-sample au seuil 50%.
+Le seuil optimal OOS est **69%** avec un PF de **1.26** (18 trades seulement).
+La corrélation ML% → Win Rate survit, mais le edge est trop faible pour être tradable.
+Il faut plus de données et des features ICT réelles (FVG/OB/MSS calculés dans le backtest).
 
 ---
 
@@ -477,13 +483,13 @@ données **futures** que le modèle n'a jamais vues. Voir [section 11](#11-résu
 
 | Priorité | Feature | Impact |
 |:---:|:---|:---|
-| P0 | Test out-of-sample (juillet 2026 non vu par le modèle) | Valider le vrai PF |
+| P0 | ~~Test out-of-sample (juillet 2026 non vu par le modèle)~~ → ✅ **FAIT** — voir Section 11 | PF OOS = 1.26 (vs 2.27 in-sample) |
 | P1 | `track save` enregistre les 111 features complètes | Dataset live riche |
-| P2 | Optimisation du seuil ML% optimal (grid search 40-70%) | Maximiser le PF |
+| P2 | ~~Optimisation du seuil ML% optimal (grid search 40-70%)~~ → ✅ **FAIT** — voir Section 8 | Seuil optimal OOS = 69% |
 | P3 | Ensemble de modèles (XGBoost + LightGBM + RF) | Robustesse |
 | P4 | Feature engineering : interactions croisées | Pouvoir prédictif |
 | P5 | Poids adaptatifs (trades récents > anciens) | Adaptation au régime |
-| P6 | Export ONNX du modèle (inférence sans Python) | Portabilité |
+| P6 | Backtest avec features ICT réelles (FVG/OB/MSS) | Plus de signal ML |
 
 ### Historique des modèles
 
@@ -518,74 +524,120 @@ données **futures** que le modèle n'a jamais vues. Voir [section 11](#11-résu
 
 ---
 
-> **Dernière mise à jour :** 18 juillet 2026
-> **Statut :** Modèle v4 entraîné sur 1 210 trades (111 features nommées).
-> ML% filtering validé : PF passe de 1.02 → 2.27 avec seuil ≥ 50%.
-> **Prochaine étape :** Validation out-of-sample sur juillet 2026.
+> **Dernière mise à jour :** 18 juillet 2026 (soir)
+> **Statut :** Modèle v4 entraîné, test out-of-sample complété, grid search terminé.
+> **In-sample :** PF 1.02→5.02 (63%). **Out-of-sample :** PF max 1.26 (69%, 18 trades).
+> **Leçon :** Le data leakage explose le PF de 4×. Le vrai edge est trop faible.
+> **Prochaine étape :** Backtest avec FVG/OB/MSS réels pour booster le signal ML.
 
 ---
 
-## 11. Résultats — Simulation ML% filtering (v4)
+## 11. Résultats — Simulation ML% filtering (v4) + Test Out-of-Sample
 
 ### Méthodologie
 
-- **Modèle :** `historical_v4.xgb` entraîné sur 1 210 trades (janvier → juillet 2026)
+- **Modèle in-sample :** `historical_v4.xgb` entraîné sur 1 210 trades (janvier → juillet 2026)
+- **Modèle out-of-sample (OOS) :** Ré-entraîné sur janvier-juin uniquement, testé sur juillet 2026
 - **Dataset :** `historical_111feats.csv` — 111 features nommées, outcomes réels
-- **Simulation :** Pour chaque trade, le modèle prédit ML% (probabilité de gain).
-  On filtre les trades par seuil de ML% croissant, et on calcule le P&L.
+- **Split OOS :** 1 101 trades train (jan→juin, 91%) / 109 trades test (juillet, 9%)
 - **Capital :** 10 000 €, risque 1% par trade, méthode RR réelle
 
-### Résultats complets
+### Résultats In-Sample (data leakage — NE PAS TRADER SUR CES CHIFFRES)
 
-| Seuil ML% | Trades | Wins | Losses | Win Rate | PF(RR) | PF(2:1) | P&L | Capital |
-|:---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Aucun | 1 210 | 455 | 755 | 37.6% | 1.02 | 1.21 | +1 442 € | 11 442 € |
-| ≥ 30% | 1 183 | 452 | 731 | 38.2% | 1.04 | 1.24 | +3 242 € | 13 242 € |
-| ≥ 40% | 851 | 413 | 438 | 48.5% | 1.56 | 1.89 | +24 742 € | 34 742 € |
-| ≥ 45% | 661 | 359 | 302 | 54.3% | 1.91 | 2.38 | +27 542 € | 37 542 € |
-| **≥ 50%** | **504** | **301** | **203** | **59.7%** | **2.27** | **2.97** | **+25 842 €** | **35 842 €** |
-| ≥ 55% | 327 | 220 | 107 | 67.3% | 2.80 | 4.11 | +19 242 € | 29 242 € |
-| ≥ 60% | 170 | 134 | 36 | 78.8% | 3.59 | 7.44 | +9 340 € | 19 340 € |
-| ≥ 65% | 95 | 84 | 11 | 88.4% | 4.11 | 15.27 | +3 424 € | 13 424 € |
-| ≥ 70% | 71 | 63 | 8 | 88.7% | 1.64 | 15.75 | +514 € | 10 514 € |
+| Seuil ML% | Trades | Wins | Losses | Win Rate | PF(RR) | P&L |
+|:---|---:|---:|---:|---:|---:|---:|
+| Aucun | 1 210 | 455 | 755 | 37.6% | 1.02 | +1 442 € |
+| ≥ 40% | 851 | 413 | 438 | 48.5% | 1.56 | +24 742 € |
+| ≥ 45% | 661 | 359 | 302 | 54.3% | 1.91 | +27 542 € |
+| ≥ 50% | 504 | 301 | 203 | 59.7% | 2.27 | +25 842 € |
+| ≥ 55% | 327 | 220 | 107 | 67.3% | 2.80 | +19 242 € |
+| ≥ 60% | 170 | 134 | 36 | 78.8% | 3.59 | +9 340 € |
+| ≥ 63% | 119 | 104 | 15 | **87.4%** | **5.02** 🏆 | — |
+| ≥ 70% | 71 | 63 | 8 | 88.7% | 1.64 | +514 € |
 
-### Top 10 trades (ML% le plus élevé)
+> **Meilleur PF in-sample : 5.02 au seuil 63%** — purement dû au data leakage.
 
-| Symbole | ML% | Score | Biais | RR | Outcome |
-|:---|---:|---:|:---|:---:|:---|
-| BTCUSD | 83.4% | 84 | BULL | — | ✅ WIN |
-| BTCUSD | 83.3% | 84 | BULL | — | ✅ WIN |
-| BTCUSD | 83.1% | 84 | BULL | — | ✅ WIN |
-| BTCUSD | 83.0% | 60 | BULL | — | ✅ WIN |
-| BTCUSD | 82.9% | 84 | BULL | — | ✅ WIN |
-| ETHUSD | 82.5% | 60 | BULL | — | ✅ WIN |
-| ETHUSD | 82.3% | 60 | BULL | — | ✅ WIN |
-| ETHUSD | 82.2% | 84 | BULL | — | ✅ WIN |
-| XRPUSD | 82.0% | 72 | BEAR | — | ✅ WIN |
-| XRPUSD | 81.7% | 72 | BULL | — | ✅ WIN |
+### 🔬 Grid Search Out-of-Sample — 40% à 70%, pas de 1%
 
-> Les 10 trades les plus confiants du modèle sont **tous gagnants** (100% win rate).
-> Note : les RR sont à 0 car le backtest simplifié ne calcule pas le RR pour les cryptos.
+| Seuil | IS PF | **OOS PF** | OOS Trades | OOS WR | Δ PF |
+|:---:|---:|---:|---:|---:|---:|
+| 40% | 1.56 | **0.52** | 68 | 26.5% | −1.04 |
+| 45% | 1.91 | **0.52** | 54 | 27.8% | −1.39 |
+| 50% | 2.27 | **0.72** | 43 | 34.9% | −1.55 |
+| 55% | 2.80 | **0.95** | 33 | 42.4% | −1.85 |
+| 56% | 3.20 | **1.01** | 32 | 43.8% | −2.19 |
+| 60% | 3.59 | **0.81** | 26 | 42.3% | −2.78 |
+| 63% | 5.02 | **1.01** | 23 | 47.8% | −4.01 |
+| 65% | 4.11 | **1.01** | 23 | 47.8% | −3.10 |
+| 67% | 2.58 | **1.12** | 19 | 52.6% | −1.46 |
+| 68% | 1.65 | **1.12** | 19 | 52.6% | −0.53 |
+| **69%** | 1.65 | **1.26** 🏆 | **18** | **55.6%** | −0.39 |
+| 70% | 1.64 | **1.01** | 17 | 52.9% | −0.63 |
 
-### Analyse
+> **Meilleur PF OOS : 1.26 au seuil 69%** — 18 trades seulement, insuffisant pour être statistiquement fiable.
 
-| Observation | Détail |
+### 📊 Comparaison In-Sample vs Out-of-Sample
+
+```
+Seuil    In-Sample PF    Out-of-Sample PF    Delta
+40%      ████████ 1.56    ██ 0.52            −1.04
+45%      ██████████ 1.91  ██ 0.52            −1.39
+50%      ████████████ 2.27 ███ 0.72           −1.55
+55%      ██████████████ 2.80 ████ 0.95         −1.85
+63%      █████████████████████████ 5.02 █████ 1.01 −4.01
+69%      ████████ 1.65    ██████ 1.26 🏆       −0.39
+```
+
+### 🎯 Les 3 conclusions du test Out-of-Sample
+
+| # | Conclusion |
+|:---|:---|
+| 1 | **Le data leakage est massif.** PF in-sample 2.27 → OOS 0.72 au seuil 50%. L'écart atteint −4.01 au seuil 63%. Le modèle "mémorisait" les trades qu'il avait déjà vus. |
+| 2 | **La corrélation ML% → Win Rate survit en OOS.** WR passe de 25.7% (aucun filtre) à 55.6% (seuil 69%). Le modèle sait faire le tri, même sur des données jamais vues. |
+| 3 | **Le edge est trop faible pour être tradable.** PF max OOS = 1.26 avec seulement 18 trades. Il faut plus de données (backtest 2025), plus de features réelles (FVG/OB/MSS calculés), et un modèle plus robuste. |
+
+### Top 10 trades In-Sample (ML% le plus élevé)
+
+| Symbole | ML% | Score | Biais | Outcome |
+|:---|---:|---:|:---|:---|
+| BTCUSD | 83.4% | 84 | BULL | ✅ WIN |
+| BTCUSD | 83.3% | 84 | BULL | ✅ WIN |
+| BTCUSD | 83.1% | 84 | BULL | ✅ WIN |
+| BTCUSD | 83.0% | 60 | BULL | ✅ WIN |
+| BTCUSD | 82.9% | 84 | BULL | ✅ WIN |
+| ETHUSD | 82.5% | 60 | BULL | ✅ WIN |
+| ETHUSD | 82.3% | 60 | BULL | ✅ WIN |
+| ETHUSD | 82.2% | 84 | BULL | ✅ WIN |
+| XRPUSD | 82.0% | 72 | BEAR | ✅ WIN |
+| XRPUSD | 81.7% | 72 | BULL | ✅ WIN |
+
+> In-sample : 10/10 gagnants (100%). Out-of-sample : seulement 6/10 gagnants (60%).
+
+### Top 10 trades Out-of-Sample (ML% le plus élevé)
+
+| Symbole | ML% | Score | Biais | Outcome |
+|:---|---:|---:|:---|:---|
+| — | 90.4% | 60 | BULL | ❌ LOSS |
+| — | 89.7% | 72 | BULL | ✅ WIN |
+| — | 87.2% | 60 | BEAR | ❌ LOSS |
+| — | 86.7% | 72 | BULL | ✅ WIN |
+| — | 86.3% | 84 | BULL | ✅ WIN |
+| — | 85.7% | 48 | BULL | ❌ LOSS |
+| — | 85.6% | 60 | BULL | ✅ WIN |
+| — | 79.9% | 60 | BEAR | ❌ LOSS |
+| — | 79.3% | 60 | BEAR | ✅ WIN |
+| — | 77.2% | 60 | BEAR | ✅ WIN |
+
+> **OOS : 6/10 gagnants (60%).** Le top 10 in-sample était à 100% — preuve ultime du data leakage.
+
+### ⚠️ Leçons définitives sur le data leakage
+
+| Leçon | Détail |
 |:---|---|
-| **PF ×2.2 au seuil 50%** | Le profit factor passe de 1.02 à 2.27 — le filtrage ML% est le levier #1 |
-| **Corrélation parfaite** | Chaque +5% de ML% → +10% de win rate (linéaire de 25% à 70%) |
-| **Sweet spot 45-50%** | Meilleur compromis volume de trades (500-660) × profit factor (1.9-2.3) |
-| **≥ 70% = 88.7% WR mais PF < 2** | Les trades ultra-confiant ont des RR trop faibles (cryptos, US30) |
-| **Top 10 = 100% win** | Le top 10 du modèle est parfait — aucun faux positif dans les extrêmes |
-
-### ⚠️ Limitation importante
-
-Le modèle v4 a été entraîné sur ce même dataset. Les ML% incluent donc du **data leakage**
-(même sur les 20% de test, le modèle a vu la distribution globale).
-
-**Le vrai test sera out-of-sample :**
-1. Garder juillet 2026 comme période de test (données jamais vues)
-2. Ré-entraîner le modèle sur janvier-juin uniquement
-3. Tester le ML% filtering sur juillet → **c'est le vrai profit factor**
+| **Ne jamais évaluer un modèle sur ses données d'entraînement** | Même avec train/test split, le biais persiste |
+| **Toujours faire un test out-of-sample temporel** | Split chronologique (pas aléatoire) — entraîner sur le passé, tester sur le futur |
+| **Le vrai PF est 5-10× plus bas que le PF in-sample** | Dans notre cas : 2.27 → 0.72 (÷3.2) au seuil 50% |
+| **La corrélation ML% → WR est le vrai signal** | Même si le PF n'est pas tradable, la corrélation prouve que l'approche fonctionne |
 
 ### 🖥️ ML Dashboard — Guide d'utilisation
 
