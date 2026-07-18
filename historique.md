@@ -1388,3 +1388,59 @@ USDJPY : [HIGH NEWS DAY: biais BULL downgrade] ✅
 > **Plus grosse leçon :** Sans filtres = 0% win rate. Avec les 3 correctifs = tout bloqué quand il faut.  
 > **La confiance vient du backtest, pas du scoring.**
 
+
+---
+
+## 18/07/2026 — Correctifs ML Pipeline (load_data, outcome counting, CSV cache)
+
+### 🐛 3 bugs corrigés dans le pipeline ML
+
+| Bug | Fichier | Symptôme | Correctif |
+|:---|:---|:---|:---|
+| `load_data()` retour 2 valeurs | `src/ml_trainer.py` | `ValueError: not enough values to unpack` si fichier inexistant | `return None, None, None` |
+| Outcome counting en mode scan | `app_ml.py` | Tous les trades sans outcome comptés comme "perdants" (0% win rate trompeur) | `any("outcome" in r...)` avant de compter |
+| Triple lecture CSV Training tab | `app_ml.py` | 3× `pd.read_csv()` au lieu d'1 → lent, pas de cache | `_load_csv_cached()` unique |
+
+### 🆕 ML Dashboard — 7 onglets
+
+L'interface Streamlit `app_ml.py` est maintenant complète avec **7 onglets** :
+
+| Onglet | Fonction | Barre de progression |
+|:---|:---|:---:|
+| 📊 Dashboard | Vue d'ensemble MT5/DB/modèle | — |
+| 🏷️ Labeling | 3 sources (DB/manual/scan) + suivi auto DB | ✅ `st.progress()` |
+| 🏋️ Training | XGBoost avec hyperparams réglables | — |
+| 🔮 Predictions | ML% + distribution histogram | ✅ `st.progress()` |
+| 🔍 Data Explorer | Trades en DB + P&L cumulé | — |
+| 📄 CSV Viewer | Nouveau ! Visualisation CSV avec filtres, stats, corrélation | — |
+| 📈 Feature Importance | Analyse des features du modèle | — |
+
+### 📄 CSV Viewer — Fonctionnalités détaillées
+
+| Feature | Description |
+|:---|:---|
+| Sélecteur de fichier | Parcourt les `.csv` dans `data/` |
+| Métriques | Lignes, colonnes, numériques, valeurs manquantes |
+| 🔍 Filtres avancés | Recherche textuelle + curseur numérique + réinitialisation |
+| 📥 Export filtré | Téléchargement du CSV filtré |
+| 📊 Statistiques | `describe().T` + NaN count |
+| 📈 Distribution | Histogramme + box plot par colonne |
+| ⚠️ NaN analysis | Bar chart + tableau des valeurs manquantes |
+| 🔗 Corrélation | Heatmap interactive (3-30 colonnes) |
+| 📋 Info colonnes | Type, non-nuls, nuls %, cardinalité |
+
+### 🐛 Bugs CSV Viewer corrigés (code review)
+
+| Bug | Correctif |
+|:---|:---|
+| `@st.cache_data` dans le tab → cache instable | Déplacé au niveau module (`_load_csv_cached()`) |
+| Curseur de filtre avec clé statique → état obsolète | `key=f"csv_range_{filter_col}"` |
+| Colonne constante → filtre cassé | `filter_min, max = col_min, col_max` avant le `if` |
+
+### 🔬 Test de validation
+
+- Pipeline scan → CSV → DB vérifié avec browser-use (EURUSD, 2 lignes, 81 colonnes) ✅
+- Entraînement XGBoost testé avec 20 lignes synthétiques → modèle `diamond_v2.xgb` (26 KB) ✅
+- Syntaxe de tous les fichiers ML vérifiée ✅
+- Code reviewer: **3 correctifs approuvés** ✅
+

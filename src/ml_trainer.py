@@ -55,7 +55,7 @@ def load_data(csv_path: str):
     """Charge le CSV de trades labellisés. Dernière colonne = outcome."""
     if not os.path.isfile(csv_path):
         logger.error("Fichier introuvable: %s", csv_path)
-        return None, None
+        return None, None, None
 
     df = pd.read_csv(csv_path)
     logger.info("Données chargées: %d trades × %d colonnes", len(df), len(df.columns))

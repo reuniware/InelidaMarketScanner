@@ -446,8 +446,13 @@ def write_labeled_csv(rows: List[Dict[str, float]], output_path: str) -> str:
                 abs_path, len(rows), n_features, size_kb)
 
     # ── Résumé ──
-    wins = sum(1 for r in rows if r.get("outcome", 0) == 1.0)
-    losses = sum(1 for r in rows if r.get("outcome", 0) == 0.0)
+    has_outcome = any("outcome" in r for r in rows)
+    if has_outcome:
+        wins = sum(1 for r in rows if r.get("outcome") == 1.0)
+        losses = sum(1 for r in rows if r.get("outcome") == 0.0)
+    else:
+        wins = 0
+        losses = 0
     unlabeled = len(rows) - wins - losses
     print(f"\n{'='*60}")
     print(f"  [ML Labeler] CSV genere : {abs_path}")

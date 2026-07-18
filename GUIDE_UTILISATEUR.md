@@ -332,7 +332,46 @@ python live_ict_monitor_global.py
 
 ---
 
-## 9. Configuration avancée
+## 9. ML Dashboard — Interface Machine Learning
+
+### Qu'est-ce que c'est ?
+
+Le **ML Dashboard** (`app_ml.py`) est une interface web Streamlit qui permet
+de gérer tout le pipeline Machine Learning sans écrire une ligne de commande.
+
+### Lancement
+
+```bash
+streamlit run app_ml.py
+```
+
+Puis ouvrez [http://localhost:8501](http://localhost:8501) dans votre navigateur.
+
+### Les 7 onglets
+
+| Onglet | À quoi ça sert ? |
+|:---|:---|
+| 📊 **Dashboard** | Vue d'ensemble : statut MT5, DB, modèle ML chargé |
+| 🏷️ **Labeling** | Génère le CSV d'entraînement — 3 sources : DB (trades fermés), CSV manuel, ou scan Diamond live |
+| 🏋️ **Training** | Entraîne le modèle XGBoost avec réglage des hyperparamètres et visualisation des features importantes |
+| 🔮 **Predictions** | Lance un scan Diamond avec prédiction ML% (probabilité de gain) |
+| 🔍 **Data Explorer** | Consulte les trades en DB, le P&L cumulé, exporte en CSV |
+| 📄 **CSV Viewer** | Ouvre et explore n'importe quel CSV avec filtres, statistiques, distribution et matrice de corrélation |
+| 📈 **Feature Importance** | Analyse quels critères pèsent le plus dans les décisions du modèle |
+
+### Workflow ML complet via Dashboard
+
+```
+1. 📡 Onglet Labeling → Scan → CSV généré + sauvegarde DB
+2. ⏳ Attendre fermeture des trades (SL/TP touché)
+3. 🗄️ Onglet Labeling → DB → CSV avec outcome automatique
+4. 🏋️ Onglet Training → Entraînement XGBoost
+5. 🔮 Onglet Predictions → ML% dans les scans
+```
+
+---
+
+## 10. Configuration avancée
 
 ### Fichier `.env`
 

@@ -469,8 +469,16 @@ Pour dépasser 80%, il faut :
 | P3 | Ensemble de modèles (XGBoost + LightGBM + RF) | Robustesse |
 | P4 | Feature engineering : interactions croisées | Pouvoir prédictif |
 | P5 | Poids adaptatifs (trades récents > anciens) | Adaptation au régime |
-| P6 | Dashboard de performance ML (Streamlit) | Visualisation |
+| P6 | Dashboard de performance ML (Streamlit) | Visualisation → 🟢 **FAIT** (7 tabs : Dashboard, Labeling, Training, Predictions, Data Explorer, CSV Viewer, Feature Importance) |
 | P7 | Export ONNX du modèle (inférence sans Python) | Portabilité |
+
+### 🐛 Bugs corrigés (18 juillet 2026)
+
+| Bug | Fichier | Correctif |
+|:---|:---|:---|
+| `load_data()` retournait 2 valeurs au lieu de 3 | `src/ml_trainer.py` | `return None, None, None` — évite `ValueError` dans `main()` et `app_ml.py` |
+| Outcome counting trompeur en mode scan | `app_ml.py` | `any("outcome" in r...)` avant de compter les wins/losses |
+| Triple lecture CSV dans le Training tab | `app_ml.py` | 1 seule lecture via `_load_csv_cached()` |
 
 ---
 
@@ -488,5 +496,24 @@ Pour dépasser 80%, il faut :
 
 ---
 
-> **Dernière mise à jour :** 17 juillet 2026
+> **Dernière mise à jour :** 18 juillet 2026
 > **Statut :** Infrastructure ML complète. En attente de données d'entraînement (≥ 30 trades fermés dans la DB).
+
+### 🖥️ ML Dashboard — Guide d'utilisation
+
+Lancement :
+```bash
+streamlit run app_ml.py
+```
+
+**7 onglets disponibles :**
+
+| Onglet | Fonction |
+|:---|:---|
+| 📊 **Dashboard** | Vue d'ensemble : statut MT5, DB, modèle, dataset, pipeline ML + actions rapides |
+| 🏷️ **Labeling** | Génération du CSV labellisé (DB/manual/scan) avec **barre de progression** et suivi auto DB |
+| 🏋️ **Training** | Entraînement XGBoost avec réglage des hyperparamètres et feature importance plot |
+| 🔮 **Predictions** | Scan Diamond avec ML% (probabilité de gain) et distribution des scores |
+| 🔍 **Data Explorer** | Trades en DB avec P&L cumulé, recherche, export CSV |
+| 📄 **CSV Viewer** | Visualisation des CSV avec filtres avancés, stats, distribution, corrélation |
+| 📈 **Feature Importance** | Analyse des features du modèle (top N, catégories, table brute) |

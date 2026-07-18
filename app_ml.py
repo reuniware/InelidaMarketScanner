@@ -121,6 +121,12 @@ def _db_stats() -> Dict[str, Any]:
         return {"error": str(e)}
 
 
+@st.cache_data(ttl=5)
+def _load_csv_cached(path: str) -> pd.DataFrame:
+    """Charge un CSV avec cache de 5 secondes (évite les relectures sur chaque interaction)."""
+    return pd.read_csv(path)
+
+
 def _format_timedelta(seconds: float) -> str:
     """Formate une durée en secondes."""
     if seconds < 60:
@@ -299,6 +305,7 @@ tabs = st.tabs([
     "🏋️ Training",
     "🔮 Predictions",
     "🔍 Data Explorer",
+    "📄 CSV Viewer",
     "📈 Feature Importance",
 ])
 
@@ -476,62 +483,78 @@ with tabs[1]:
         )
 
     if st.button("🚀 Générer le CSV", type="primary", use_container_width=True):
-        with st.spinner("Génération en cours..."):
-            try:
-                if source == "db":
-                    rows = label_from_db()
-                    if not rows:
-                        st.warning("Aucun trade fermé avec P&L dans la DB.")
-                        st.info("💡 Va dans l'onglet Predictions, lance un scan, puis "
-                                "sauvegarde avec track save. Reviens ici après que les trades se soient fermés.")
-                        st.stop()
+        # Barre de progression au lieu du spinner simple
+        prog = st.progress(0, text="Initialisation...")
+        try:
+            if source == "db":
+                prog.progress(20, text="Lecture de la DB...")
+                rows = label_from_db()
+                if not rows:
+                    st.warning("Aucun trade fermé avec P&L dans la DB.")
+                    st.info("💡 Va dans l'onglet Predictions, lance un scan, puis "
+                            "sauvegarde avec track save. Reviens ici après que les trades se soient fermés.")
+                    st.stop()
+                prog.progress(100, text="Terminé")
 
-                elif source == "manual":
-                    if not csv_input:
-                        st.error("Spécifie un fichier CSV d'entrée.")
-                        st.stop()
-                    rows = label_from_csv(csv_input)
+            elif source == "manual":
+                if not csv_input:
+                    st.error("Spécifie un fichier CSV d'entrée.")
+                    st.stop()
+                prog.progress(20, text="Lecture du CSV...")
+                rows = label_from_csv(csv_input)
+                prog.progress(100, text="Terminé")
 
-                else:
-                    symbols = [s.strip() for s in symbols_input.split() if s.strip()]
-                    if not symbols:
-                        symbols = resolve_watchlist()
+            else:
+                symbols = [s.strip() for s in symbols_input.split() if s.strip()]
+                if not symbols:
+                    symbols = resolve_watchlist()
 
-                    # Scan unique: un seul DiamondScanner pour tout
-                    scanner = DiamondScanner(symbols, tz_mode=tz_mode)
-                    if not scanner.initialize():
-                        st.error("Connexion MT5 impossible.")
-                        st.stop()
+                # ── Étape 1: Connexion MT5 ──
+                prog.progress(5, text=f"🔌 Connexion MT5 ({len(symbols)} symbole(s))...")
+                scanner = DiamondScanner(symbols, tz_mode=tz_mode)
+                if not scanner.initialize():
+                    st.error("Connexion MT5 impossible.")
+                    st.stop()
 
+                # ── Étape 2: Scan Diamond (30-60s, bloquant) ──
+                prog.progress(10, text="📡 Scan Diamond en cours (téléchargement + analyse Ichimoku multi-TF)...")
+                start_time = _time.time()
+                try:
+                    results = scanner.scan_all()
+                finally:
+                    scanner.shutdown()
+                elapsed = _time.time() - start_time
+
+                if not results:
+                    st.error("Aucun résultat du scan.")
+                    st.stop()
+
+                prog.progress(70, text=f"✅ Scan terminé ({len(results)} résultat(s), {elapsed:.0f}s)")
+
+                # ── Étape 3: Extraction features ──
+                rows = []
+                n_sym = len(results)
+                for i, r in enumerate(results):
+                    feats = extract_features(r)
+                    rows.append(feats)
+                    pct = 70 + int(20 * (i + 1) / max(n_sym, 1))
+                    prog.progress(pct, text=f"📊 Extraction features: {i+1}/{n_sym}")
+
+                # ── Étape 4: Track save ──
+                if auto_track:
                     try:
-                        results = scanner.scan_all()
-                    finally:
-                        scanner.shutdown()
-
-                    if not results:
-                        st.error("Aucun résultat du scan.")
-                        st.stop()
-
-                    # 1) Features pour le CSV (tous les symboles, y compris WAIT/FLAT)
-                    rows = []
-                    for r in results:
-                        feats = extract_features(r)
-                        rows.append(feats)
-
-                    # 2) Sauvegarder les setups directionnels dans la DB pour suivi
-                    if auto_track:
-                        try:
-                            tracker = _get_tracker()
-                            active = [r for r in results if r.bias != "FLAT" and r.quality != "WAIT"]
-                            if active:
-                                saved = tracker.save_setups(active, force=False)
-                                st.success(f"💾 {saved} setup(s) enregistré(s) dans la DB pour suivi — "
-                                           f"l'outcome sera rempli automatiquement quand le trade se fermera.")
-                            else:
-                                st.info("Aucun setup directionnel à suivre (tous WAIT/FLAT). "
-                                        "Le CSV contient les features mais sans suivi auto.")
-                        except Exception as e:
-                            st.warning(f"⚠️ Suivi auto non disponible : {e}")
+                        tracker = _get_tracker()
+                        active = [r for r in results if r.bias != "FLAT" and r.quality != "WAIT"]
+                        if active:
+                            prog.progress(92, text=f"💾 Sauvegarde {len(active)} setup(s) dans la DB...")
+                            saved = tracker.save_setups(active, force=False)
+                            st.success(f"💾 {saved} setup(s) enregistré(s) dans la DB pour suivi — "
+                                       f"l'outcome sera rempli automatiquement quand le trade se fermera.")
+                        else:
+                            st.info("Aucun setup directionnel à suivre (tous WAIT/FLAT). "
+                                    "Le CSV contient les features mais sans suivi auto.")
+                    except Exception as e:
+                        st.warning(f"⚠️ Suivi auto non disponible : {e}")
 
                 if not rows:
                     st.error("Aucune donnée extraite.")
@@ -545,22 +568,31 @@ with tabs[1]:
                 st.dataframe(df.head(5), use_container_width=True)
                 st.caption(f"{len(df)} lignes × {len(df.columns)} colonnes")
 
-                # Stats
-                wins = sum(1 for r in rows if r.get("outcome", 0) == 1.0)
-                losses = sum(1 for r in rows if r.get("outcome", 0) == 0.0)
-                if wins + losses > 0:
-                    col1, col2, col3 = st.columns(3)
-                    col1.metric("Gagnés", wins)
-                    col2.metric("Perdus", losses)
-                    col3.metric("Win Rate", f"{wins/max(wins+losses,1)*100:.0f}%")
-                    st.info("Prêt pour l'entraînement ! Va dans l'onglet **Training**.")
-                elif source == "scan":
-                    st.info("📋 Les features sont prêtes. Quand les trades se fermeront, "
-                            "reviens ici avec **DB — Trades fermés avec P&L** pour générer "
+                # Stats — ne compter que les outcomes réellement présents
+                has_outcome = any("outcome" in r for r in rows)
+                if has_outcome:
+                    wins = sum(1 for r in rows if r.get("outcome") == 1.0)
+                    losses = sum(1 for r in rows if r.get("outcome") == 0.0)
+                    if wins + losses > 0:
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Gagnés", wins)
+                        col2.metric("Perdus", losses)
+                        col3.metric("Win Rate", f"{wins/max(wins+losses,1)*100:.0f}%")
+                        st.info("Prêt pour l'entraînement ! Va dans l'onglet **Training**.")
+                    else:
+                        st.info("📋 Les features sont prêtes. Quand les trades se fermeront, "
+                                "reviens ici avec **DB — Trades fermés avec P&L** pour générer "
+                                "le CSV final avec outcome automatique.")
+                else:
+                    st.info("📋 Les features sont prêtes (colonne 'outcome' vide). "
+                            "Quand les trades se fermeront, reviens ici avec "
+                            "**DB — Trades fermés avec P&L** pour générer "
                             "le CSV final avec outcome automatique.")
 
-            except Exception as e:
-                st.error(f"Erreur : {e}")
+                prog.progress(100, text="✅ Terminé")
+
+        except Exception as e:
+            st.error(f"Erreur : {e}")
 
 
 # ── TAB 3: TRAINING ────────────────────────────────────────────────────────
@@ -599,16 +631,18 @@ with tabs[2]:
             reg_lambda = st.slider("reg_lambda", 0.0, 2.0, 1.0, 0.1)
         test_size = st.slider("Test size (fraction)", 0.1, 0.4, 0.2, 0.05)
 
-    # ── Aperçu des données ──
+    # ── Aperçu des données (1 seule lecture via cache) ──
     if os.path.isfile(csv_path):
-        df_preview = pd.read_csv(csv_path).head(3)
+        df_preview_all = _load_csv_cached(csv_path)
         st.caption("Aperçu du CSV d'entraînement :")
-        st.dataframe(df_preview, use_container_width=True)
+        st.dataframe(df_preview_all.head(3), use_container_width=True)
 
-        outcomes = pd.read_csv(csv_path)["outcome"]
-        wins = (outcomes == 1).sum()
-        losses = (outcomes == 0).sum()
-        st.caption(f"📊 {len(pd.read_csv(csv_path))} trades — {wins} wins, {losses} losses")
+        if "outcome" in df_preview_all.columns:
+            wins = int((df_preview_all["outcome"] == 1).sum())
+            losses = int((df_preview_all["outcome"] == 0).sum())
+            st.caption(f"📊 {len(df_preview_all)} trades — {wins} wins, {losses} losses")
+        else:
+            st.caption(f"📊 {len(df_preview_all)} trades — colonne 'outcome' absente")
     else:
         st.warning("Fichier CSV introuvable. Génère-le d'abord dans l'onglet Labeling.")
 
@@ -745,72 +779,83 @@ with tabs[3]:
                         st.error("Échec du chargement")
 
     if st.button("🔮 Lancer le scan prédictif", type="primary", use_container_width=True):
-        with st.spinner("Scan Diamond en cours..."):
+        prog = st.progress(0, text="Initialisation...")
+        try:
+            sym_list = [s.strip() for s in symbols.split() if s.strip()]
+            if not sym_list:
+                sym_list = resolve_watchlist()
+
+            # ── Étape 1: Connexion MT5 ──
+            prog.progress(5, text=f"🔌 Connexion MT5 ({len(sym_list)} symbole(s))...")
+            scanner = DiamondScanner(sym_list, tz_mode=tz_mode)
+            if not scanner.initialize():
+                st.error("Connexion MT5 impossible.")
+                st.stop()
+
+            # ── Étape 2: Scan Diamond (30-60s, bloquant) ──
+            prog.progress(10, text="📡 Scan Diamond en cours (téléchargement + analyse multi-TF)...")
+            start_time = _time.time()
             try:
-                sym_list = [s.strip() for s in symbols.split() if s.strip()]
-                if not sym_list:
-                    sym_list = resolve_watchlist()
+                results = scanner.scan_all()
+            finally:
+                scanner.shutdown()
+            elapsed = _time.time() - start_time
 
-                scanner = DiamondScanner(sym_list, tz_mode=tz_mode)
-                if not scanner.initialize():
-                    st.error("Connexion MT5 impossible.")
-                    st.stop()
+            st.session_state.last_scan_results = results
+            prog.progress(80, text=f"✅ Scan terminé ({len(results)} résultat(s), {elapsed:.0f}s)")
 
-                try:
-                    results = scanner.scan_all()
-                finally:
-                    scanner.shutdown()
+            # ── Étape 3: Construction tableau ──
+            prog.progress(85, text="📊 Construction du tableau...")
 
-                st.session_state.last_scan_results = results
-                st.success(f"✅ Scan terminé — {len(results)} symboles")
+            # Tableau des résultats
+            rows_table = []
+            for r in results:
+                ml_pct_val = r.ml_win_pct
+                ml_display = f"{ml_pct_val*100:.0f}%" if ml_pct_val is not None else "N/A"
+                rows_table.append({
+                    "Symbole": r.symbol,
+                    "Score": r.score,
+                    "Max": r.max_score,
+                    "Score %": f"{r.score/max(r.max_score,1)*100:.0f}%",
+                    "Biais": r.bias,
+                    "Qualité": r.quality,
+                    "Prix": f"{r.price:.5f}",
+                    "ML%": ml_display,
+                    "RR": f"{r.rr:.1f}x" if r.rr > 0 else "-",
+                    "AH Swept": "✅" if r.asian_high_swept else "❌",
+                    "AL Swept": "✅" if r.asian_low_swept else "❌",
+                })
 
-                # Tableau des résultats
-                rows_table = []
-                for r in results:
-                    ml_pct_val = r.ml_win_pct
-                    ml_display = f"{ml_pct_val*100:.0f}%" if ml_pct_val is not None else "N/A"
-                    rows_table.append({
-                        "Symbole": r.symbol,
-                        "Score": r.score,
-                        "Max": r.max_score,
-                        "Score %": f"{r.score/max(r.max_score,1)*100:.0f}%",
-                        "Biais": r.bias,
-                        "Qualité": r.quality,
-                        "Prix": f"{r.price:.5f}",
-                        "ML%": ml_display,
-                        "RR": f"{r.rr:.1f}x" if r.rr > 0 else "-",
-                        "AH Swept": "✅" if r.asian_high_swept else "❌",
-                        "AL Swept": "✅" if r.asian_low_swept else "❌",
-                    })
+            df_results = pd.DataFrame(rows_table)
+            st.dataframe(df_results, use_container_width=True, hide_index=True)
 
-                df_results = pd.DataFrame(rows_table)
-                st.dataframe(df_results, use_container_width=True, hide_index=True)
+            # Stats sur les ML%
+            ml_values = [r.ml_win_pct for r in results if r.ml_win_pct is not None]
+            if ml_values:
+                col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+                col_s1.metric("≥ 70% (GO)", sum(1 for v in ml_values if v >= 0.7))
+                col_s2.metric("60-70%", sum(1 for v in ml_values if 0.6 <= v < 0.7))
+                col_s3.metric("50-60%", sum(1 for v in ml_values if 0.5 <= v < 0.6))
+                col_s4.metric("< 50% (NO GO)", sum(1 for v in ml_values if v < 0.5))
 
-                # Stats sur les ML%
-                ml_values = [r.ml_win_pct for r in results if r.ml_win_pct is not None]
-                if ml_values:
-                    col_s1, col_s2, col_s3, col_s4 = st.columns(4)
-                    col_s1.metric("≥ 70% (GO)", sum(1 for v in ml_values if v >= 0.7))
-                    col_s2.metric("60-70%", sum(1 for v in ml_values if 0.6 <= v < 0.7))
-                    col_s3.metric("50-60%", sum(1 for v in ml_values if 0.5 <= v < 0.6))
-                    col_s4.metric("< 50% (NO GO)", sum(1 for v in ml_values if v < 0.5))
+                # Distribution chart
+                fig = px.histogram(
+                    x=[v * 100 for v in ml_values],
+                    nbins=20,
+                    title="Distribution des ML%",
+                    labels={"x": "ML% (probabilité de gain)"},
+                    color_discrete_sequence=["#00D4AA"],
+                )
+                fig.add_vline(x=50, line_dash="dash", line_color="red", annotation_text="50%")
+                fig.add_vline(x=60, line_dash="dash", line_color="green", annotation_text="60%")
+                st.plotly_chart(fig, use_container_width=True)
 
-                    # Distribution chart
-                    fig = px.histogram(
-                        x=[v * 100 for v in ml_values],
-                        nbins=20,
-                        title="Distribution des ML%",
-                        labels={"x": "ML% (probabilité de gain)"},
-                        color_discrete_sequence=["#00D4AA"],
-                    )
-                    fig.add_vline(x=50, line_dash="dash", line_color="red", annotation_text="50%")
-                    fig.add_vline(x=60, line_dash="dash", line_color="green", annotation_text="60%")
-                    st.plotly_chart(fig, use_container_width=True)
+            prog.progress(100, text="✅ Terminé")
 
-            except Exception as e:
-                st.error(f"Erreur scan : {e}")
-                import traceback
-                st.code(traceback.format_exc())
+        except Exception as e:
+            st.error(f"Erreur scan : {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
 
 # ── TAB 5: DATA EXPLORER ──────────────────────────────────────────────────
@@ -912,9 +957,243 @@ with tabs[4]:
             st.plotly_chart(fig, use_container_width=True)
 
 
-# ── TAB 6: FEATURE IMPORTANCE ─────────────────────────────────────────────
+# ── TAB 6: CSV VIEWER ────────────────────────────────────────────────────
 
 with tabs[5]:
+    st.header("📄 CSV Viewer — Visualisation des datasets ML")
+
+    st.markdown("""
+    Explore les fichiers CSV générés par le pipeline ML.
+    Utilise les filtres pour analyser les features et identifier les patterns.
+    """)
+
+    # ── Sélection du fichier ──
+    csv_files = sorted([
+        f for f in os.listdir(DATA_DIR)
+        if f.endswith(".csv") and not f.startswith(".")
+    ]) if os.path.isdir(DATA_DIR) else []
+
+    col_f1, col_f2 = st.columns([2, 3])
+    with col_f1:
+        if csv_files:
+            selected_csv = st.selectbox("Fichier CSV", csv_files,
+                                         index=csv_files.index("trades_labeled.csv")
+                                         if "trades_labeled.csv" in csv_files else 0,
+                                         key="csv_viewer_file")
+        else:
+            st.warning("Aucun fichier CSV dans `data/`. Génère-en un depuis l'onglet Labeling.")
+            selected_csv = None
+
+    if selected_csv:
+        csv_path = os.path.join(DATA_DIR, selected_csv)
+        file_size = os.path.getsize(csv_path) / 1024
+        mod_time = datetime.fromtimestamp(os.path.getmtime(csv_path), UTC)
+
+        with col_f2:
+            st.caption(f"📁 {selected_csv}  |  {file_size:.0f} Ko  |  modifié le {mod_time.strftime('%d/%m %H:%M')}")
+
+        df = _load_csv_cached(csv_path)
+
+        if df.empty:
+            st.error("Fichier CSV vide.")
+        else:
+            # ── Aperçu global ──
+            col_info1, col_info2, col_info3, col_info4 = st.columns(4)
+            col_info1.metric("Lignes", len(df))
+            col_info2.metric("Colonnes", len(df.columns))
+            # Compter les colonnes numériques
+            num_cols = len(df.select_dtypes(include=[np.number]).columns)
+            col_info3.metric("Colonnes numériques", num_cols)
+            # Compter les valeurs manquantes totales
+            total_na = int(df.isna().sum().sum())
+            col_info4.metric("Valeurs manquantes", total_na,
+                             delta_color="inverse")
+
+            st.divider()
+
+            # ── Filtres ──
+            with st.expander("🔍 Filtres avancés", expanded=True):
+                col_filter1, col_filter2, col_filter3 = st.columns([2, 2, 1])
+
+                with col_filter1:
+                    search_text = st.text_input("🔎 Chercher dans tout le tableau", "",
+                                                 placeholder="Ex: 1.14, BULL, 40...")
+
+                with col_filter2:
+                    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+                    filter_col = st.selectbox("Colonne à filtrer", [""] + numeric_cols)
+
+                with col_filter3:
+                    filter_min = 0.0
+                    filter_max = 0.0
+                    if filter_col and filter_col in df.columns:
+                        col_min = float(df[filter_col].min())
+                        col_max = float(df[filter_col].max())
+                        filter_min, filter_max = col_min, col_max
+                        if col_min < col_max:
+                            filter_range = st.slider(
+                                "Plage de valeurs",
+                                col_min, col_max,
+                                (col_min, col_max),
+                                key=f"csv_range_{filter_col}"
+                            )
+                            filter_min, filter_max = filter_range
+
+                # Bouton réinitialiser
+                if st.button("🔄 Réinitialiser les filtres", use_container_width=True):
+                    st.cache_data.clear()
+                    st.rerun()
+
+            # ── Appliquer les filtres ──
+            filtered = df.copy()
+
+            # Filtre textuel
+            if search_text:
+                mask = filtered.astype(str).apply(
+                    lambda row: row.str.contains(search_text, case=False, na=False).any(),
+                    axis=1
+                )
+                filtered = filtered[mask]
+
+            # Filtre numérique
+            if filter_col and filter_col in filtered.columns:
+                filtered = filtered[
+                    (filtered[filter_col] >= filter_min) &
+                    (filtered[filter_col] <= filter_max)
+                ]
+
+            st.caption(f"Affichage : {len(filtered)} / {len(df)} lignes")
+
+            # ── Dataframe ──
+            st.dataframe(filtered, use_container_width=True, hide_index=True)
+
+            # ── Export filtré ──
+            csv_bytes = filtered.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "📥 Exporter le CSV filtré",
+                data=csv_bytes,
+                file_name=f"filtered_{selected_csv}",
+                mime="text/csv",
+            )
+
+            st.divider()
+
+            # ── Statistiques par colonne ──
+            with st.expander("📊 Statistiques descriptives", expanded=False):
+                # Uniquement les colonnes numériques
+                desc = filtered.describe().T
+                desc["missing"] = filtered.isna().sum()
+                desc["missing_pct"] = (filtered.isna().sum() / len(filtered) * 100).round(1)
+                desc = desc.rename(columns={
+                    "count": "Nb", "mean": "Moyenne", "std": "Écart-type",
+                    "min": "Min", "25%": "25%", "50%": "50%", "75%": "75%", "max": "Max",
+                })
+                st.dataframe(desc, use_container_width=True)
+
+            # ── Distribution des colonnes numériques ──
+            with st.expander("📈 Distribution des features", expanded=True):
+                plot_cols = filtered.select_dtypes(include=[np.number]).columns.tolist()
+                # Filtrer les colonnes binaires (0/1) et trop nombreuses
+                interesting = [
+                    c for c in plot_cols
+                    if filtered[c].nunique() > 2
+                    and filtered[c].nunique() <= 50
+                ][:15]  # max 15 colonnes pour éviter la surcharge
+
+                if interesting:
+                    selected_plot_col = st.selectbox(
+                        "Choisir une colonne à visualiser",
+                        interesting,
+                        key="csv_dist_col"
+                    )
+                    if selected_plot_col:
+                        fig = px.histogram(
+                            filtered,
+                            x=selected_plot_col,
+                            nbins=30,
+                            title=f"Distribution de {selected_plot_col}",
+                            color_discrete_sequence=["#00D4AA"],
+                        )
+                        # Ajouter une ligne verticale pour la moyenne
+                        mean_val = filtered[selected_plot_col].mean()
+                        fig.add_vline(x=mean_val, line_dash="dash", line_color="red",
+                                      annotation_text=f"Moy: {mean_val:.3f}")
+                        fig.update_layout(height=400)
+                        st.plotly_chart(fig, use_container_width=True)
+
+                        # Box plot pour la même colonne
+                        fig2 = px.box(
+                            filtered,
+                            y=selected_plot_col,
+                            title=f"Box plot de {selected_plot_col}",
+                            color_discrete_sequence=["#00D4AA"],
+                        )
+                        fig2.update_layout(height=250)
+                        st.plotly_chart(fig2, use_container_width=True)
+                else:
+                    st.info("Aucune colonne intéressante à visualiser (trop de valeurs uniques ou colonnes binaires).")
+
+            # ── Analyse des valeurs manquantes ──
+            with st.expander("⚠️ Analyse des valeurs manquantes", expanded=False):
+                na_counts = filtered.isna().sum()
+                na_cols = na_counts[na_counts > 0]
+                if not na_cols.empty:
+                    na_df = pd.DataFrame({
+                        "Colonne": na_cols.index,
+                        "Manquants": na_cols.values,
+                        "Pourcentage": (na_cols.values / len(filtered) * 100).round(1),
+                    }).sort_values("Manquants", ascending=False)
+
+                    fig_na = px.bar(
+                        na_df, x="Colonne", y="Manquants",
+                        title="Valeurs manquantes par colonne",
+                        text_auto=True,
+                        color="Manquants",
+                        color_continuous_scale="Reds",
+                    )
+                    fig_na.update_layout(height=400)
+                    st.plotly_chart(fig_na, use_container_width=True)
+                    st.dataframe(na_df, use_container_width=True, hide_index=True)
+                else:
+                    st.success("✅ Aucune valeur manquante dans ce jeu de données.")
+
+            # ─── Analyse des corrélations (si assez de colonnes) ──
+            with st.expander("🔗 Matrice de corrélation", expanded=False):
+                num_df = filtered.select_dtypes(include=[np.number])
+                if num_df.shape[1] >= 3 and num_df.shape[1] <= 30:
+                    corr = num_df.corr()
+                    fig_corr = px.imshow(
+                        corr,
+                        text_auto=".2f",
+                        color_continuous_scale="RdBu_r",
+                        aspect="auto",
+                        title="Matrice de corrélation des features numériques",
+                    )
+                    fig_corr.update_layout(height=700)
+                    st.plotly_chart(fig_corr, use_container_width=True)
+                elif num_df.shape[1] > 30:
+                    st.info(f"📊 {num_df.shape[1]} colonnes numériques — trop pour une matrice lisible. "
+                            f"Utilise l'onglet Feature Importance pour l'analyse ciblée.")
+                else:
+                    st.info("Pas assez de colonnes numériques pour une matrice de corrélation.")
+
+            # ── Info colonnes ──
+            with st.expander("📋 Liste complète des colonnes", expanded=False):
+                col_info = pd.DataFrame({
+                    "Colonne": df.columns,
+                    "Type": df.dtypes.astype(str),
+                    "Non-nuls": df.count().values,
+                    "Nuls": df.isna().sum().values,
+                    "Nuls %": (df.isna().sum() / len(df) * 100).round(1).values,
+                    "Cardinalité": df.nunique().values,
+                }).reset_index(drop=True)
+                col_info.index += 1
+                st.dataframe(col_info, use_container_width=True)
+
+
+# ── TAB 7: FEATURE IMPORTANCE ─────────────────────────────────────────────
+
+with tabs[6]:
     st.header("📈 Feature Importance — Analyse des features")
 
     st.markdown("""
