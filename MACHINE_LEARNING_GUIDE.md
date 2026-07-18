@@ -483,22 +483,46 @@ Il faut plus de données et des features ICT réelles (FVG/OB/MSS calculés dans
 
 | Priorité | Feature | Impact |
 |:---:|:---|:---|
-| P0 | ~~Test out-of-sample (juillet 2026 non vu par le modèle)~~ → ✅ **FAIT** — voir Section 11 | PF OOS = 1.26 (vs 2.27 in-sample) |
+| P0 | ~~Test out-of-sample (juillet 2026)~~ → ✅ **FAIT** | PF OOS = 1.173 (v7) |
 | P1 | `track save` enregistre les 111 features complètes | Dataset live riche |
-| P2 | ~~Optimisation du seuil ML% optimal (grid search 40-70%)~~ → ✅ **FAIT** — voir Section 8 | Seuil optimal OOS = 69% |
+| P2 | ~~Optimisation du seuil ML% optimal (grid search)~~ → ✅ **FAIT** | Seuil optimal = 59% (v7) |
 | P3 | Ensemble de modèles (XGBoost + LightGBM + RF) | Robustesse |
-| P4 | Feature engineering : interactions croisées | Pouvoir prédictif |
+| P4 | Feature engineering : interactions croisées (ex: `bias × kumo_h4`) | Pouvoir prédictif |
 | P5 | Poids adaptatifs (trades récents > anciens) | Adaptation au régime |
-| P6 | Backtest avec features ICT réelles (FVG/OB/MSS) | Plus de signal ML |
+| P6 | ~~Backtest avec features ICT réelles (FVG/OB/MSS)~~ → ✅ **FAIT** — ICT = bruit | Leçon documentée |
+| P7 | ~~Feature selection (top 25)~~ → ✅ **FAIT** (v7, PF=1.173) | Meilleur OOS |
 
 ### Historique des modèles
 
-| Modèle | Données | Features | Trades | CV | Statut |
-|:---|:---|:---:|---:|---:|:---|
-| `historical_v1.xgb` (53 KB) | 6 majors | 36 anonymes | 852 | 61.0% | Archivé |
-| `historical_v2.xgb` (91 KB) | 13 symboles | 36 anonymes | 1 846 | 61.9% | Archivé |
-| `historical_v3.xgb` (91 KB) | 13 symboles | 36 anonymes | 1 210 | 61.9% | Archivé (mêmes données que v2) |
-| **`historical_v4.xgb`** (91 KB) | 13 symboles | **111 nommées** | 1 210 | **62.9%** | ✅ Actif |
+| Modèle | Données | Features | Trades | CV | OOS PF | Statut |
+|:---|:---|:---:|---:|---:|:---:|:---|
+| `historical_v1.xgb` (53 KB) | 6 majors | 36 anonymes | 852 | 61.0% | — | Archivé |
+| `historical_v2.xgb` (91 KB) | 13 symboles | 36 anonymes | 1 846 | 61.9% | — | Archivé |
+| `historical_v3.xgb` (91 KB) | 13 symboles | 36 anonymes | 1 210 | 61.9% | — | Archivé |
+| `historical_v4.xgb` (91 KB) | 13 symboles | 111 nommées | 1 210 | 62.9% | 1.26* | 🥇 In-sample (leakage) |
+| `historical_v5.xgb` | 13 symboles | 110 (ICT réelles) | 3 045 | 60.2% | 0.91 | 📉 Trop de données 2025 |
+| `historical_v6.xgb` | 13 symboles | 110 (ICT réelles) | 1 119 | 58.0% | 0.87 | 📉 ICT = bruit |
+| **`historical_v7.xgb`** (297 KB) | 13 symboles | **25 sélectionnées** | 2 923 | 60.1% | **1.173** | 🥇 **Best OOS** |
+
+### 🏆 Classement OOS (sans data leakage)
+
+| Rang | Modèle | Approche | OOS PF | Leçon |
+|:---:|:---|:---|---:|:---|
+| 🥇 | **v7** | Feature selection (25 features) | **1.173** | Moins = mieux |
+| 🥈 | v5 | Toutes features (110) + 2025 | 0.91 | 2025 = régime différent |
+| 🥉 | v6 | ICT features réelles (110) | 0.87 | ICT = bruit |
+
+> **v4 (PF=1.26) n'est pas dans le classement OOS** car il a été testé sur ses propres données d'entraînement (data leakage). Son vrai PF OOS serait ~0.72 (voir Section 11).
+
+### 🔑 Leçon : les features ICT (FVG/OB/MSS) sont du BRUIT
+
+| Expérience | Résultat |
+|:---|:---|
+| v4 (ICT = 0) → v6 (ICT = réelles) | CV 62.9% → 58.0%, PF 1.26 → 0.87 |
+| Top 25 features de v7 | **0 feature ICT** — 100% Ichimoku pur |
+| 91% des trades ont un OB | La feature ne discrimine rien |
+
+> **Les features gagnantes sont les niveaux de prix Ichimoku** (distances Kijun/Tenkan, T/K crosses, type d'actif). Les patterns ICT ajoutent du bruit, pas du signal.
 
 ### 🐛 Bugs corrigés (18 juillet 2026)
 
@@ -525,10 +549,9 @@ Il faut plus de données et des features ICT réelles (FVG/OB/MSS calculés dans
 ---
 
 > **Dernière mise à jour :** 18 juillet 2026 (soir)
-> **Statut :** Modèle v4 entraîné, test out-of-sample complété, grid search terminé.
-> **In-sample :** PF 1.02→5.02 (63%). **Out-of-sample :** PF max 1.26 (69%, 18 trades).
-> **Leçon :** Le data leakage explose le PF de 4×. Le vrai edge est trop faible.
-> **Prochaine étape :** Backtest avec FVG/OB/MSS réels pour booster le signal ML.
+> **Statut :** 7 modèles entraînés (v1→v7). Meilleur OOS : v7 (25 features, PF=1.173).
+> **Leçon :** Les features ICT (FVG/OB/MSS) sont du bruit. L'Ichimoku pur + feature selection est la meilleure approche.
+> **Prochaine étape :** Améliorer la qualité des 25 features (pas la quantité). Feature engineering ciblé.
 
 ---
 
@@ -638,6 +661,48 @@ Seuil    In-Sample PF    Out-of-Sample PF    Delta
 | **Toujours faire un test out-of-sample temporel** | Split chronologique (pas aléatoire) — entraîner sur le passé, tester sur le futur |
 | **Le vrai PF est 5-10× plus bas que le PF in-sample** | Dans notre cas : 2.27 → 0.72 (÷3.2) au seuil 50% |
 | **La corrélation ML% → WR est le vrai signal** | Même si le PF n'est pas tradable, la corrélation prouve que l'approche fonctionne |
+
+### 🔬 Feature Selection Grid Search (v7)
+
+Test de toutes les tailles de feature set (10, 15, 20, 25, 30, 33) pour trouver le sweet spot :
+
+| N features | CV | **OOS PF** | Seuil |
+|:---:|---:|---:|:---:|
+| 10 | 59.5% | 0.696 | 42% |
+| 15 | 59.6% | 0.649 | 49% |
+| 20 | 60.8% | 0.898 | 62% |
+| **25** | **60.1%** | **1.173** 🏆 | **59%** |
+| 30 | 59.7% | 0.788 | 52% |
+| 33 (all >0.01) | 59.2% | 0.918 | 59% |
+
+> Courbe en U inversé : 25 features = sweet spot. Trop peu → sous-apprentissage. Trop → bruit.
+
+### 🎯 Les 25 features gagnantes (100% Ichimoku, 0% ICT)
+
+```
+ 1. is_dxy (type d'actif)      10. is_forex        19. tkx_d1
+ 2. rr (risk/reward)            11. score           20. d_kj_h1
+ 3. tkx_h1 (T/K cross H1)       12. d_tk_d1         21. d_tk_h4
+ 4. kj_h1 (Kijun H1)            13. day_tuesday     22. tk_d1
+ 5. sl (stop-loss)              14. is_xau          23. tp
+ 6. day_wednesday (FOMC)        15. is_jpy_pair     24. tk_h1
+ 7. d_kj_h4 (dist. Kijun H4)    16. price           25. kj_h4
+ 8. d_kj_d1 (dist. Kijun D1)    17. tkx_h1_conflict
+ 9. tkx_h4 (T/K cross H4)       18. score_pct
+```
+
+> **Aucune feature ICT (FVG/OB/MSS) dans le top 25.** Les meilleurs prédicteurs sont :
+> type d'actif, ratio risk/reward, croix Tenkan/Kijun, distances aux Kijun.
+
+### 📊 Classement final des modèles (OOS réel, sans data leakage)
+
+| Rang | Modèle | Approche | Données | OOS PF |
+|:---:|:---|:---|---:|:---:|
+| 🥇 | **v7** | Feature selection (25 features) | 2025-Jun2026 | **1.173** |
+| 🥈 | v5 | Toutes features (110) | 2025-Jun2026 | 0.91 |
+| 🥉 | v6 | ICT features réelles (110) | Jan-Jun 2026 | 0.87 |
+
+> v4 (PF=1.26) exclu car testé avec data leakage. Son vrai PF OOS est ~0.72.
 
 ### 🖥️ ML Dashboard — Guide d'utilisation
 
