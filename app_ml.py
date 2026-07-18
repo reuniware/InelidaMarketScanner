@@ -15,6 +15,7 @@ Dépendances:
 import json
 import logging
 import os
+import shutil
 import sys
 import time as _time
 from datetime import datetime, timezone
@@ -50,6 +51,7 @@ from src.ml_labeler import (
     label_from_csv,
     write_labeled_csv,
 )
+from src.ml_backtest_labeler import backtest_results, backtest_from_db
 from src.ml_trainer import load_data, train, save_model, DEFAULT_PARAMS
 from src.ml_predictor import MLPredictor, extract_features
 from src.trade_tracker import TradeTracker
@@ -197,7 +199,7 @@ def _cleanup_and_restart():
     3. Vide le cache Streamlit
     4. Redémarre avec python -B (évite bytecode obsolète)
     """
-    import subprocess, shutil
+    import subprocess
     proj_root = os.path.dirname(os.path.abspath(__file__))
     
     # 1) Kill processus sur le port
@@ -277,14 +279,50 @@ with st.sidebar:
         selected_model = st.selectbox("Modèle", models,
                                        index=models.index(default_model) if default_model in models else 0,
                                        key="sidebar_model")
-        if st.button("Charger le modèle", use_container_width=True):
-            with st.spinner("Chargement..."):
+
+        col_load, col_del = st.columns([3, 1])
+        with col_load:
+            load_clicked = st.button("Charger le modèle", use_container_width=True)
+        with col_del:
+            del_clicked = st.button("🗑️", use_container_width=True,
+                                     help=f"Supprimer {selected_model} définitivement")
+
+        if del_clicked:
+            if "confirm_del_model" not in st.session_state:
+                st.session_state.confirm_del_model = selected_model
+                st.warning(f"⚠️ Supprimer définitivement **{selected_model}** ? Clique à nouveau sur 🗑️ pour confirmer.")
+            elif st.session_state.confirm_del_model == selected_model:
+                model_path = os.path.join(MODELS_DIR, selected_model)
+                try:
+                    os.remove(model_path)
+                    st.success(f"✅ {selected_model} supprimé")
+                    st.session_state.confirm_del_model = None
+                    # Si le modèle supprimé était chargé, le décharger
+                    predictor = st.session_state.get("ml_predictor")
+                    if predictor and predictor.model_path == model_path:
+                        st.session_state.ml_predictor = None
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erreur suppression : {e}")
+                    st.session_state.confirm_del_model = None
+            else:
+                st.session_state.confirm_del_model = selected_model
+                st.warning(f"⚠️ Supprimer définitivement **{selected_model}** ? Clique à nouveau sur 🗑️ pour confirmer.")
+
+        if load_clicked:
+            prog = st.progress(0, text="🤖 Chargement...")
+            try:
+                prog.progress(40, text="🔍 Lecture du fichier modèle...")
                 predictor = MLPredictor(os.path.join(MODELS_DIR, selected_model))
                 if predictor.load():
+                    prog.progress(80, text="📦 Déploiement du modèle...")
                     st.session_state.ml_predictor = predictor
+                    prog.progress(100, text="✅ Modèle chargé")
                     st.success(f"✅ {selected_model} chargé")
                 else:
                     st.error("Échec du chargement")
+            except Exception as e:
+                st.error(f"Erreur : {e}")
     else:
         st.info("Aucun modèle trouvé.\nEntraîne un modèle depuis l'onglet **Training**.")
 
@@ -394,9 +432,13 @@ with tabs[0]:
 
     with quick_col1:
         if st.button("📊 Afficher le rapport P&L", use_container_width=True):
-            with st.spinner("Chargement..."):
+            prog = st.progress(0, text="🔍 Initialisation...")
+            try:
+                prog.progress(50, text="🗄️ Lecture de la DB TradeTracker...")
                 tracker = _get_tracker()
                 report = tracker.get_report(limit=50)
+
+                prog.progress(80, text="📊 Génération du rapport...")
                 if "error" not in report:
                     st.json({
                         "total_trades": report["total_trades"],
@@ -408,8 +450,12 @@ with tabs[0]:
                         "total_pnl_pips": report.get("total_pnl_pips", 0),
                         "avg_rr": report.get("avg_rr", 0),
                     })
+                    prog.progress(100, text="✅ Terminé")
                 else:
                     st.error(report["error"])
+                    prog.progress(100, text="❌ Erreur")
+            except Exception as e:
+                st.error(f"Erreur rapport P&L : {e}")
 
     with quick_col2:
         if st.button("🧹 Vider le cache Streamlit", use_container_width=True):
@@ -448,11 +494,12 @@ with tabs[1]:
 
     source = st.radio(
         "Source des données",
-        ["db", "manual", "scan"],
+        ["db", "manual", "scan", "backtest"],
         format_func=lambda x: {
             "db": "🗄️ DB — Trades fermés avec P&L",
             "manual": "📄 CSV — Fichier manuel avec outcome",
             "scan": "📡 Scan — Scan Diamond live (outcome à remplir)",
+            "backtest": "🔙 Backtest — Backtest MT5 (outcome automatique)",
         }.get(x, x),
         horizontal=True,
     )
@@ -475,6 +522,40 @@ with tabs[1]:
             help="Après le scan, sauvegarde les setups via track save. "
                  "Plus tard, utilise 'DB — Trades fermés avec P&L' pour générer "
                  "le CSV avec outcome rempli automatiquement."
+        )
+    elif source == "backtest":
+        bt_source = extra_params.radio(
+            "Source du backtest",
+            ["db", "scan"],
+            format_func=lambda x: {
+                "db": "🗄️ DB — Trades sauvegardés (track save)",
+                "scan": "📡 Scan — Nouveau scan + backtest immédiat",
+            }.get(x, x),
+            horizontal=True,
+            key="bt_source",
+        )
+        if bt_source == "scan":
+            bt_symbols = extra_params.text_input(
+                "Symboles (séparés par des espaces)",
+                "EURUSD GBPUSD XAUUSD",
+                key="bt_symbols",
+            )
+            bt_tz = extra_params.selectbox(
+                "Fuseau horaire", ["BROKER", "UTC", "PARIS"],
+                key="bt_tz",
+            )
+        else:
+            extra_params.info(
+                "🗄️ Utilise les trades déjà sauvegardés dans la DB TradeTracker "
+                "(track save). Pour chaque trade, le backtest vérifie sur les "
+                "barres M1 après le scan si le TP ou SL a été touché en premier."
+            )
+        bt_hours = extra_params.slider(
+            "⏱️ Heures de lookback max", 4, 120, 48, 4,
+            help="Nombre max d'heures à analyser après le scan. "
+                 "Plus c'est long, plus le backtest est long mais plus il y a de chances "
+                 "que TP ou SL ait été touché.",
+            key="bt_hours",
         )
     else:
         extra_params.info(
@@ -504,7 +585,45 @@ with tabs[1]:
                 rows = label_from_csv(csv_input)
                 prog.progress(100, text="Terminé")
 
-            else:
+            elif source == "backtest":
+                bt_source = st.session_state.get("bt_source", "db")
+                bt_hours_val = st.session_state.get("bt_hours", 48)
+
+                if bt_source == "db":
+                    prog.progress(10, text="🗄️ Lecture des trades DB...")
+                    rows = backtest_from_db(max_lookback_hours=bt_hours_val)
+                else:
+                    bt_symbols_text = st.session_state.get("bt_symbols", "EURUSD GBPUSD XAUUSD")
+                    bt_tz = st.session_state.get("bt_tz", "BROKER")
+                    symbols_bt = [s.strip() for s in bt_symbols_text.split() if s.strip()]
+                    if not symbols_bt:
+                        symbols_bt = resolve_watchlist()
+
+                    prog.progress(10, text="🔌 Connexion MT5 + Scan Diamond...")
+                    scanner = DiamondScanner(symbols_bt, tz_mode=bt_tz)
+                    if not scanner.initialize():
+                        st.error("Connexion MT5 impossible.")
+                        st.stop()
+                    try:
+                        results = scanner.scan_all()
+                    finally:
+                        scanner.shutdown()
+
+                    if not results:
+                        st.error("Aucun résultat du scan.")
+                        st.stop()
+
+                    prog.progress(50, text=f"🔙 Backtest MT5 sur {len(results)} setup(s)...")
+                    rows = backtest_results(results, max_lookback_hours=bt_hours_val)
+
+                if not rows:
+                    st.warning("Aucun résultat du backtest. "
+                               "Les setups doivent être directionnels (BULL/BEAR) avec SL et TP définis.")
+                    st.stop()
+
+                prog.progress(90, text="💾 Écriture du CSV...")
+
+            else:  # scan
                 symbols = [s.strip() for s in symbols_input.split() if s.strip()]
                 if not symbols:
                     symbols = resolve_watchlist()
@@ -560,6 +679,8 @@ with tabs[1]:
                     st.error("Aucune donnée extraite.")
                     st.stop()
 
+            # ── Common CSV output + preview (scan & backtest) ──
+            if source in ("scan", "backtest") and rows:
                 path = write_labeled_csv(rows, output_path)
                 st.success(f"✅ CSV généré : `{path}`")
 
@@ -569,20 +690,28 @@ with tabs[1]:
                 st.caption(f"{len(df)} lignes × {len(df.columns)} colonnes")
 
                 # Stats — ne compter que les outcomes réellement présents
-                has_outcome = any("outcome" in r for r in rows)
-                if has_outcome:
-                    wins = sum(1 for r in rows if r.get("outcome") == 1.0)
-                    losses = sum(1 for r in rows if r.get("outcome") == 0.0)
-                    if wins + losses > 0:
-                        col1, col2, col3 = st.columns(3)
-                        col1.metric("Gagnés", wins)
-                        col2.metric("Perdus", losses)
-                        col3.metric("Win Rate", f"{wins/max(wins+losses,1)*100:.0f}%")
-                        st.info("Prêt pour l'entraînement ! Va dans l'onglet **Training**.")
-                    else:
-                        st.info("📋 Les features sont prêtes. Quand les trades se fermeront, "
-                                "reviens ici avec **DB — Trades fermés avec P&L** pour générer "
-                                "le CSV final avec outcome automatique.")
+                has_outcome = False
+                wins = 0
+                losses = 0
+                for r in rows:
+                    outcome_val = r.get("outcome", -2)
+                    if outcome_val is not None:
+                        has_outcome = True
+                        if outcome_val == 1.0:
+                            wins += 1
+                        elif outcome_val == 0.0:
+                            losses += 1
+
+                if has_outcome and wins + losses > 0:
+                    col1, col2, col3 = st.columns(3)
+                    col1.metric("Gagnés", wins)
+                    col2.metric("Perdus", losses)
+                    col3.metric("Win Rate", f"{wins/max(wins+losses,1)*100:.0f}%")
+                    st.info("Prêt pour l'entraînement ! Va dans l'onglet **Training**.")
+                elif has_outcome:
+                    pending = len(rows) - wins - losses
+                    st.info(f"📋 {len(rows)} trades, dont {pending} encore en cours (outcome=-1). "
+                            f"Reviens plus tard pour mettre à jour le backtest.")
                 else:
                     st.info("📋 Les features sont prêtes (colonne 'outcome' vide). "
                             "Quand les trades se fermeront, reviens ici avec "
@@ -650,59 +779,65 @@ with tabs[2]:
     train_disabled = not os.path.isfile(csv_path)
     if st.button("🏋️ Lancer l'entraînement", type="primary", use_container_width=True,
                  disabled=train_disabled):
-        with st.spinner("Entraînement en cours..."):
-            try:
-                # Charger les données
-                X, y, feature_names = load_data(csv_path)
-                if X is None:
-                    st.error("Impossible de charger les données.")
-                    st.stop()
+        prog = st.progress(0, text="🏋️ Initialisation...")
+        try:
+            # Charger les données
+            prog.progress(15, text="📂 Chargement des données CSV...")
+            X, y, feature_names = load_data(csv_path)
+            if X is None:
+                st.error("Impossible de charger les données.")
+                st.stop()
 
-                # Personnaliser les paramètres
-                params = dict(DEFAULT_PARAMS)
-                params.update({
-                    "max_depth": max_depth,
-                    "learning_rate": learning_rate,
-                    "n_estimators": n_estimators,
-                    "subsample": subsample,
-                    "colsample_bytree": colsample,
-                    "min_child_weight": min_child_weight,
-                    "gamma": gamma,
-                    "reg_alpha": reg_alpha,
-                    "reg_lambda": reg_lambda,
-                })
+            # Personnaliser les paramètres
+            params = dict(DEFAULT_PARAMS)
+            params.update({
+                "max_depth": max_depth,
+                "learning_rate": learning_rate,
+                "n_estimators": n_estimators,
+                "subsample": subsample,
+                "colsample_bytree": colsample,
+                "min_child_weight": min_child_weight,
+                "gamma": gamma,
+                "reg_alpha": reg_alpha,
+                "reg_lambda": reg_lambda,
+            })
 
-                # Entraîner avec les paramètres personnalisés (sans muter le module)
-                model, feats, metrics = train(X, y, feature_names, test_size=test_size,
-                                               params_override=params)
-                save_model(model, feats, model_output)
+            # Entraîner avec les paramètres personnalisés (sans muter le module)
+            prog.progress(40, text=f"🧠 Entraînement XGBoost ({len(feature_names)} features)...")
+            model, feats, metrics = train(X, y, feature_names, test_size=test_size,
+                                           params_override=params)
+            prog.progress(75, text="💾 Sauvegarde du modèle...")
+            save_model(model, feats, model_output)
 
-                # Stocker le résultat
-                st.session_state.training_result = {
-                    "model_path": model_output,
-                    "metrics": metrics,
-                    "feature_names": feats,
-                    "params": params,
-                }
+            # Stocker le résultat
+            st.session_state.training_result = {
+                "model_path": model_output,
+                "metrics": metrics,
+                "feature_names": feats,
+                "params": params,
+            }
 
-                st.success(f"✅ Modèle entraîné et sauvegardé : `{model_output}`")
+            prog.progress(90, text="📊 Génération des métriques...")
+            st.success(f"✅ Modèle entraîné et sauvegardé : `{model_output}`")
 
-                # Afficher les métriques
-                m = metrics
-                met_col1, met_col2, met_col3, met_col4 = st.columns(4)
-                met_col1.metric("Accuracy", f"{m['accuracy']*100:.1f}%")
-                met_col2.metric("Precision", f"{m['precision']*100:.1f}%")
-                met_col3.metric("Recall", f"{m['recall']*100:.1f}%")
-                met_col4.metric("F1 Score", f"{m['f1']:.3f}")
-                met_col1.metric("Train set", m.get("n_train", "?"))
-                met_col2.metric("Test set", m.get("n_test", "?"))
-                met_col3.metric("Features", len(feats))
-                met_col4.metric("Win rate (dataset)", f"{y.sum()/max(len(y),1)*100:.0f}%")
+            # Afficher les métriques
+            m = metrics
+            met_col1, met_col2, met_col3, met_col4 = st.columns(4)
+            met_col1.metric("Accuracy", f"{m['accuracy']*100:.1f}%")
+            met_col2.metric("Precision", f"{m['precision']*100:.1f}%")
+            met_col3.metric("Recall", f"{m['recall']*100:.1f}%")
+            met_col4.metric("F1 Score", f"{m['f1']:.3f}")
+            met_col1.metric("Train set", m.get("n_train", "?"))
+            met_col2.metric("Test set", m.get("n_test", "?"))
+            met_col3.metric("Features", len(feats))
+            met_col4.metric("Win rate (dataset)", f"{y.sum()/max(len(y),1)*100:.0f}%")
 
-            except Exception as e:
-                st.error(f"Erreur d'entraînement : {e}")
-                import traceback
-                st.code(traceback.format_exc())
+            prog.progress(100, text="✅ Terminé")
+
+        except Exception as e:
+            st.error(f"Erreur d'entraînement : {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
     # ── Afficher les résultats du dernier entraînement ──
     if st.session_state.training_result:

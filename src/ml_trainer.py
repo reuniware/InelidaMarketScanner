@@ -93,7 +93,19 @@ def load_data(csv_path: str):
     # Nettoyage: remplacer NaN/Inf par 0
     X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
 
+    classes = np.unique(y)
     logger.info("  Classes: %s (1=gagné, 0=perdu)", dict(zip(*np.unique(y, return_counts=True))))
+
+    # Vérifier qu'on a au moins 2 classes pour l'entraînement binaire
+    if len(classes) < 2:
+        logger.error(
+            "Pas assez de classes pour l'entraînement binaire. "
+            "Trouvé: %s. Attendu: [0 1]. "
+            "Ajoute des trades perdants (outcome=0) ou gagnants (outcome=1) au dataset.",
+            classes
+        )
+        return None, None, None
+
     return X, y, feature_names
 
 
@@ -115,10 +127,27 @@ def train(X, y, feature_names, test_size: float = 0.2,
     if len(X) < 10:
         logger.warning("Seulement %d échantillons — entraînement peu fiable.", len(X))
 
-    # Split train/test
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=test_size, random_state=42, stratify=y if len(np.unique(y)) > 1 else None
-    )
+    # Split train/test (gère les très petits datasets)
+    if len(X) < 2:
+        # Pas de split possible — on entraîne sur 100% des données
+        logger.warning("Seulement %d échantillon — pas de split train/test", len(X))
+        X_train, X_test, y_train, y_test = X, X, y, y
+        actual_test_size = 0.0
+    elif len(X) < 5:
+        # Très petit dataset : split minimal (1 test échantillon si possible)
+        n_test = max(1, int(len(X) * test_size))
+        n_test = min(n_test, len(X) - 1)  # Garder au moins 1 pour le train
+        actual_test_size = n_test / len(X)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=actual_test_size, random_state=42,
+            stratify=y if len(np.unique(y)) > 1 else None
+        )
+    else:
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=test_size, random_state=42,
+            stratify=y if len(np.unique(y)) > 1 else None
+        )
+        actual_test_size = test_size
 
     # Poids de classe pour compenser le déséquilibre
     scale_pos_weight = (len(y_train) - sum(y_train)) / max(sum(y_train), 1)

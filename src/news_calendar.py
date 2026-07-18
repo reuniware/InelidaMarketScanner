@@ -8,17 +8,24 @@ non fiables (risque de range / double sweep).
 Basé sur l'analyse du 17/07/2026 : 4 événements majeurs (Trump, FOMC Jefferson,
 EUR CPI, UoM Sentiment) → 50% d'heures ANORMALES DXY↔EURUSD → range.
 
+Source des données (hybride) :
+  1. ForexFactory scraper (cache 24h) — automatique, à jour
+  2. Fallback : dictionnaire MAJOR_EVENTS hardcodé ci-dessous
+
 Usage:
     from src.news_calendar import get_news_risk
     count, warning_msg, is_high_risk = get_news_risk()
     if is_high_risk:
-        print(warning_msg)  # "HIGH NEWS DAY — X événements majeurs: Trump, CPI, ..."
+        print(warning_msg)
 """
 
+import logging
+import time as _time
 from datetime import datetime, timezone
 from typing import Tuple
 
 UTC = timezone.utc
+logger = logging.getLogger("NewsCalendar")
 
 # ── Événements macro majeurs 2026 ──
 # Format: "YYYY-MM-DD": ["CATEGORIE: Description", ...]
@@ -70,7 +77,7 @@ MAJOR_EVENTS = {
     "2026-07-30": ["GDP: US Advance GDP q/q"],
     "2026-07-31": [],
 
-    # ── Août 2026 ── (à compléter)
+    # ── Août 2026 ──
     "2026-08-03": [],
     "2026-08-05": [],
     "2026-08-07": ["NFP: US Employment Report"],
@@ -122,13 +129,17 @@ MAJOR_EVENTS = {
     "2026-12-31": [],
 }
 
-# Catégories considérées comme "majeures" (toutes les catégories listées)
-# Chaque événement de la liste compte pour 1 dans le décompte
-# Si ≥2 événements majeurs → HIGH NEWS DAY
+# Cache pour éviter de rescraper à chaque appel dans la même minute
+_HYBRID_CACHE: dict = {"date": "", "count": 0, "events": [], "ts": 0.0}
+_HYBRID_TTL = 300  # 5 minutes
 
 
 def get_news_risk(date_str: str = None) -> Tuple[int, str, bool]:
     """Calcule le niveau de risque macro pour une date donnée.
+
+    Source hybride :
+      1. ForexFactory scraper (cache 24h) via lazy import
+      2. Fallback : dictionnaire MAJOR_EVENTS hardcodé
 
     Args:
         date_str: Date au format "YYYY-MM-DD". Si None, utilise aujourd'hui UTC.
@@ -142,11 +153,25 @@ def get_news_risk(date_str: str = None) -> Tuple[int, str, bool]:
     if date_str is None:
         date_str = datetime.now(UTC).strftime("%Y-%m-%d")
 
-    events = MAJOR_EVENTS.get(date_str, [])
-    count = len(events)
+    # ── Cache hybride (évite rescraper toutes les 5 minutes) ──
+    global _HYBRID_CACHE
+    now = _time.time()
+    if _HYBRID_CACHE["date"] == date_str and (now - _HYBRID_CACHE["ts"]) < _HYBRID_TTL:
+        count = _HYBRID_CACHE["count"]
+        events = _HYBRID_CACHE["events"]
+    else:
+        # ── Étape 1 : Essayer le ForexFactory scraper (lazy import) ──
+        events = _try_scraper(date_str)
 
+        # ── Étape 2 : Fallback MAJOR_EVENTS hardcodé ──
+        if not events:
+            events = MAJOR_EVENTS.get(date_str, [])
+
+        count = len(events)
+        _HYBRID_CACHE = {"date": date_str, "count": count, "events": events, "ts": now}
+
+    # ── Construire le message ──
     if count >= 2:
-        # Formater la liste des événements pour le warning
         event_list = ", ".join(e.split(": ", 1)[0] for e in events)
         warning_msg = (
             f"HIGH NEWS DAY — {count} evenements majeurs: {event_list} — "
@@ -161,8 +186,33 @@ def get_news_risk(date_str: str = None) -> Tuple[int, str, bool]:
     return 0, "", False
 
 
+def _try_scraper(date_str: str) -> list:
+    """Tente de récupérer les événements via le scraper ForexFactory.
+
+    Lazy import pour éviter la dépendance circulaire :
+    forexfactory_scraper.py → importe MAJOR_EVENTS depuis news_calendar
+    news_calendar.py → importe forexfactory_scraper (via cette fonction)
+
+    Returns:
+        Liste d'événements, ou [] si indisponible.
+    """
+    try:
+        from src.forexfactory_scraper import get_events_for_date as _ff_events
+        return _ff_events(date_str)
+    except Exception as exc:
+        logger.debug("Scraper ForexFactory indisponible pour %s: %s", date_str, exc)
+        return []
+
+
 def get_events_for_date(date_str: str = None) -> list:
-    """Retourne la liste des événements pour une date donnée."""
+    """Retourne la liste des événements pour une date donnée.
+
+    Utilise la même stratégie hybride que get_news_risk().
+    """
     if date_str is None:
         date_str = datetime.now(UTC).strftime("%Y-%m-%d")
+
+    events = _try_scraper(date_str)
+    if events:
+        return events
     return MAJOR_EVENTS.get(date_str, [])

@@ -1444,3 +1444,119 @@ L'interface Streamlit `app_ml.py` est maintenant complète avec **7 onglets** :
 - Syntaxe de tous les fichiers ML vérifiée ✅
 - Code reviewer: **3 correctifs approuvés** ✅
 
+---
+
+## 18/07/2026 — Session finale (shutil fix + 🗑️ delete model + backtest labeler)
+
+### 🐛 Fix : `NameError: name 'shutil' is not defined` dans app_ml.py
+
+**Problème :** `_clean_python_cache()` appelait `shutil.rmtree()` sans que `import shutil`
+soit présent en haut du fichier. Seule `_cleanup_and_restart()` avait un import local.
+
+**Fix :** Ajout de `import shutil` ligne 11 + retrait du `shutil` redondant dans l'import
+local de `_cleanup_and_restart()` (`import subprocess, shutil` → `import subprocess`).
+
+### 🆕 Bouton 🗑️ — Suppression de modèle depuis la sidebar
+
+**Problème :** Impossible de supprimer un modèle XGBoobs depuis l'interface.
+Il fallait le faire manuellement via l'explorateur de fichiers.
+
+**Ajout :** Bouton 🗑️ en double-clic (confirmation) à côté de "Charger le modèle" :
+
+| Étape | Action |
+|:---|:---|
+| 1 | Sélectionner le modèle dans la liste déroulante |
+| 2 | Cliquer sur 🗑️ → message d'avertissement apparaît |
+| 3 | Re-cliquer sur 🗑️ → suppression définitive |
+| 4 | Si le modèle était chargé, déchargement automatique |
+| 5 | `st.rerun()` rafraîchit la liste |
+
+**Comportement :**
+- Premier clic : enregistre le nom du modèle dans `st.session_state.confirm_del_model`
+- Second clic avec le même modèle sélectionné : `os.remove()` + décharge si actif
+- Changement de modèle entre les clics : réinitialise la confirmation
+
+### 🆕 Source 🔙 Backtest dans l'onglet Labeling
+
+Ajout d'une 4e source de données dans le tab **Labeling** (radio button) :
+
+| Source | Description |
+|:---|---|
+| 🗄️ DB | Trades fermés avec P&L |
+| 📄 Manual | CSV manuel avec outcome |
+| 📡 Scan | Scan Diamond live (outcome à remplir) |
+| 🔙 **Backtest** | **Backtest MT5 (outcome automatique)** ← NOUVEAU |
+
+**Paramètres du backtest :**
+- Sous-source : DB (tracks sauvegardés) ou Scan (nouveau scan + backtest immédiat)
+- Lookback : slider 4-120h (défaut 48h)
+- Symboles + timezone si sous-source Scan
+
+**Fonctionnement :**
+- `backtest_from_db()` → backtest des trades en DB
+- `backtest_results()` → scan + backtest immédiat
+- Le CSV généré inclut la colonne `outcome` automatiquement
+- Stats : wins, losses, pending (outcome = -1.0)
+
+### 🆕 Fichier : `src/ml_backtest_labeler.py`
+
+Nouveau module de backtest automatique pour déterminer l'outcome :
+
+| Fonction | Rôle |
+|:---|---|
+| `_ensure_mt5()` / `_shutdown_mt5()` | MT5 init unique par lot (pas 1× par symbole) |
+| `_get_bars_after_ts()` | Barres M1 (fallback M5) après un timestamp |
+| `_check_tp_sl_first()` | Parcours barre par barre pour déterminer TP/SL touché en premier |
+| `backtest_single_result()` | Backtest d'un DiamondResult unique |
+| `backtest_results()` | Backtest d'une liste de résultats (lot MT5) |
+| `backtest_from_db()` | Backtest des trades en DB |
+| `_extract_features_from_db()` | Extraction features + outcome |
+
+**Bugs corrigés pendant l'implémentation :**
+| Bug | Fix |
+|:---|---|
+| `rates[-max_bars:]` clippait les barres les plus récentes (les derniers 48h) au lieu des premières après le scan | `rates[:max_bars]` |
+| MT5 init/shutdown par symbole (13× = 15-25s perdus) | Singleton `_ensure_mt5()` / `_shutdown_mt5()` |
+| Colonnes redondantes `_sl_level`, `_tp_level`, `_bias_str` dans extract_features | Supprimées |
+| `_safe_float()` dupliqué | Importé depuis `ml_labeler` |
+
+### 📊 Résultat du backtest DB (4 trades)
+
+| Symbole | Biais | Résultat |
+|:---|---:|:---:|
+| DXY.cash | BEAR | ✅ Gagné (TP touché) |
+| DXY.cash | BEAR | ⏳ En cours |
+| DXY.cash | BEAR | ⏳ En cours |
+| DXY.cash | BEAR | ⏳ En cours |
+
+**Win rate :** **100%** (1/1 résolu) — 0 SL touché sur les 4 trades.
+
+### 🆕 Features ML enrichies (`src/ml_predictor.py`)
+
+| Feature | Ajout |
+|:---|---|
+| `sl`, `tp`, `rr` | Niveaux de trade comme features numériques |
+| `_symbol`, `_scan_time` | Métadonnées (préfixe `_`) |
+| DXY caching | `_fetch_dxy_features()` avec TTL 60s |
+| News caching | `_fetch_news_features()` avec TTL 300s |
+| Asset encoding | One-hot: Forex, JPY, XAU, XAG, Indices, Crypto, DXY |
+| Session ICT | Killzone encoding + jour de semaine + heure cyclique |
+
+### 🐛 Robustesse ML (`src/ml_trainer.py`)
+
+| Correctif | Détail |
+|:---|---|
+| `load_data()` validation classes | Si une seule classe présente → `return None, None, None` avec message clair |
+| `train_test_split` < 2 samples | Pas de split, entraînement sur 100% |
+| `train_test_split` 2-4 samples | Split manuel avec au moins 1 échantillon de test |
+
+### 🗑️ Modèle supprimé
+
+- `models/diamond_v1.xgb` supprimé (premier entraînement avec 1 seul trade → inutilisable)
+
+### Commits
+
+| Hash | Description |
+|:---|:---|
+| (à venir) | Ajout import shutil + 🗑️ delete model button + backtest labeler |
+
