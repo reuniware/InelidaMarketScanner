@@ -23,7 +23,7 @@ logger = logging.getLogger("MLPredictor")
 
 # Chemin par défaut du modèle entraîné
 _MODEL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models")
-_DEFAULT_MODEL = os.path.join(_MODEL_DIR, "diamond_v1.xgb")
+_DEFAULT_MODEL = os.path.join(_MODEL_DIR, "historical_v7.xgb")
 
 # ─── Cache DXY ─────────────────────────────────────────────────────────────
 # Évite de multiples appels MT5 redondants pendant un même scan
@@ -124,11 +124,13 @@ def _tkx_to_float(tkx: str) -> float:
     return 0.0
 
 
-def extract_features(result) -> dict:
+def extract_features(result, scan_time: Optional[datetime] = None) -> dict:
     """Extrait un vecteur de features numériques depuis un DiamondResult.
 
     Args:
         result: Instance de DiamondResult (ou n'importe quel objet avec les mêmes attributs).
+        scan_time: datetime UTC optionnel pour les features temporelles.
+                   Si None, utilise datetime.now(UTC).
 
     Returns:
         Dictionnaire {nom_feature: valeur_float} prêt pour la prédiction.
@@ -152,7 +154,7 @@ def extract_features(result) -> dict:
     feats["is_dxy"] = 1.0 if "DXY" in symbol else 0.0
 
     # ── Time features (ICT sessions, killzones, day of week) ──
-    _now = datetime.now(timezone.utc)
+    _now = scan_time if scan_time is not None else datetime.now(timezone.utc)
     _h = _now.hour         # 0-23
     _w = _now.weekday()    # 0=Monday
 
