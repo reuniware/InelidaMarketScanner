@@ -1,9 +1,9 @@
 # 🤖 Machine Learning Guide — InelidaMarketScan
 
 > **Objectif :** Profit factor > 2.0, win rate > 55%.
-> **Moyen :** Un modèle XGBoost entraîné sur 111 features nommées du Diamond Scanner,
-> avec backtest historique sur 1 210 trades depuis janvier 2026.
-> **Modèle actif :** `historical_v4.xgb` — 58.3% accuracy, 62.9% CV, 111 features.
+> **Moyen :** Un modèle XGBoost entraîné sur 25 features Ichimoku sélectionnées,
+> avec backtest historique sur 3 045 trades (2025-2026).
+> **Modèle actif :** `historical_v7.xgb` — 60.1% CV, PF OOS = 1.173.
 
 ---
 
@@ -490,7 +490,11 @@ Il faut plus de données et des features ICT réelles (FVG/OB/MSS calculés dans
 | P4 | ~~Feature engineering : interactions croisées~~ → ✅ **FAIT** (v9, PF 0.827) | Overfitting confirmé |
 | P5 | Poids adaptatifs (trades récents > anciens) | Adaptation au régime |
 | P6 | ~~Backtest avec features ICT réelles (FVG/OB/MSS)~~ → ✅ **FAIT** — ICT = bruit | Leçon documentée |
-| P7 | ~~Feature selection (top 25)~~ → ✅ **FAIT** (v7, PF=1.173) | Meilleur OOS |
+| P7 | ~~Feature selection (top 25)~~ → ✅ **FAIT** (v7, PF=1.173) | Meilleur OOS unifié |
+| P8 | ~~Régression P&L%~~ → ✅ **FAIT** (v11, R²=0) | Échec — magnitude imprédictible |
+| P9 | ~~Multi-class (3 classes)~~ → ✅ **FAIT** (v12) | Échec — effondré sur LOSS |
+| P10 | ~~Per-asset models~~ → ✅ **FAIT** (v13, PF=4.000) | 🏆 Best OOS, 15 trades |
+| P11 | Backtest 2024-2025 per-asset (>2000 trades/actif) | Confirmer v13 |
 
 ### Historique des modèles
 
@@ -506,19 +510,22 @@ Il faut plus de données et des features ICT réelles (FVG/OB/MSS calculés dans
 | `historical_v8.xgb` | 13 symboles | 25 + OB fix | 2 923 | 60.1% | **1.173** | 🥇 Ex-aequo (OB fix = 0 signal) |
 | `historical_v9.xgb` | 13 symboles | 47 (cross-features) | 2 923 | 60.8% | 0.827 | ❌ Overfitting |
 | `historical_v10.xgb` | 13 symboles | 25 (max_depth=5/6) | 2 923 | 59.6-60.5% | 0.755-0.882 | ❌ Plus profond = pire |
+| `historical_v11_reg.xgb` | 13 symboles | 25 (regression P&L%) | 2 923 | R²=-0.004 | 3.000* | ❌ Prédit du bruit |
+| `historical_v12_mc.xgb` | 13 symboles | 25 (multi-class 3) | 2 923 | 67.3% | 14.000* | ❌ Effondré sur LOSS |
+| **`historical_v13_{dxy,xau,index,forex}.xgb`** | 4 modèles | 25 (per-asset) | 2 923 | 53-64% | **4.000** | 🥇 **Best OOS (15 trades)** |
 
 ### 🏆 Classement OOS (sans data leakage)
 
-| Rang | Modèle | Approche | Features | OOS PF | Leçon |
-|:---:|:---|:---|---:|---:|:---|
-| 🥇 | **v7** | Feature selection (25) | 25 | **1.173** | Moins = mieux |
-| 🥇 | **v8** | 25 features + OB fix (ATR 2.0) | 25 | **1.173** | OB = bruit même filtré |
-| 🥉 | v5 | Toutes features (110) + 2025 | 110 | 0.91 | 2025 = régime différent |
-| 4 | v6 | ICT features réelles (110) | 110 | 0.87 | ICT = bruit |
-| 5 | v9 | Cross-features (47) | 47 | 0.827 | Overfitting par feature engineering |
-| 6 | v10a | max_depth=6, lr=0.03 | 25 | 0.806 | Arbres trop profonds |
-| 7 | v10b | max_depth=6, lr=0.05 | 25 | 0.755 | Pire configuration |
-| 8 | v10c | max_depth=5, lr=0.03 | 25 | 0.882 | Légèrement moins pire |
+| Rang | Modèle | Approche | Features | OOS PF | Trades | Fiable ? |
+|:---:|:---|:---|---:|---:|---:|:---|
+| 🥇 | **v13** | Per-asset (4 modèles) | 25 | **4.000** | 15 | ⚠️ Trop peu |
+| 🥈 | **v7/v8** | Feature selection (25) | 25 | **1.173** | 23 | 🟡 Marginal |
+| 🥉 | v5 | Toutes features (110) + 2025 | 110 | 0.91 | 33+ | 🔴 |
+| 4 | v6 | ICT features réelles (110) | 110 | 0.87 | 33+ | 🔴 |
+| 5 | v10c | max_depth=5, lr=0.03 | 25 | 0.882 | — | 🔴 |
+| 6 | v9 | Cross-features (47) | 47 | 0.827 | — | 🔴 |
+| 7 | v11 | Régression P&L% | 25 | 3.000* | 5* | 🔴 Bruit |
+| 8 | v12 | Multi-class (3 classes) | 25 | 14.000* | 8* | 🔴 Bruit |
 
 > **v4 (PF=1.26) n'est pas dans le classement OOS** car il a été testé sur ses propres données d'entraînement (data leakage). Son vrai PF OOS serait ~0.72 (voir Section 11).
 
@@ -533,19 +540,38 @@ Il faut plus de données et des features ICT réelles (FVG/OB/MSS calculés dans
 
 > **Les features gagnantes sont les niveaux de prix Ichimoku** (distances Kijun/Tenkan, T/K crosses, type d'actif). Les patterns ICT ajoutent du bruit, pas du signal.
 
-### 🔑 Le plafond dur : PF=1.173
+### 🔑 Le plafond dur : PF=1.173 (battu par v13 !)
 
-Le modèle v7 (25 features Ichimoku, max_depth=4) est le **plafond atteignable** avec l'architecture actuelle. Toutes les tentatives pour le dépasser ont échoué :
+Le modèle v7 (25 features Ichimoku, max_depth=4) était le plafond avec l'architecture
+unifiée. Le modèle v13 (per-asset) l'a dépassé en passant à PF=4.000, mais avec
+seulement 15 trades OOS — pas encore statistiquement significatif.
 
-| Tentative | Modèle | Approche | Résultat |
+| Tentative | Modèle | Approche | PF OOS | Trades | Verdict |
+|:---|:---:|:---|---:|---:|:---|
+| Plus de données | v5 | Backtest 2025 (18 mois) | 0.91 | 33+ | ❌ |
+| Features ICT réelles | v6 | FVG/OB/MSS calculés | 0.87 | 33+ | ❌ |
+| OB filtrés | v8 | ATR 2.0 + mitigation | 1.173 | 23 | 🟡 Identique |
+| Cross-features | v9 | 22 features d'interaction | 0.827 | — | ❌ Overfitting |
+| Arbres plus profonds | v10 | max_depth=5,6 | 0.755-0.882 | — | ❌ |
+| **Régression** | v11 | Prédire P&L% exact | 3.000* | 5* | ❌ R²=0 |
+| **Multi-class** | v12 | LOSS/SMALL/BIG WIN | 14.000* | 8* | ❌ Effondré |
+| **Per-asset** 🏆 | **v13** | 4 modèles spécialisés | **4.000** | **15** | 🟡 Prometteur |
+
+> *PF gonflé par cherry-picking sur <10 trades. Non fiable statistiquement.
+
+### 🔬 Paradigme-shift experiments (v11-v13)
+
+Trois tentatives de changement de paradigme au-delà du classifieur binaire :
+
+| Expérience | Modèle | Concept | Résultat |
 |:---|:---:|:---|---:|
-| Plus de données | v5 | Backtest 2025 (18 mois) | PF 1.173 → 0.91 (−22%) |
-| Features ICT réelles | v6 | FVG/OB/MSS calculés | PF 1.173 → 0.87 (−26%) |
-| OB filtrés | v8 | ATR 2.0 + mitigation | PF identique (1.173) |
-| Cross-features | v9 | 22 features d'interaction | PF 1.173 → 0.827 (−29%) |
-| Arbres plus profonds | v10a/b/c | max_depth=5,6 | PF 1.173 → 0.755-0.882 (−25 à −35%) |
+| **Régression** | v11 | Prédire le P&L% exact | R²=-0.004 — le modèle prédit du bruit. RMSE=1.255 sur range [-1,+2]. La magnitude est imprédictible avec les features Ichimoku. |
+| **Multi-class** | v12 | 3 classes : LOSS / SMALL WIN / BIG WIN | Le modèle s'effondre sur la classe majoritaire (LOSS). 94% des BIG WIN sont prédits comme LOSS. Le `rr` théorique est identique pour LOSS et BIG WIN → pas de signal. |
+| **Per-asset** 🏆 | v13 | 4 modèles (DXY/XAU/Indices/Forex) | PF=4.000 sur 15 trades — le meilleur OOS jamais enregistré. Chaque modèle apprend ses propres patterns sans dilution. Forex CV=61.6%, DXY CV=63.5%. **Prometteur mais 15 trades = pas significatif.** |
 
-> Pour franchir ce plafond, il faut une approche fondamentalement différente : plus de capital historique, des features de microstructure (order flow), ou un changement de paradigme (deep learning sur séries temporelles plutôt que classification XGBoost).
+> **v13 est le nouveau leader OOS.** La spécialisation par actif est le seul changement
+> de paradigme qui a amélioré le PF (×3.4 vs v7). La prochaine étape est d'augmenter
+> le nombre de trades OOS (backtest 2024-2025) pour confirmer ou infirmer ce résultat.
 
 ### 🐛 Bugs corrigés (18 juillet 2026)
 
@@ -572,10 +598,10 @@ Le modèle v7 (25 features Ichimoku, max_depth=4) est le **plafond atteignable**
 ---
 
 > **Dernière mise à jour :** 18 juillet 2026 (soir — final)
-> **Statut :** 10 modèles entraînés (v1→v10). **Plafond OOS = PF 1.173** (v7/v8).
-> **Classement final :** 🥇 v7/v8 (1.173) > 🥉 v5 (0.91) > v10c (0.882) > v6 (0.87) > v9 (0.827) > v10a (0.806) > v10b (0.755)
-> **Leçon définitive :** 25 features Ichimoku + max_depth=4 est le sweet spot. Tout écart (plus de features, plus de données, arbres plus profonds) dégrade le PF OOS.
-> **Prochaine étape :** Changer de paradigme — deep learning sur séries temporelles ou features de microstructure (order flow).
+> **Statut :** 13 modèles entraînés (v1→v13). **Best OOS : v13 per-asset (PF=4.000, 15 trades).**
+> **Classement final :** 🥇 v13 (4.000) > 🥈 v7/v8 (1.173) > 🥉 v5 (0.91) > v10c (0.882) > v6 (0.87) > v9 (0.827) > v11 (3.0* noise) > v12 (14.0* noise)
+> **Leçon définitive :** La spécialisation par actif (v13) est le seul changement de paradigme qui a dépassé le classifieur binaire unifié. À confirmer avec plus de données OOS.
+> **Prochaine étape :** Backtest 2024-2025 per-asset pour confirmer le PF=4.000 avec 100+ trades OOS.
 
 ---
 
@@ -726,7 +752,7 @@ Test de toutes les tailles de feature set (10, 15, 20, 25, 30, 33) pour trouver 
 | 🥈 | v5 | Toutes features (110) | 2025-Jun2026 | 0.91 |
 | 🥉 | v6 | ICT features réelles (110) | Jan-Jun 2026 | 0.87 |
 
-> v4 (PF=1.26) exclu car testé avec data leakage. Son vrai PF OOS est ~0.72.
+> *PF gonfle par cherry-picking sur <10 trades. v4 (PF=1.26) exclu -- data leakage.
 
 ### 🖥️ ML Dashboard — Guide d'utilisation
 
