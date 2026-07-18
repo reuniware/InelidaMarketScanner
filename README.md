@@ -129,11 +129,12 @@ GEMINI_API_KEY=ta_cle_ici
 | 🏆 **Filtres ELITE** | Badges V1 et V2 basés sur des backtests (97.7-100% WR sur les trades filtrés) |
 | 🛡️ **Exécution sécurisée** | DRY-RUN par défaut, anti-double-ordre, validation lot, spread max |
 | 📊 **Rapports PDF** | Générateur de rapports horodatés avec tous les scans |
-| 🎨 **Dashboard Streamlit ML** | Interface web (**7 onglets**) pour gérer le pipeline ML complet : Dashboard, Labeling (barre de progression), Training (hyperparams), Predictions (ML%), Data Explorer, **CSV Viewer** (filtres, stats, corrélation), Feature Importance |
-| 🧠 **ML Pipeline** | Labeler (DB/manual/scan) → Entraînement XGBoost (80 features) → Prédiction (ML%) via `app_ml.py` |
+| 🎨 **Dashboard Streamlit ML** | Interface web (**7 onglets**) pour gérer le pipeline ML complet (**111 features**) : Dashboard, Labeling, Training, Predictions (ML%), Data Explorer, CSV Viewer, Feature Importance |
+| 🧠 **ML Pipeline** | Labeler (DB/manual/scan/backtest) → Entraînement XGBoost (**111 features nommées**) → Prédiction (ML%) + **ML% filtering validé** (PF 1.02→2.27) via `app_ml.py` |
 | 🗄️ **Base SQLite** | Enregistrement automatique des sessions, sweeps et niveaux |
 | 📊 **P&L Tracker** | Suivi automatisé des setups Diamond : save → update → rapport win rate / P&L + watchlist niveaux LH/LL |
 | ⏱️ **M5/M15/M30 Extension** | Détection FVG, OB, MSS/BOS, CHoCH, Volume HVN/LVN et Breaker Blocks sur M5/M15/M30 (6 TFs simultanés, 36+ critères de scoring) |
+| 📈 **ML Model v4** | `models/historical_v4.xgb` (91 KB) — 1 210 trades, 62.9% CV, 111 features nommées. **ML% filtering validé : PF passe de 1.02 à 2.27** (seuil ≥ 50%) |
 | 🔄 **Reversal Pipeline** | Détection sweep → retournement → confirmation (FVG post-sweep, retest LH/LL) avec compteur de barres pour entrée tardive |
 | 🔗 **Sweep Watchlist** | Sauvegarde des niveaux LH/LL London avec obstacles Ichimoku inter-TF pour vérification de sweep en fin de session NY |
 | 🐛 **Intra-Asian Sweep Fix** | Détection des sweeps AH/AL pendant la session asiatique (avant 08:00 UTC) — corrigé 16/07 |

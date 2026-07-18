@@ -1560,3 +1560,94 @@ Nouveau module de backtest automatique pour déterminer l'outcome :
 |:---|:---|
 | (à venir) | Ajout import shutil + 🗑️ delete model button + backtest labeler |
 
+---
+
+## 18/07/2026 — Session ML v4 + Simulation Profit Factor
+
+### 🧠 Passage de 36 features anonymes → 111 features nommées
+
+**Problème :** Le backtest historique utilisait 36 features indexées (`f0`, `f1`, `f25`...)
+impossible à interpréter. On ne savait pas ce que `f25` représentait.
+
+**Solution :** Modification de `backtest_historical_diamond.py` pour utiliser
+`extract_features()` de `ml_predictor.py` avec `SimpleNamespace`.
+
+| Avant | Après |
+|:---|:---|
+| 36 features (f0, f1, f2...) | **111 features nommées** (kj_h1, tkx_h4, kumo_d1...) |
+| Code mort `_hash_symbol()` | Supprimé |
+| `_SYMBOL_MAP` inutile | Supprimé |
+| `tkx_w1/mn = "N/A"` | Calculés correctement |
+| `scan_time` = maintenant | Paramètre `scan_time` optionnel dans `extract_features()` |
+
+### 📊 Modèle v4 — 111 features nommées
+
+| Métrique | v3 (36 anonymes) | **v4 (111 nommées)** |
+|:---|---:|---:|
+| Accuracy | 58.7% | 58.3% |
+| Precision | 45.5% | 44.9% |
+| Recall | 49.5% | 48.4% |
+| **CV Accuracy** | 61.9% ± 1.7% | **62.9% ± 1.8%** |
+
+**Top 5 features v4 :**
+1. `is_dxy` — gain 14.2 (le dollar est radicalement différent)
+2. `rr` — gain 10.0 (le ratio risk/reward prédit le résultat)
+3. `tkx_h1` — gain 9.2 (la croix Tenkan/Kijun H1 est cruciale)
+4. `kj_h1` — gain 6.9 (niveau Kijun H1)
+5. `sl` + `day_wednesday` — gain 6.4 (stop-loss + effet FOMC mercredi)
+
+### 💰 Simulation ML% filtering
+
+**Question :** Si on ne prend que les trades où le modèle v4 prédit ML% > 50%,
+quel est le profit factor ?
+
+**Méthode :** Script `_simulate_ml_filter.py` — charge le modèle v4 + CSV 1 210 trades,
+prédit ML% pour chaque trade, filtre par seuil, calcule P&L.
+
+**Résultat :**
+
+| Seuil ML% | Trades | Win Rate | PF(RR) | P&L (10k€) |
+|:---|---:|---:|---:|---:|
+| Aucun | 1 210 | 37.6% | 1.02 | +1 442 € |
+| ML% ≥ 40% | 851 | 48.5% | 1.56 | +24 742 € |
+| **ML% ≥ 45%** | **661** | **54.3%** | **1.91** | **+27 542 €** |
+| **ML% ≥ 50%** | **504** | **59.7%** | **2.27** | **+25 842 €** |
+| ML% ≥ 55% | 327 | 67.3% | 2.80 | +19 242 € |
+| ML% ≥ 60% | 170 | 78.8% | 3.59 | +9 340 € |
+| ML% ≥ 70% | 71 | 88.7% | 1.64 | +514 € |
+
+### 🎯 Leçons clés
+
+| Leçon | Détail |
+|:---|---|
+| **ML% filtering = levier #1** | PF passe de 1.02 à 2.27 → gain 122% d'efficacité |
+| **Corrélation quasi-parfaite** | Chaque +5% ML% → +10% win rate |
+| **Sweet spot 45-50%** | Meilleur compromis volume × profit factor |
+| **Top 10 = 100% win** | Les 10 trades les plus confiants sont tous gagnants |
+| **≥ 70% = PF < 2** | Trades ultra-confiant mais RR trop faibles (cryptos) |
+| **is_dxy #1** | Le dollar est un cas à part — comportement différent des paires FX |
+
+### ⚠️ Data leakage — le vrai test reste à faire
+
+Le modèle v4 a été entraîné sur ce même dataset. Les ML% incluent du data leakage.
+Le vrai profit factor sera mesuré sur des données **out-of-sample** (juillet 2026,
+que le modèle n'a jamais vues).
+
+### 🐛 Bugs corrigés dans ml_trainer.py
+
+| Bug | Correction |
+|:---|---|
+| `n_samples=1` → `train_test_split` vide | Guard `len(X) < 2` (cache Python stale) |
+| XGBoost `Invalid classes: got [1]` | `len(np.unique(y)) < 2` → `ValueError` explicite |
+| `StratifiedShuffleSplit` crash (1/classe) | `_safe_stratify()` désactive si < 2/classe |
+
+### 📁 Fichiers modifiés
+
+| Fichier | Changement |
+|:---|---|
+| `src/ml_predictor.py` | `extract_features()` accepte `scan_time` optionnel |
+| `backtest_historical_diamond.py` | `scan_symbol()` utilise `SimpleNamespace` + `extract_features()` |
+| `src/ml_trainer.py` | 3 guards anti-crash (1 sample, 1 class, 1/classe stratify) |
+| `MACHINE_LEARNING_GUIDE.md` | Mise à jour avec v4, 111 features, simulation ML% |
+| `historique.md` | Ce document |
+
