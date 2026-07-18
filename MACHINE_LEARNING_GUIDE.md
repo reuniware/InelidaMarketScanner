@@ -487,7 +487,7 @@ Il faut plus de données et des features ICT réelles (FVG/OB/MSS calculés dans
 | P1 | `track save` enregistre les 111 features complètes | Dataset live riche |
 | P2 | ~~Optimisation du seuil ML% optimal (grid search)~~ → ✅ **FAIT** | Seuil optimal = 59% (v7) |
 | P3 | Ensemble de modèles (XGBoost + LightGBM + RF) | Robustesse |
-| P4 | Feature engineering : interactions croisées (ex: `bias × kumo_h4`) | Pouvoir prédictif |
+| P4 | ~~Feature engineering : interactions croisées~~ → ✅ **FAIT** (v9, PF 0.827) | Overfitting confirmé |
 | P5 | Poids adaptatifs (trades récents > anciens) | Adaptation au régime |
 | P6 | ~~Backtest avec features ICT réelles (FVG/OB/MSS)~~ → ✅ **FAIT** — ICT = bruit | Leçon documentée |
 | P7 | ~~Feature selection (top 25)~~ → ✅ **FAIT** (v7, PF=1.173) | Meilleur OOS |
@@ -503,14 +503,22 @@ Il faut plus de données et des features ICT réelles (FVG/OB/MSS calculés dans
 | `historical_v5.xgb` | 13 symboles | 110 (ICT réelles) | 3 045 | 60.2% | 0.91 | 📉 Trop de données 2025 |
 | `historical_v6.xgb` | 13 symboles | 110 (ICT réelles) | 1 119 | 58.0% | 0.87 | 📉 ICT = bruit |
 | **`historical_v7.xgb`** (297 KB) | 13 symboles | **25 sélectionnées** | 2 923 | 60.1% | **1.173** | 🥇 **Best OOS** |
+| `historical_v8.xgb` | 13 symboles | 25 + OB fix | 2 923 | 60.1% | **1.173** | 🥇 Ex-aequo (OB fix = 0 signal) |
+| `historical_v9.xgb` | 13 symboles | 47 (cross-features) | 2 923 | 60.8% | 0.827 | ❌ Overfitting |
+| `historical_v10.xgb` | 13 symboles | 25 (max_depth=5/6) | 2 923 | 59.6-60.5% | 0.755-0.882 | ❌ Plus profond = pire |
 
 ### 🏆 Classement OOS (sans data leakage)
 
-| Rang | Modèle | Approche | OOS PF | Leçon |
-|:---:|:---|:---|---:|:---|
-| 🥇 | **v7** | Feature selection (25 features) | **1.173** | Moins = mieux |
-| 🥈 | v5 | Toutes features (110) + 2025 | 0.91 | 2025 = régime différent |
-| 🥉 | v6 | ICT features réelles (110) | 0.87 | ICT = bruit |
+| Rang | Modèle | Approche | Features | OOS PF | Leçon |
+|:---:|:---|:---|---:|---:|:---|
+| 🥇 | **v7** | Feature selection (25) | 25 | **1.173** | Moins = mieux |
+| 🥇 | **v8** | 25 features + OB fix (ATR 2.0) | 25 | **1.173** | OB = bruit même filtré |
+| 🥉 | v5 | Toutes features (110) + 2025 | 110 | 0.91 | 2025 = régime différent |
+| 4 | v6 | ICT features réelles (110) | 110 | 0.87 | ICT = bruit |
+| 5 | v9 | Cross-features (47) | 47 | 0.827 | Overfitting par feature engineering |
+| 6 | v10a | max_depth=6, lr=0.03 | 25 | 0.806 | Arbres trop profonds |
+| 7 | v10b | max_depth=6, lr=0.05 | 25 | 0.755 | Pire configuration |
+| 8 | v10c | max_depth=5, lr=0.03 | 25 | 0.882 | Légèrement moins pire |
 
 > **v4 (PF=1.26) n'est pas dans le classement OOS** car il a été testé sur ses propres données d'entraînement (data leakage). Son vrai PF OOS serait ~0.72 (voir Section 11).
 
@@ -520,9 +528,24 @@ Il faut plus de données et des features ICT réelles (FVG/OB/MSS calculés dans
 |:---|:---|
 | v4 (ICT = 0) → v6 (ICT = réelles) | CV 62.9% → 58.0%, PF 1.26 → 0.87 |
 | Top 25 features de v7 | **0 feature ICT** — 100% Ichimoku pur |
-| 91% des trades ont un OB | La feature ne discrimine rien |
+| 91% des trades ont un OB (v6) | La feature ne discrimine rien |
+| v8 : OB filtrés (ATR 2.0, mitigation) | Détection 91% → 27%, PF identique (1.173) |
 
 > **Les features gagnantes sont les niveaux de prix Ichimoku** (distances Kijun/Tenkan, T/K crosses, type d'actif). Les patterns ICT ajoutent du bruit, pas du signal.
+
+### 🔑 Le plafond dur : PF=1.173
+
+Le modèle v7 (25 features Ichimoku, max_depth=4) est le **plafond atteignable** avec l'architecture actuelle. Toutes les tentatives pour le dépasser ont échoué :
+
+| Tentative | Modèle | Approche | Résultat |
+|:---|:---:|:---|---:|
+| Plus de données | v5 | Backtest 2025 (18 mois) | PF 1.173 → 0.91 (−22%) |
+| Features ICT réelles | v6 | FVG/OB/MSS calculés | PF 1.173 → 0.87 (−26%) |
+| OB filtrés | v8 | ATR 2.0 + mitigation | PF identique (1.173) |
+| Cross-features | v9 | 22 features d'interaction | PF 1.173 → 0.827 (−29%) |
+| Arbres plus profonds | v10a/b/c | max_depth=5,6 | PF 1.173 → 0.755-0.882 (−25 à −35%) |
+
+> Pour franchir ce plafond, il faut une approche fondamentalement différente : plus de capital historique, des features de microstructure (order flow), ou un changement de paradigme (deep learning sur séries temporelles plutôt que classification XGBoost).
 
 ### 🐛 Bugs corrigés (18 juillet 2026)
 
@@ -548,10 +571,11 @@ Il faut plus de données et des features ICT réelles (FVG/OB/MSS calculés dans
 
 ---
 
-> **Dernière mise à jour :** 18 juillet 2026 (soir)
-> **Statut :** 7 modèles entraînés (v1→v7). Meilleur OOS : v7 (25 features, PF=1.173).
-> **Leçon :** Les features ICT (FVG/OB/MSS) sont du bruit. L'Ichimoku pur + feature selection est la meilleure approche.
-> **Prochaine étape :** Améliorer la qualité des 25 features (pas la quantité). Feature engineering ciblé.
+> **Dernière mise à jour :** 18 juillet 2026 (soir — final)
+> **Statut :** 10 modèles entraînés (v1→v10). **Plafond OOS = PF 1.173** (v7/v8).
+> **Classement final :** 🥇 v7/v8 (1.173) > 🥉 v5 (0.91) > v10c (0.882) > v6 (0.87) > v9 (0.827) > v10a (0.806) > v10b (0.755)
+> **Leçon définitive :** 25 features Ichimoku + max_depth=4 est le sweet spot. Tout écart (plus de features, plus de données, arbres plus profonds) dégrade le PF OOS.
+> **Prochaine étape :** Changer de paradigme — deep learning sur séries temporelles ou features de microstructure (order flow).
 
 ---
 
