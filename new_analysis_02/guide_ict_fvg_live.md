@@ -471,3 +471,7 @@ setups actifs, triés par RR décroissant :
 ---
 
 *Guide généré le 29 juin 2026 — Inelida Market Scanner*
+
+---
+
+> **Didier Vally / Reuniware Systems** — InelidaMarketScan

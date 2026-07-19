@@ -141,3 +141,7 @@ python main.py track save --force --sl X --tp Y  # scalp manuel
 > **Fichier principal :** `src/diamond_scanner.py` (2840+ lignes, 109 critères)  
 > **Backtest :** 0% win rate sans filtres → 70% avec filtres sur 15 trades  
 > **Crédits :** Projet personnel — développement accéléré par IA
+
+---
+
+> **Didier Vally / Reuniware Systems** — InelidaMarketScan

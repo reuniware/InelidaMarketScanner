@@ -181,3 +181,7 @@ python main.py track update                         # Mettre à jour
 
 *Analyse préparatoire pour la session du 17 juillet 2026*
 *Buffy — Inelida Diamond Scanner*
+
+---
+
+> **Didier Vally / Reuniware Systems** — InelidaMarketScan

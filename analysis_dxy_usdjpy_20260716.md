@@ -167,3 +167,7 @@ Le niveau pivot est **100.588** (Kijun D1). Tant que DXY tient au-dessus, le bou
 ---
 
 *Analyse générée par InelidaMarketScan — Diamond Analysis*
+
+---
+
+> **Didier Vally / Reuniware Systems** — InelidaMarketScan

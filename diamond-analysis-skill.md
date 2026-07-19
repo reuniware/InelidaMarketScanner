@@ -1383,3 +1383,7 @@ Ne jamais présenter un trade comme une certitude.
 > **Règle :** Le timeframe le plus court (H1) domine. Si T/Kx H1 contredit le biais,
 > le trade est invalide, peu importe l'alignement des TFs supérieurs.
 > **Implémentation :** Filtre `tkx1_conflict` dans le Diamond Scanner (force WAIT).
+
+---
+
+> **Didier Vally / Reuniware Systems** — InelidaMarketScan

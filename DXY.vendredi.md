@@ -290,3 +290,7 @@ python main.py track report
 > **Généré automatiquement par InelidaMarketScan — v1.0.1** |
 > **Modèle DXY :** `models/historical_v13_dxy.xgb` (63.5% CV) |
 > **Règle absolue :** TOUS les trades fermés avant 17h le vendredi. |
+
+---
+
+> **Didier Vally / Reuniware Systems** — InelidaMarketScan

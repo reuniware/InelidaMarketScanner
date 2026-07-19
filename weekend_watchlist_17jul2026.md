@@ -292,3 +292,7 @@
 ---
 
 *Généré automatiquement par InelidaMarketScan — Diamond Scanner v109 critères — 17/07/2026 23:00 BROKER*
+
+---
+
+> **Didier Vally / Reuniware Systems** — InelidaMarketScan

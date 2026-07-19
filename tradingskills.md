@@ -1524,3 +1524,7 @@ python live_ict_monitor_global.py --require-macro --require-killzone      # Les 
 
 📖 **Guide complet** : `new_analysis_02/guide_ict_fvg_live.md`  
 📖 **Algorithme** : `new_analysis_02/algo.md`
+
+---
+
+> **Didier Vally / Reuniware Systems** — InelidaMarketScan

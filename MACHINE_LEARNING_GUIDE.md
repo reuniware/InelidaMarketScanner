@@ -882,3 +882,7 @@ streamlit run app_ml.py
 | 🔍 **Data Explorer** | Trades en DB avec P&L cumulé, recherche, export CSV |
 | 📄 **CSV Viewer** | Visualisation des CSV avec filtres avancés, stats, distribution, corrélation |
 | 📈 **Feature Importance** | Analyse des features du modèle (top N, catégories, table brute) |
+
+---
+
+> **Didier Vally / Reuniware Systems** — InelidaMarketScan

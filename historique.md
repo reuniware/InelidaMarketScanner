@@ -1768,3 +1768,6 @@ de données historiques **dilue** le signal récent. v18 (6 mois) > v19 (18 mois
 | `models/historical_v18.xgb` | Nouveau modèle de production |
 | `data/historical_v19_2025_2026.csv` | Dataset 18 mois (5 177 trades) |
 
+---
+
+> **Didier Vally / Reuniware Systems** — InelidaMarketScan

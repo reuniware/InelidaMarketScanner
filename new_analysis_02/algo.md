@@ -557,3 +557,7 @@ FUNCTION run_backtest(bars):
 | **Macro 10/50** | Fenêtre de 2-4 min autour de :10 et :50 de chaque heure |
 | **Kill Zone** | London Open (2-5h ET), NY Open (8:30-11h ET), London Close (10h-12h ET) |
 | **R** | Unité de risque — 1R = perte maximale acceptée sur le trade |
+
+---
+
+> **Didier Vally / Reuniware Systems** — InelidaMarketScan

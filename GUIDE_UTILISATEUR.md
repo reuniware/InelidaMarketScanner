@@ -468,3 +468,7 @@ pip install MetaTrader5
 > pour avoir une vue d'ensemble. Ensuite utilisez le scan Asian pour
 > détecter les setups ICT de la journée. Et surtout : **ne tradez pas
 > les jours HIGH NEWS DAY sans une conviction très forte.**
+
+---
+
+> **Didier Vally / Reuniware Systems** — InelidaMarketScan

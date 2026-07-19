@@ -234,3 +234,7 @@ DXY.cash  Score=55/109  Biais=BEAR  Qualité=STRONG
 > **Généré automatiquement par InelidaMarketScan — v1.0.1** |
 > **Modèle DXY :** `models/historical_v13_dxy.xgb` (63.5% CV) |
 > **Feature #6 : `day_wednesday` (gain=6.4)** — le FOMC est intégré dans le modèle |
+
+---
+
+> **Didier Vally / Reuniware Systems** — InelidaMarketScan

@@ -238,3 +238,7 @@ python main.py track update
 > **Généré automatiquement par InelidaMarketScan — v1.0.1** |
 > **Modèle DXY :** `models/historical_v13_dxy.xgb` (63.5% CV) |
 > **WR natif DXY :** 73% — 88% avec ML% ≥ 60% |
+
+---
+
+> **Didier Vally / Reuniware Systems** — InelidaMarketScan

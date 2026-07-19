@@ -80,7 +80,7 @@ python live_trader.py --live --risk-pct 1.0 --rr-min 1.0 --interval 30
 ## 📚 Ebooks de Recherche — Téléchargement
 
 > **InelidaMarketScan — Analyse Scientifique des Marchés Financiers avec Machine Learning**
-> Par *DVA/Reuniware Systems*
+> Par *Didier Vally / Reuniware Systems*
 
 Téléchargez l'ebook complet (16 sections, 109 critères de scoring, 111 features ML,
 analyse de 15 modèles XGBoost, validation OOS, feature importance, matrice de décision)

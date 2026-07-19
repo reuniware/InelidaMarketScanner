@@ -246,3 +246,7 @@ python main.py track save
 > **Généré automatiquement par InelidaMarketScan — v1.0.1** |
 > **Modèle DXY :** `models/historical_v13_dxy.xgb` (63.5% CV) |
 > **WR natif :** 73% — 2e meilleur jour après le mardi |
+
+---
+
+> **Didier Vally / Reuniware Systems** — InelidaMarketScan

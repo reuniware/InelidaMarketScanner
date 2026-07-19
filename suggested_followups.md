@@ -179,3 +179,7 @@ pytest tests/test_elite_filters.py -v
 - Trade FOREX_CROSS → V1 accepté, V2 exclu
 - ELITE désactivé → aucun badge
 - Spread > 0.50% → aucun badge
+
+---
+
+> **Didier Vally / Reuniware Systems** — InelidaMarketScan
