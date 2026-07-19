@@ -1129,43 +1129,52 @@ def cmd_diamond(args):
             results = scanner.scan_all()
             _render_diamond_results(results, symbols, volume_only=getattr(args, 'volume_only', False), tz_mode=tz_mode)
 
-            # ── Mobile notifications ────────────────────────────────────────
-            if getattr(args, 'notify', False):
-                active = [
-                    (r.symbol, r.quality, r.bias, r.score, r.price)
-                    for r in results
-                    if r.quality in ("STRONG", "GOOD")
-                ]
-                if active:
-                    # Build a fingerprint to detect new/changed setups
-                    current_fps = {
-                        f"{sym}|{qual}|{bias}"
-                        for sym, qual, bias, _, _ in active
-                    }
-                    new_fps = current_fps - notified_setups
-                    if new_fps:
-                        ok = _send_mobile_notification(active, tz_mode=tz_mode)
-                        if ok:
-                            print(f"\n{GREEN}📱 Notification mobile envoyee ({len(active)} setup(s)).{RESET}")
-                        else:
-                            print(f"\n{YELLOW}⚠ --notify active mais NTFY_TOPIC non defini."
-                                  f" Installe l'app ntfy.sh et definis NTFY_TOPIC={DIM}ton-topic{RESET}{YELLOW}.{RESET}")
-                        notified_setups = current_fps  # mark as seen to prevent spam
-                elif notified_setups:
+            # ── Compute active setups (shared by --notify and --discord) ──
+            active = [
+                (r.symbol, r.quality, r.bias, r.score, r.price)
+                for r in results
+                if r.quality in ("STRONG", "GOOD")
+            ]
+            if active:
+                current_fps = {
+                    f"{sym}|{qual}|{bias}"
+                    for sym, qual, bias, _, _ in active
+                }
+                new_fps = current_fps - notified_setups
+            else:
+                current_fps = set()
+                new_fps = set()
+                if notified_setups:
                     # All setups disappeared — reset tracking
                     notified_setups = set()
 
-            # ── Discord posting ────────────────────────────────────────────
+            # ── Mobile notifications ────────────────────────────────────────
+            if getattr(args, 'notify', False):
+                if new_fps:
+                    ok = _send_mobile_notification(active, tz_mode=tz_mode)
+                    if ok:
+                        print(f"\n{GREEN}📱 Notification mobile envoyee ({len(active)} setup(s)).{RESET}")
+                    else:
+                        print(f"\n{YELLOW}⚠ --notify active mais NTFY_TOPIC non defini."
+                              f" Installe l'app ntfy.sh et definis NTFY_TOPIC={DIM}ton-topic{RESET}{YELLOW}.{RESET}")
+                    notified_setups = current_fps
+
+            # ── Discord posting (seulement si STRONG/GOOD detectes) ──────
             if getattr(args, 'discord', False):
                 webhook_url = _load_discord_webhook()
                 if webhook_url:
-                    ok = _post_diamond_to_discord(webhook_url, results, symbols, tz_mode=tz_mode)
-                    if ok:
-                        print(f"\n{GREEN}📤 Resultats postes sur Discord.{RESET}")
-                    else:
-                        print(f"\n{RED}❌ Echec de l'envoi Discord.{RESET}")
+                    if new_fps:
+                        ok = _post_diamond_to_discord(webhook_url, results, symbols, tz_mode=tz_mode)
+                        if ok:
+                            print(f"\n{GREEN}📤 Resultats postes sur Discord ({len(active)} setup(s) actifs).{RESET}")
+                            notified_setups = current_fps
+                        else:
+                            print(f"\n{RED}❌ Echec de l'envoi Discord.{RESET}")
+                    elif interval <= 0:
+                        print(f"\n{GRAY}📤 Discord: aucun nouveau setup (deja poste).{RESET}")
                 else:
-                    print(f"\n{YELLOW}⚠ --discord active mais aucun webhook (DISCORD_WEBHOOK_URL non defini).{RESET}")
+                    if interval <= 0:
+                        print(f"\n{YELLOW}⚠ --discord active mais aucun webhook (DISCORD_WEBHOOK_URL non defini).{RESET}")
 
             if interval <= 0:
                 break
