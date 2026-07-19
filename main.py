@@ -1931,6 +1931,42 @@ def _render_diamond_results(results: list, scanned_symbols: list, volume_only: b
         for r in active:
             _render_diamond_detail(r, lines)
 
+    # ── Scoring detail (tous les symboles : criteres + score/max) ──
+    lines.append(f"{BOLD}{CYAN}═══ SCORING — CRITERES PAR SYMBOLE ═══{RESET}")
+    lines.append("")
+    for r in results:
+        # Qualite + Bias icons
+        if r.quality == "STRONG":
+            q_icon = f"{BOLD}{GREEN}STRONG{RESET}"
+        elif r.quality == "GOOD":
+            q_icon = f"{YELLOW}GOOD{RESET}"
+        else:
+            q_icon = f"{DIM}WAIT{RESET}"
+        if r.bias == "BULL":
+            b_icon = "🔺"
+        elif r.bias == "BEAR":
+            b_icon = "🔻"
+        else:
+            b_icon = "➖"
+        # Score barre visuelle
+        pct = r.score / r.max_score * 100 if r.max_score > 0 else 0
+        bar_len = int(pct / 10)  # 0-10 chars
+        score_bar = f"{GREEN}{'█' * bar_len}{DIM}{'░' * (10 - bar_len)}{RESET}"
+        lines.append(
+            f"  {MAGENTA}{r.symbol:<10}{RESET} "
+            f"{b_icon} {q_icon}  "
+            f"Score: {r.score}/{r.max_score} ({pct:.0f}%)  "
+            f"{score_bar}"
+        )
+        if r.criteria:
+            # Montrer les criteres sur 2 lignes max
+            crit_line = '  '.join(r.criteria[:8])
+            lines.append(f"    {DIM}{crit_line}{RESET}")
+            if len(r.criteria) > 8:
+                crit_line2 = '  '.join(r.criteria[8:16])
+                lines.append(f"    {DIM}{crit_line2}{RESET}")
+        lines.append("")
+
     # ── Warning section (tous les symboles avec avertissements) ──
     warned = [r for r in results if r.warnings]
     if warned:
