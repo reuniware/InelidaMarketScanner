@@ -1102,10 +1102,12 @@ def cmd_asian_liquidity(args):
 def cmd_diamond(args):
     """
     Scan Diamond Analysis complet : Ichimoku multi-TF (H1/H4/D1) + Etape 3b
-    (Tenkan D1 historique, SSB proximity) + scoring 8 criteres + trade setup.
+    (Tenkan D1 historique, SSB proximity) + scoring 109 criteres + ML% filter.
 
     Combine le scan ICT asiatique avec l'analyse Ichimoku complete et la
     detection de memoire institutionnelle (flat lines passees).
+
+    Mode live : --interval N (secondes) pour boucler automatiquement.
     """
     _setup_logging(args.verbose)
     symbols = resolve_watchlist(args.symbols)
@@ -1114,26 +1116,36 @@ def cmd_diamond(args):
         return 1
 
     tz_mode = getattr(args, 'timezone', None) or DEFAULT_TZ_MODE
+    interval = getattr(args, 'interval', 0) or 0
+
     scanner = DiamondScanner(symbols, tz_mode=tz_mode)
     if not scanner.initialize():
         print(f"{RED}Connexion MT5 impossible pour Diamond Scanner.{RESET}")
         return 2
 
     try:
-        results = scanner.scan_all()
-        _render_diamond_results(results, symbols, volume_only=getattr(args, 'volume_only', False), tz_mode=tz_mode)
+        while True:
+            results = scanner.scan_all()
+            _render_diamond_results(results, symbols, volume_only=getattr(args, 'volume_only', False), tz_mode=tz_mode)
 
-        # ── Discord posting ────────────────────────────────────────────
-        if getattr(args, 'discord', False):
-            webhook_url = _load_discord_webhook()
-            if webhook_url:
-                ok = _post_diamond_to_discord(webhook_url, results, symbols, tz_mode=tz_mode)
-                if ok:
-                    print(f"\n{GREEN}📤 Resultats postes sur Discord.{RESET}")
+            # ── Discord posting ────────────────────────────────────────────
+            if getattr(args, 'discord', False):
+                webhook_url = _load_discord_webhook()
+                if webhook_url:
+                    ok = _post_diamond_to_discord(webhook_url, results, symbols, tz_mode=tz_mode)
+                    if ok:
+                        print(f"\n{GREEN}📤 Resultats postes sur Discord.{RESET}")
+                    else:
+                        print(f"\n{RED}❌ Echec de l'envoi Discord.{RESET}")
                 else:
-                    print(f"\n{RED}❌ Echec de l'envoi Discord.{RESET}")
-            else:
-                print(f"\n{YELLOW}⚠ --discord active mais aucun webhook (DISCORD_WEBHOOK_URL non defini).{RESET}")
+                    print(f"\n{YELLOW}⚠ --discord active mais aucun webhook (DISCORD_WEBHOOK_URL non defini).{RESET}")
+
+            if interval <= 0:
+                break
+            print(f"\n{GRAY}⏳ Prochain scan dans {interval}s... (Ctrl+C pour arreter){RESET}")
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        print(f"\n{YELLOW}⏹ Scan live arrete.{RESET}")
     finally:
         scanner.shutdown()
     return 0
@@ -2584,6 +2596,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_diamond.add_argument(
         "--volume-only", action="store_true",
         help="Affiche uniquement les HVN/LVN et spikes de volume (masque le reste du scan)."
+    )
+    p_diamond.add_argument(
+        "--interval", type=int, default=0, metavar="N",
+        help="Mode live : relance le scan toutes les N secondes (Ctrl+C pour arreter)."
     )
 
     # ── track (P&L) ───────────────────────────────────────────────────────
