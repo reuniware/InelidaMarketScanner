@@ -1747,6 +1747,14 @@ class DiamondScanner:
         _last_h1_ts = h1_t[-1] if h1_t else 0
         _last_bar_age_sec = _now_ts - _last_h1_ts if _last_h1_ts > 0 else 0
         _stale_market = _last_bar_age_sec > 3600  # > 1h = marche probablement ferme
+        # Correction : le marche peut avoir rouvert sans H1 complete.
+        # On verifie les M5 : si une bougie M5 recente existe, le marche est ouvert.
+        if _stale_market:
+            _m5_check = mt5.copy_rates_from_pos(sym, mt5.TIMEFRAME_M5, 0, 1)
+            if _m5_check is not None and len(_m5_check) > 0:
+                _m5_age = _now_ts - int(_m5_check[0][0])
+                if _m5_age < 600:  # M5 < 10 min = marche ouvert
+                    _stale_market = False
         d1_t = [x[0] for x in d1]
 
         # ═══ Asian Range + Sweep detection (H1 deja charge) ═══════════════
