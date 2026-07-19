@@ -1124,9 +1124,36 @@ def cmd_diamond(args):
         return 2
 
     try:
+        notified_setups: set = set()  # anti-spam : ne notifie qu'une fois par setup
         while True:
             results = scanner.scan_all()
             _render_diamond_results(results, symbols, volume_only=getattr(args, 'volume_only', False), tz_mode=tz_mode)
+
+            # ── Mobile notifications ────────────────────────────────────────
+            if getattr(args, 'notify', False):
+                active = [
+                    (r.symbol, r.quality, r.bias, r.score, r.price)
+                    for r in results
+                    if r.quality in ("STRONG", "GOOD")
+                ]
+                if active:
+                    # Build a fingerprint to detect new/changed setups
+                    current_fps = {
+                        f"{sym}|{qual}|{bias}"
+                        for sym, qual, bias, _, _ in active
+                    }
+                    new_fps = current_fps - notified_setups
+                    if new_fps:
+                        ok = _send_mobile_notification(active, tz_mode=tz_mode)
+                        if ok:
+                            print(f"\n{GREEN}📱 Notification mobile envoyee ({len(active)} setup(s)).{RESET}")
+                        else:
+                            print(f"\n{YELLOW}⚠ --notify active mais NTFY_TOPIC non defini."
+                                  f" Installe l'app ntfy.sh et definis NTFY_TOPIC={DIM}ton-topic{RESET}{YELLOW}.{RESET}")
+                        notified_setups = current_fps  # mark as seen to prevent spam
+                elif notified_setups:
+                    # All setups disappeared — reset tracking
+                    notified_setups = set()
 
             # ── Discord posting ────────────────────────────────────────────
             if getattr(args, 'discord', False):
@@ -1525,6 +1552,63 @@ def cmd_track(args):
     print(f"{RED}Action inconnue : {action}{RESET}")
     print(f"Actions: save, update, report, history, sessions, close, watch, verify, watchlist")
     return 1
+
+
+# ─── Mobile Notifications (ntfy.sh) ──────────────────────────────────────────
+
+def _send_mobile_notification(active_setups: list, tz_mode: str = "") -> bool:
+    """Envoie une notification push mobile via ntfy.sh quand des setups
+    STRONG/GOOD sont detectes.
+
+    Configuration : variable d'environnement NTFY_TOPIC (ex: "inelida-alerts").
+    L'utilisateur installe l'app ntfy sur son telephone et s'abonne au meme topic.
+
+    Args:
+        active_setups: liste de tuples (symbol, quality, bias, score, price)
+        tz_mode: fuseau horaire pour le timestamp
+
+    Returns:
+        True si la notification a ete envoyee, False sinon.
+    """
+    topic = os.environ.get("NTFY_TOPIC", "").strip()
+    if not topic:
+        return False
+
+    now_str = _now_local(tz_mode, "%H:%M")
+    n = len(active_setups)
+
+    # Construire le message
+    lines = []
+    lines.append(f"🔔 {n} setup(s) actif(s) detecte(s) a {now_str} :")
+    lines.append("")
+    for sym, qual, bias, score, price in active_setups[:5]:
+        emoji = "🔺" if bias == "BULL" else "🔻"
+        lines.append(f"  {emoji} {sym} | {qual} | {bias} | Score {score} | {price:.5f}")
+    if n > 5:
+        lines.append(f"  ... et {n - 5} autre(s) setup(s)")
+
+    body = "\n".join(lines)
+
+    # Priorite : high si STRONG, default sinon
+    has_strong = any(q == "STRONG" for _, q, _, _, _ in active_setups)
+    priority = "high" if has_strong else "default"
+
+    try:
+        data = body.encode("utf-8")
+        req = urllib.request.Request(
+            f"https://ntfy.sh/{topic}",
+            data=data,
+            headers={
+                "Title": f"💎 Diamond Alert — {now_str}",
+                "Priority": priority,
+                "Tags": "chart_with_upwards_trend" if has_strong else "mag",
+            },
+        )
+        urllib.request.urlopen(req, timeout=10)
+        return True
+    except Exception as e:
+        logging.getLogger("cmd_diamond").warning("Echec notification mobile: %s", e)
+        return False
 
 
 def _load_discord_webhook():
@@ -2600,6 +2684,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_diamond.add_argument(
         "--interval", type=int, default=0, metavar="N",
         help="Mode live : relance le scan toutes les N secondes (Ctrl+C pour arreter)."
+    )
+    p_diamond.add_argument(
+        "--notify", action="store_true",
+        help="Envoie une notification push mobile (via ntfy.sh) quand un setup STRONG/GOOD est detecte."
+        " Necessite NTFY_TOPIC dans les variables d'environnement."
     )
 
     # ── track (P&L) ───────────────────────────────────────────────────────
