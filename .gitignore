@@ -34,6 +34,7 @@ logs/
 *.pdf
 !reports/*.pdf
 !reports/*.docx
+!ebooks/*.pdf
 
 # ─── OS ───────────────────────────────────────────────────────────────────
 .DS_Store
