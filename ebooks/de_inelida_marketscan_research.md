@@ -217,5 +217,12 @@ Das InelidaMarketScan-Projekt zeigt, dass eine ML-Pipeline mit Ichimoku-Features
 ---
 
 > **Quantitative Finanzforschungsarbeit. Reproduktion mit Zitat gestattet.**
+
+## 🌐 Gemeinschaft
+
+Treten Sie dem Discord-Server **Trading Pro** bei, um sich mit der Community auszutauschen: https://discord.gg/u9JApXqhXy
+
+---
+
 > **Didier Vally / Reuniware Systems** — InelidaMarketScan v1.0.6
 > 2026-07-19

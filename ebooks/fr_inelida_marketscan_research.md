@@ -217,5 +217,12 @@ Le projet InelidaMarketScan démontre qu'un pipeline ML entraîné sur des featu
 ---
 
 > **Ouvrage de recherche en finance quantitative. Reproduction autorisée avec citation.**
+
+## 🌐 Communauté
+
+Rejoignez le serveur Discord **Trading Pro** pour échanger avec la communauté : https://discord.gg/u9JApXqhXy
+
+---
+
 > **Didier Vally / Reuniware Systems** — InelidaMarketScan v1.0.6
 > 2026-07-19

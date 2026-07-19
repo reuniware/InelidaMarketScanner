@@ -217,5 +217,12 @@ InelidaMarketScanプロジェクトは、一目均衡表特徴量で訓練され
 ---
 
 > **定量ファイナンス研究著作。引用による複製許可。**
+
+## 🌐 コミュニティ
+
+**Trading Pro** Discordサーバーに参加してコミュニティと交流しましょう：https://discord.gg/u9JApXqhXy
+
+---
+
 > **Didier Vally / Reuniware Systems** — InelidaMarketScan v1.0.6
 > 2026-07-19

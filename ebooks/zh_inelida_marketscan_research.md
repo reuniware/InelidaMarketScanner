@@ -217,5 +217,12 @@ InelidaMarketScan项目证明，基于一目均衡表特征训练的ML管道可�
 ---
 
 > **量化金融研究著作。允许引用转载。**
+
+## 🌐 社区
+
+加入 **Trading Pro** Discord 服务器与社区交流：https://discord.gg/u9JApXqhXy
+
+---
+
 > **Didier Vally / Reuniware Systems** — InelidaMarketScan v1.0.6
 > 2026-07-19

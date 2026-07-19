@@ -217,5 +217,12 @@ O projeto InelidaMarketScan demonstra que um pipeline ML treinado com features I
 ---
 
 > **Obra de pesquisa em finanças quantitativas. Reprodução permitida com citação.**
+
+## 🌐 Comunidade
+
+Junte-se ao servidor Discord **Trading Pro** para se conectar com a comunidade: https://discord.gg/u9JApXqhXy
+
+---
+
 > **Didier Vally / Reuniware Systems** — InelidaMarketScan v1.0.6
 > 2026-07-19

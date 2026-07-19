@@ -217,5 +217,12 @@ The InelidaMarketScan project demonstrates that an ML pipeline trained on Ichimo
 ---
 
 > **Quantitative finance research work. Reproduction permitted with citation.**
+
+## 🌐 Community
+
+Join the **Trading Pro** Discord server to connect with the community: https://discord.gg/u9JApXqhXy
+
+---
+
 > **Didier Vally / Reuniware Systems** — InelidaMarketScan v1.0.6
 > 2026-07-19
