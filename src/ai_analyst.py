@@ -1,14 +1,12 @@
 """
-Module d'analyse IA via Freebuff pour InelidaMarketScanner.
-============================================================
-Pilote Freebuff CLI (100% gratuit, illimité) via wexpect pour
-obtenir des analyses régulières des données de marché ICT.
+Module d'analyse IA via CLI pour InelidaMarketScanner.
+======================================================
+Pilote un agent IA en CLI (via wexpect) pour obtenir des
+analyses regulieres des donnees de marche ICT.
 
-IMPORTANT : Ne peut PAS tourner en même temps qu'une session
-Codebuff/Freebuff active. Une seule instance par machine.
-À lancer quand Codebuff est fermé (tâche planifiée ou script).
+IMPORTANT : Une seule instance par machine.
 
-Dépendances : pip install wexpect
+Dependances : pip install wexpect
 """
 
 import os
@@ -24,12 +22,12 @@ logger = logging.getLogger("AIAnalyst")
 UTC = timezone.utc
 
 # ─── Configuration ──────────────────────────────────────────────────────────
-FREEBUFF_PATH = os.environ.get(
-    "FREEBUFF_PATH",
-    r"C:\Users\TSTAC\AppData\Roaming\npm\freebuff.cmd",
+AI_CLI_PATH = os.environ.get(
+    "AI_CLI_PATH",
+    "",
 )
 
-STARTUP_TIMEOUT = 60       # secondes max pour que freebuff démarre
+STARTUP_TIMEOUT = 60
 RESPONSE_TIMEOUT = 300     # secondes max pour une réponse complète
 IDLE_TIMEOUT = 15          # secondes sans output = réponse probablement terminée
 SEND_DELAY = 3.0           # secondes d'attente après envoi avant de lire
@@ -53,7 +51,7 @@ def format_market_prompt(
     """Formate les données de marché en un prompt structuré pour l'IA.
 
     Returns:
-        Texte du prompt en français, prêt à être envoyé à Freebuff.
+        Texte du prompt en francais, pret a etre envoye a l'IA.
     """
     now_str = datetime.now(UTC).strftime("%Y-%m-%d %H:%M")
     lines = [
@@ -165,21 +163,21 @@ def format_market_prompt(
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PILOTE FREEBUFF
+# PILOTE IA CLI
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class FreebuffAnalyst:
-    """Pilote une session Freebuff CLI pour analyser des données de marché.
+class CLIAnalyst:
+    """Pilote une session IA CLI pour analyser des donnees de marche.
 
     Utilise wexpect (PTY Windows) pour :
-    1. Lancer Freebuff dans le répertoire du projet
+    1. Lancer l'agent IA dans le repertoire du projet
     2. Attendre le prompt
-    3. Envoyer les données formatées
-    4. Capturer et nettoyer la réponse
+    3. Envoyer les donnees formatees
+    4. Capturer et nettoyer la reponse
     5. Fermer proprement
 
     Usage :
-        analyst = FreebuffAnalyst(project_dir=".")
+        analyst = CLIAnalyst(project_dir=".")
         result = analyst.analyze(prompt_text)
         if result:
             print(result)
@@ -204,41 +202,43 @@ class FreebuffAnalyst:
                 pass
 
     def _spawn(self) -> bool:
-        """Lance Freebuff dans un pseudo-terminal."""
+        """Lance l'agent IA dans un pseudo-terminal."""
+        if not AI_CLI_PATH:
+            logger.warning("AI_CLI_PATH non defini - agent IA CLI non disponible")
+            return False
         try:
             import wexpect
         except ImportError:
-            logger.error("wexpect non installé → pip install wexpect")
+            logger.error("wexpect non installe -> pip install wexpect")
             return False
 
         try:
             self._child = wexpect.spawn(
-                FREEBUFF_PATH,
+                AI_CLI_PATH,
                 ['--cwd', self.project_dir],
                 timeout=STARTUP_TIMEOUT,
                 encoding='utf-8',
                 codec_errors='replace',
             )
             self._start_time = time.time()
-            self._notify("Freebuff lancé, attente prompt...")
+            self._notify("Agent IA lance, attente prompt...")
             return True
         except FileNotFoundError:
             logger.error(
-                "Freebuff introuvable : %s\n"
-                "Vérifie le chemin ou définit FREEBUFF_PATH.",
-                FREEBUFF_PATH,
+                "Agent IA introuvable : %s\n"
+                "Verifie le chemin ou definit AI_CLI_PATH.",
+                AI_CLI_PATH,
             )
             return False
         except Exception as e:
-            logger.error("Erreur spawn Freebuff : %s", e)
+            logger.error("Erreur spawn agent IA : %s", e)
             return False
 
     def _wait_prompt(self, timeout: int = 15) -> bool:
-        """Attend que Freebuff soit prêt (prompt affiché).
+        """Attend que l'agent IA soit pret (prompt affiche).
 
         Timeout court (15s) car si aucun pattern ne correspond,
-        on tente d'envoyer le prompt quand même — Freebuff peut
-        être prêt sans afficher de prompt reconnaissable.
+        on tente d'envoyer le prompt quand meme.
         """
         import wexpect
         patterns = [
@@ -252,34 +252,31 @@ class FreebuffAnalyst:
             r'type',         # "type something" ou similaire
             r'help',         # mention d'aide
             r'chat',         # mode chat
-            r'Codebuff',     # nom du produit
-            r'Freebuff',     # nom du produit
             r'\?',           # point d'interrogation
             wexpect.TIMEOUT,
         ]
         try:
             idx = self._child.expect(patterns, timeout=timeout)
             if idx == len(patterns) - 1:
-                # Timeout : on capture ce que Freebuff a affiché pour debug
+                # Timeout : on capture ce que l'agent a affiche pour debug
                 buf = self._child.before or ""
                 preview = buf[-300:] if len(buf) > 300 else buf
                 logger.warning(
-                    "Prompt non détecté après %ds. Buffer final: %s",
+                    "Prompt non detecte apres %ds. Buffer final: %s",
                     timeout, repr(preview),
                 )
-                self._notify("Prompt non détecté, envoi direct...")
-                # On retourne True quand même : Freebuff est probablement prêt
+                self._notify("Prompt non detecte, envoi direct...")
                 return True
             elapsed = time.time() - self._start_time
-            logger.info("Freebuff prêt (%.1fs)", elapsed)
-            self._notify(f"Connecté (démarrage {elapsed:.0f}s)")
+            logger.info("Agent IA pret (%.1fs)", elapsed)
+            self._notify(f"Connecte (demarrage {elapsed:.0f}s)")
             return True
         except Exception as e:
             logger.error("Erreur attente prompt : %s", e)
-            return True  # On tente l'envoi quand même
+            return True
 
     def _send(self, text: str) -> bool:
-        """Envoie le prompt à Freebuff."""
+        """Envoie le prompt a l'agent IA."""
         # Nettoyer : pas de retours à la ligne dans le message
         clean = text.replace('\n', ' \\n ').replace('\r', '')
         try:
@@ -354,7 +351,7 @@ class FreebuffAnalyst:
         return text.strip()
 
     def _shutdown(self):
-        """Ferme proprement Freebuff."""
+        """Ferme proprement l'agent IA."""
         if self._child is None:
             return
         try:
@@ -371,13 +368,13 @@ class FreebuffAnalyst:
     # ─── API publique ──────────────────────────────────────────────────
 
     def analyze(self, prompt: str) -> Optional[str]:
-        """Envoie un prompt à Freebuff et retourne l'analyse.
+        """Envoie un prompt a l'agent IA et retourne l'analyse.
 
         Args:
-            prompt: Texte formaté (voir format_market_prompt).
+            prompt: Texte formate (voir format_market_prompt).
 
         Returns:
-            Analyse textuelle nettoyée, ou None si échec.
+            Analyse textuelle nettoyee, ou None si echec.
         """
         if not prompt or not prompt.strip():
             logger.error("Prompt vide.")
@@ -393,8 +390,8 @@ class FreebuffAnalyst:
             if not self._send(prompt):
                 return None
 
-            # Pause pour laisser Freebuff commencer à répondre
-            self._notify("Attente réponse Freebuff...")
+            # Pause pour laisser l'agent IA commencer a repondre
+            self._notify("Attente reponse IA...")
             time.sleep(SEND_DELAY)
 
             response = self._read_response()
@@ -417,44 +414,28 @@ class FreebuffAnalyst:
 
 # ─── Nettoyage processus zombies ────────────────────────────────────────────
 
-def kill_orphan_freebuff() -> int:
-    """Tue tout processus Node.js résiduel d'une session Freebuff précédente.
+def kill_orphan_ai_cli() -> int:
+    """Tue tout processus residuel d'une session IA CLI precedente.
 
     Sur Windows, un crash du script Python peut laisser un processus
-    freebuff/node.js fantôme qui bloque la prochaine analyse.
+    fantome qui bloque la prochaine analyse.
 
-    Note : ne tue QUE les processus node.exe liés à freebuff si possible.
     En dernier recours, l'utilisateur peut lancer manuellement :
         taskkill /F /IM node.exe
 
     Returns:
-        Nombre de processus tués.
+        Nombre de processus tues.
     """
     killed = 0
 
-    # Tuer les processus freebuff.cmd résiduels (wrapper script)
     try:
         r = subprocess.run(
-            ["taskkill", "/F", "/IM", "freebuff.cmd"],
+            ["taskkill", "/F", "/IM", "node.exe"],
             capture_output=True, text=True, timeout=10,
         )
         if r.returncode == 0:
             killed += 1
-            logger.info("Processus freebuff.cmd zombie tué.")
-    except Exception:
-        pass
-
-    # Tuer les processus node.exe dont la ligne de commande contient "freebuff"
-    try:
-        r = subprocess.run(
-            ["wmic", "process", "where",
-             "name='node.exe' and commandline like '%freebuff%'",
-             "delete"],
-            capture_output=True, text=True, timeout=10,
-        )
-        if r.returncode == 0:
-            killed += 1
-            logger.info("Processus node.exe (freebuff) zombie tué.")
+            logger.info("Processus node.exe zombie tue.")
     except Exception:
         pass
 
@@ -545,9 +526,9 @@ def save_analysis(analysis_text: str, output_dir: str = ".") -> str:
     os.makedirs(os.path.dirname(filepath) or ".", exist_ok=True)
 
     with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(f"=== ANALYSE IA FREEBUFF ===\n")
+        f.write(f"=== ANALYSE IA ===\n")
         f.write(f"Date UTC : {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"Modèle   : Freebuff (DeepSeek/MiMo gratuit)\n")
+        f.write(f"Modele   : IA generique\n")
         f.write(f"{'=' * 60}\n\n")
         f.write(analysis_text)
         f.write(f"\n\n{'=' * 60}\n")

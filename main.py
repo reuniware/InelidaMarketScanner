@@ -1596,6 +1596,17 @@ def _build_diamond_discord_embed(results, symbols_count: int, tz_mode: str = "")
         )
         if r.horizon:
             detail += f" | Horizon: {r.horizon}"
+        # Stochastic Analytics (OU + Hurst + GARCH)
+        sto_parts = []
+        if r.ou_score > 0:
+            sto_parts.append(f"OU:{r.ou_score:.0f}%")
+        if r.hurst_h > 0:
+            h_label = "RANGE" if r.hurst_h < 0.45 else ("TREND" if r.hurst_h > 0.55 else "RANDOM")
+            sto_parts.append(f"H:{r.hurst_h:.2f} {h_label}")
+        if r.garch_persistence > 0:
+            sto_parts.append(f"G:P={r.garch_persistence:.2f} HL={r.garch_half_life:.0f}b")
+        if sto_parts:
+            detail += f"\n> 📊 {' | '.join(sto_parts)}"
         detail += f"\n> Criteres: {' '.join(r.criteria[:8])}"
 
         # Sweep AH/AL + LH/LL
@@ -1789,11 +1800,12 @@ def _render_diamond_results(results: list, scanned_symbols: list, volume_only: b
         f"{'Kumo H1':>8} {'Kumo H4':>8} {'Kumo D1':>8}  "
         f"{'Flat H1':>8} {'Flat H4':>8}  "
         f"{'Lon H':>10} {'Lon L':>10} {'Lon Swp':>8}  "
+        f"{'OU%':>5} {'Hst':>5}  "
         f"{'ML%':>6}"
         f"{RESET}"
     )
     lines.append(header)
-    lines.append(f"{GRAY}{'─'*120}{RESET}")
+    lines.append(f"{GRAY}{'─'*133}{RESET}")
 
     # ── Helpers pour le tableau (definis une seule fois en dehors de la boucle) ──
     def _kc(val):
@@ -1818,6 +1830,27 @@ def _render_diamond_results(results: list, scanned_symbols: list, volume_only: b
         elif val > 0:
             return f"{DIM}{val:>3}b{RESET}"
         return f"{GRAY}  0{RESET}"
+
+    def _ou_c(val):
+        """OU score cell (colorie en fonction de l'overextension)."""
+        if val >= 70:
+            return f"{GREEN}{val:>3.0f}{RESET}"
+        elif val >= 40:
+            return f"{YELLOW}{val:>3.0f}{RESET}"
+        elif val > 0:
+            return f"{DIM}{val:>3.0f}{RESET}"
+        return f"{GRAY}  -{RESET}"
+
+    def _h_c(val):
+        """Hurst cell (colorie RANGE/TREND/RANDOM)."""
+        if val > 0:
+            cell = f"{val:>4.2f}"
+            if val < 0.45:
+                return f"{GREEN}{cell}{RESET}"
+            elif val > 0.55:
+                return f"{RED}{cell}{RESET}"
+            return f"{YELLOW}{cell}{RESET}"
+        return f"{GRAY}    -{RESET}"
 
     def _london_swp(r_lo) -> str:
         """Indicateur de sweep London (LH/LL) pour le tableau principal."""
@@ -1883,10 +1916,11 @@ def _render_diamond_results(results: list, scanned_symbols: list, volume_only: b
             f"{_pad_cell(_kc(r.kumo_h1), 8)} {_pad_cell(_kc(r.kumo_h4), 8)} {_pad_cell(_kc(r.kumo_d1), 8)}  "
             f"{_pad_cell(_ff(r.flat_h1), 8)} {_pad_cell(_ff(r.flat_h4), 8)}  "
             f"{_fmt_price(r.london_high):>10} {_fmt_price(r.london_low):>10} {_pad_cell(_london_swp(r), 8)}  "
+            f"{_pad_cell(_ou_c(r.ou_score), 5)} {_pad_cell(_h_c(r.hurst_h), 5)}  "
             f"{_pad_cell(_ml_pct(r), 6)}"
         )
 
-    lines.append(f"{GRAY}{'─'*120}{RESET}")
+    lines.append(f"{GRAY}{'─'*133}{RESET}")
     lines.append("")
 
     # ── Detail des setups actifs ──
@@ -1999,6 +2033,46 @@ def _render_diamond_detail(r, lines: list):
             lines.append(f"    {GRAY}Sweeps L:{RESET} {' | '.join(lh_parts)}")
 
     lines.append(f"    {GRAY}Critères:{RESET} {' '.join(r.criteria)}")
+
+    # ── Stochastic Analytics (OU + Hurst) ──
+    stochastic_parts = []
+    if r.ou_score > 0:
+        if r.ou_score >= 70:
+            ou_col = GREEN
+        elif r.ou_score >= 40:
+            ou_col = YELLOW
+        else:
+            ou_col = DIM
+        stochastic_parts.append(f"{GRAY}OU:{RESET} {ou_col}{r.ou_score:.0f}%{RESET}")
+    if r.hurst_h > 0:
+        if r.hurst_h < 0.45:
+            h_col = GREEN
+            h_label = "RANGE"
+        elif r.hurst_h > 0.55:
+            h_col = RED
+            h_label = "TREND"
+        else:
+            h_col = YELLOW
+            h_label = "RANDOM"
+        stochastic_parts.append(f"{GRAY}Hurst:{RESET} {h_col}{r.hurst_h:.2f} {h_label}{RESET}")
+    if r.mc_p_sl > 0 or r.mc_p_tp > 0:
+        mc_total = r.mc_p_sl + r.mc_p_tp
+        if mc_total > 0:
+            mc_tp_ratio = r.mc_p_tp / mc_total * 100
+            mc_col = GREEN if mc_tp_ratio >= 60 else YELLOW if mc_tp_ratio >= 40 else RED
+            stochastic_parts.append(f"{GRAY}MC P(TP):{RESET} {mc_col}{mc_tp_ratio:.0f}%{RESET}")
+    # ── GARCH(1,1) Volatility Forecast ──
+    if r.garch_persistence > 0:
+        pers_col = GREEN if r.garch_persistence < 0.90 else YELLOW if r.garch_persistence < 0.97 else RED
+        stochastic_parts.append(f"{GRAY}Garch:{RESET} {pers_col}P={r.garch_persistence:.2f}{RESET}")
+        hl_col = DIM
+        stochastic_parts.append(f"{GRAY}HL:{RESET} {hl_col}{r.garch_half_life:.0f}b{RESET}")
+        if r.garch_long_run_vol > 0:
+            lr_pct = r.garch_long_run_vol * 100.0   # en pourcentage
+            lr_col = GREEN if lr_pct < 0.05 else YELLOW if lr_pct < 0.15 else RED
+            stochastic_parts.append(f"{GRAY}LR:{RESET} {lr_col}{r.garch_long_run_vol:.4f}{RESET}")
+    if stochastic_parts:
+        lines.append(f"    {' | '.join(stochastic_parts)}")
 
     if r.bias != "FLAT":
         tp_detail = f"{GRAY}TP:{RESET} {_fmt_price(r.tp)}"

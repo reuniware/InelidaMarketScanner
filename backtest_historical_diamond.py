@@ -20,6 +20,7 @@ Usage:
 import argparse
 import csv
 import logging
+import math
 import os
 import sys
 import time as _time
@@ -33,6 +34,16 @@ import MetaTrader5 as mt5
 # Import extract_features pour générer les 100+ features nommées
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src.ml_predictor import extract_features
+
+# Import stochastic analytics pour OU, Hurst, GARCH historiques
+try:
+    from src.stochastic_analytics import (
+        ornstein_uhlenbeck_fit, hurst_exponent,
+        monte_carlo_sweep_probability, garch_11_fit, garch_11_forecast,
+    )
+    _HAS_STOCHASTIC = True
+except ImportError:
+    _HAS_STOCHASTIC = False
 
 # ─── Configuration ────────────────────────────────────────────────────────
 
@@ -673,6 +684,39 @@ class HistoricalDiamondScanner:
         mss_h4 = self._detect_mss_historical(h4_h, h4_l, price)
         mss_d1 = self._detect_mss_historical(d1_h, d1_l, price)
 
+        # ── Stochastic Analytics (OU + Hurst + Monte Carlo + GARCH) ──
+        ou_score = 0.0
+        hurst_h = 0.0
+        mc_p_sl = 0.0
+        mc_p_tp = 0.0
+        garch_persistence = 0.0
+        garch_long_run_vol = 0.0
+        garch_half_life = 0.0
+        garch_forecast_vol_1 = 0.0
+
+        if _HAS_STOCHASTIC and len(h1_closes) >= 30:
+            try:
+                _theta, _mu, _sigma, _ou_score = ornstein_uhlenbeck_fit(h1_closes)
+                ou_score = _ou_score
+                if len(h1_closes) >= 50:
+                    hurst_h = hurst_exponent(h1_closes)
+                if sl > 0 and tp > 0 and _sigma > 0:
+                    _p_sl, _p_tp = monte_carlo_sweep_probability(price, sl, tp, _sigma)
+                    mc_p_sl = _p_sl
+                    mc_p_tp = _p_tp
+                # GARCH(1,1)
+                _log_prices = [math.log(max(p, 1e-15)) for p in h1_closes]
+                _log_rets = [_log_prices[i+1] - _log_prices[i] for i in range(len(_log_prices)-1)]
+                _g = garch_11_fit(_log_rets)
+                if not _g["error"]:
+                    _f = garch_11_forecast(_g["omega"], _g["alpha"], _g["beta"], _g["last_sigma2"], _g["last_eps2"], n_steps=5)
+                    garch_persistence = _g["persistence"]
+                    garch_long_run_vol = _g["long_run_vol"]
+                    garch_half_life = _f["half_life"]
+                    garch_forecast_vol_1 = _f["forecast_vol"][0] if _f["forecast_vol"] else 0.0
+            except Exception as _sto_err:
+                logger.debug("Stochastic skip %s: %s", sym, _sto_err)  # Silencieux : les features GARCH restent à 0
+
         # ── Build DiamondResult-like object + extract_features ──
         max_score = 109
         score_pct = alignment / 9.0 if bias != "FLAT" else 0.0
@@ -748,6 +792,14 @@ class HistoricalDiamondScanner:
             mss_h1_regime=mss_h1[0], mss_h4_regime=mss_h4[0], mss_d1_regime=mss_d1[0],
             # ── Compression ──
             compression_pips=0.0,
+            # ── Stochastic Analytics (OU + Hurst + Monte Carlo) ──
+            ou_score=ou_score, hurst_h=hurst_h,
+            mc_p_sl=mc_p_sl, mc_p_tp=mc_p_tp,
+            # ── GARCH(1,1) Volatility Forecast ──
+            garch_persistence=garch_persistence,
+            garch_long_run_vol=garch_long_run_vol,
+            garch_half_life=garch_half_life,
+            garch_forecast_vol_1=garch_forecast_vol_1,
         )
 
         # DXY price at scan date (for cross-pair features, avoid data leakage)

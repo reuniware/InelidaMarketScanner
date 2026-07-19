@@ -21,6 +21,7 @@ Usage:
 """
 
 import logging
+import math
 import time as _time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -30,6 +31,7 @@ import MetaTrader5 as mt5
 
 from src.config import tz_offset as _tz_off, tz_label as _tz_lbl, DEFAULT_TZ_MODE
 from src.news_calendar import get_news_risk
+from src.stochastic_analytics import ornstein_uhlenbeck_fit, hurst_exponent, monte_carlo_sweep_probability, garch_11_fit, garch_11_forecast
 
 logger = logging.getLogger("DiamondScanner")
 
@@ -417,6 +419,20 @@ class DiamondResult:
     london_low_swept_at: float = 0.0
     london_high_swept_session: str = ""
     london_low_swept_session: str = ""
+
+    # ── Stochastic Analytics ──
+    ou_score: float = 0.0         # Ornstein-Uhlenbeck overextension score (0-100)
+    ou_theta: float = 0.0         # vitesse de rappel OU
+    ou_mu: float = 0.0            # moyenne long terme OU
+    hurst_h: float = 0.0          # Hurst exponent (0.0-1.0)
+    mc_p_sl: float = 0.0          # Monte Carlo P(atteindre SL)
+    mc_p_tp: float = 0.0          # Monte Carlo P(atteindre TP)
+
+    # ── GARCH(1,1) Volatility Forecast ──
+    garch_persistence: float = 0.0  # alpha + beta (persistance du choc)
+    garch_long_run_vol: float = 0.0 # volatilite long terme
+    garch_half_life: float = 0.0    # demi-vie en periodes
+    garch_forecast_vol_1: float = 0.0 # prevision volatilite 1 pas
 
     # FOMC Day flag (mercredi — volatilite elevee)
     is_fomc_day: bool = False
@@ -2095,7 +2111,7 @@ class DiamondScanner:
 
         # ═══ Scoring (58 criteres max avec Reversal Pipeline + Breaker + vol + MSS + OB + TK4/TKd1/Kj4/KjD1 + Asian Sweep + M30 cross) ═══
         score = 0
-        max_score = 109 if mn_available else 107
+        max_score = 111 if mn_available else 109
         crit: List[str] = []
         warnings: List[str] = []
         alignment = 0
@@ -2852,6 +2868,48 @@ class DiamondScanner:
 
         # ── ML Prediction ──
         self._predict_ml(r)
+
+        # ── Stochastic Analytics (OU + Hurst + Monte Carlo) ──
+        # Utilise les prix H1 pour ajuster le processus OU et calculer H.
+        _prices_h1 = [c[3] for c in h1] if h1 and len(h1) > 30 else []
+        if len(_prices_h1) >= 30:
+            _theta, _mu, _sigma, _ou_score = ornstein_uhlenbeck_fit(_prices_h1)
+            r.ou_score = _ou_score
+            r.ou_theta = _theta
+            r.ou_mu = _mu
+            # Hurst exponent (besoin d'au moins 50 observations)
+            if len(_prices_h1) >= 50:
+                r.hurst_h = hurst_exponent(_prices_h1)
+            # Monte Carlo sweep probability (si SL/TP définis)
+            if r.sl > 0 and r.tp > 0:
+                _p_sl, _p_tp = monte_carlo_sweep_probability(r.price, r.sl, r.tp, _sigma)
+                r.mc_p_sl = _p_sl
+                r.mc_p_tp = _p_tp
+            # ── GARCH(1,1) Volatility Forecast ──
+            try:
+                _log_prices = [math.log(max(p, 1e-15)) for p in _prices_h1]
+                _log_rets = [_log_prices[i+1] - _log_prices[i] for i in range(len(_log_prices)-1)]
+                _g = garch_11_fit(_log_rets)
+                if not _g["error"]:
+                    _f = garch_11_forecast(
+                        _g["omega"], _g["alpha"], _g["beta"],
+                        _g["last_sigma2"], _g["last_eps2"],
+                        n_steps=5,
+                    )
+                    r.garch_persistence = _g["persistence"]
+                    r.garch_long_run_vol = _g["long_run_vol"]
+                    r.garch_half_life = _f["half_life"]
+                    r.garch_forecast_vol_1 = _f["forecast_vol"][0] if _f["forecast_vol"] else 0.0
+            except Exception as _garch_err:
+                logger.warning("GARCH skip %s: %s", sym, _garch_err)
+        # Critère : OU overextension
+        if r.ou_score >= 70:
+            score += 1
+            crit.append(f"OU overextended ({r.ou_score:.0f}%)")
+        # Critère : Hurst range (H < 0.45 → range-bound)
+        if 0 < r.hurst_h < 0.45:
+            score += 1
+            crit.append(f"Hurst range H={r.hurst_h:.2f}")
 
         # ── FOMC Day (Wednesday) Flag ──
         # Lecon #6b : day_wednesday est la feature #1 du modele DXY (gain=1.92)

@@ -21,31 +21,9 @@ import joblib
 
 logger = logging.getLogger("MLPredictor")
 
-# Chemin par défaut du modèle entraîné (unifié v7 — fallback)
+# Chemin du modèle entraîné (unifié v18 — 64% acc, 1210 trades, 13 symboles)
 _MODEL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models")
-_DEFAULT_MODEL = os.path.join(_MODEL_DIR, "historical_v7.xgb")
-
-# Per-asset v13 models (ensemble — meilleur OOS, PF=4.000)
-_V13_DXY   = os.path.join(_MODEL_DIR, "historical_v13_dxy.xgb")
-_V13_XAU   = os.path.join(_MODEL_DIR, "historical_v13_xau.xgb")
-_V13_INDEX = os.path.join(_MODEL_DIR, "historical_v13_index.xgb")
-_V13_FOREX = os.path.join(_MODEL_DIR, "historical_v13_forex.xgb")
-
-# Asset classification helper — utilisée par MLPredictor pour sélectionner le bon modèle
-_ASSET_KEYWORDS = {
-    "dxy": ["DXY"],
-    "xau": ["XAU", "XAG"],
-    "index": ["US30", "US100", "US500", "SPX", "NAS", "DJI", "FTSE", "DAX", "NK", "HSI", "CAC"],
-}
-
-
-def _classify_asset(symbol: str) -> str:
-    """Classifie un symbole en type d'actif : dxy, xau, index, ou forex."""
-    sym_up = symbol.upper()
-    for asset_type, keywords in _ASSET_KEYWORDS.items():
-        if any(kw in sym_up for kw in keywords):
-            return asset_type
-    return "forex"  # tout le reste
+_DEFAULT_MODEL = os.path.join(_MODEL_DIR, "historical_v18.xgb")
 
 # ─── Cache DXY ─────────────────────────────────────────────────────────────
 # Évite de multiples appels MT5 redondants pendant un même scan
@@ -252,6 +230,17 @@ def extract_features(result, scan_time: Optional[datetime] = None,
     feats["news_count"] = _news["news_count"]
     feats["is_high_news_day"] = _news["is_high_news_day"]
 
+    # ── Stochastic Analytics (OU + Hurst + Monte Carlo + GARCH) ──
+    feats["ou_score"] = _safe_float(getattr(result, "ou_score", 0))
+    feats["hurst_h"] = _safe_float(getattr(result, "hurst_h", 0))
+    feats["mc_p_sl"] = _safe_float(getattr(result, "mc_p_sl", 0))
+    feats["mc_p_tp"] = _safe_float(getattr(result, "mc_p_tp", 0))
+    # ── GARCH(1,1) volatility forecast ──
+    feats["garch_persistence"] = _safe_float(getattr(result, "garch_persistence", 0))
+    feats["garch_long_run_vol"] = _safe_float(getattr(result, "garch_long_run_vol", 0))
+    feats["garch_half_life"] = _safe_float(getattr(result, "garch_half_life", 0))
+    feats["garch_forecast_vol_1"] = _safe_float(getattr(result, "garch_forecast_vol_1", 0))
+
     # ── Prix et scores ──
     feats["price"] = _safe_float(getattr(result, "price", 0))
     feats["score"] = _safe_float(getattr(result, "score", 0))
@@ -348,105 +337,60 @@ def extract_features(result, scan_time: Optional[datetime] = None,
 
 
 class MLPredictor:
-    """Prédicteur ML — utilise des modèles per-asset (v13) avec fallback v7 unifié.
+    """Prédicteur ML — utilise un modèle XGBoost unifié (v18).
 
-    Charge 4 modèles spécialisés (DXY, XAU, Indices, Forex) + le modèle v7 unifié
-    comme fallback. La prédiction sélectionne automatiquement le bon modèle
-    selon le symbole du résultat analysé.
+    Charge un seul modèle entraîné sur 13 symboles (1210 trades, 64% accuracy).
     """
 
-    _ASSET_MODEL_MAP = {
-        "dxy": _V13_DXY,
-        "xau": _V13_XAU,
-        "index": _V13_INDEX,
-        "forex": _V13_FOREX,
-    }
-
     def __init__(self, model_path: Optional[str] = None):
-        self._fallback_path = model_path or _DEFAULT_MODEL
-        # Modèle unifié v7 (fallback)
-        self._fallback: Optional[dict] = None   # {model, feature_names}
-        # Modèles per-asset v13
-        self._per_asset: dict = {}  # asset_name -> {model, feature_names}
+        self._model_path = model_path or _DEFAULT_MODEL
+        self._model: Optional[dict] = None  # {model, feature_names}
 
     @property
     def is_loaded(self) -> bool:
-        return self._fallback is not None
+        return self._model is not None
 
     def load(self) -> bool:
-        """Charge tous les modèles (fallback v7 + 4 per-asset v13)."""
-        # Fallback v7 uniforme
-        if self._fallback is not None:
-            return True  # déjà chargé
+        """Charge le modèle unifié v18."""
+        if self._model is not None:
+            return True
 
-        if not os.path.isfile(self._fallback_path):
-            logger.warning("Modele fallback v7 introuvable: %s", self._fallback_path)
+        if not os.path.isfile(self._model_path):
+            logger.warning("Modele introuvable: %s", self._model_path)
             return False
 
         try:
-            bundle = joblib.load(self._fallback_path)
-            self._fallback = {
+            bundle = joblib.load(self._model_path)
+            self._model = {
                 "model": bundle.get("model"),
                 "feature_names": bundle.get("feature_names", []),
             }
-            logger.info("Fallback v7 charge: %s (%d features)",
-                        self._fallback_path, len(self._fallback["feature_names"] or []))
+            logger.info("Modele v18 charge: %s (%d features, %d trades)",
+                        self._model_path,
+                        len(self._model["feature_names"] or []),
+                        bundle.get("n_trades", 0))
+            return True
         except Exception as e:
-            logger.error("Erreur chargement fallback v7: %s", e)
+            logger.error("Erreur chargement modele: %s", e)
             return False
-
-        # Per-asset v13 models (non-bloquant: pas de crash si 1 modele manque)
-        loaded_count = 0
-        for asset_type, model_path in self._ASSET_MODEL_MAP.items():
-            if not os.path.isfile(model_path):
-                logger.debug("Modele per-asset %s introuvable: %s", asset_type, model_path)
-                continue
-            try:
-                bundle = joblib.load(model_path)
-                self._per_asset[asset_type] = {
-                    "model": bundle.get("model"),
-                    "feature_names": bundle.get("feature_names", []),
-                }
-                loaded_count += 1
-            except Exception as e:
-                logger.warning("Erreur chargement modele %s: %s", asset_type, e)
-
-        logger.info("Per-asset v13: %d/4 modeles charges", loaded_count)
-        return True
-
-    def _get_model_for_asset(self, asset_type: str):
-        """Retourne (model, feature_names) pour un type d'actif,
-        ou le fallback v7 si non disponible."""
-        entry = self._per_asset.get(asset_type)
-        if entry and entry.get("model") is not None:
-            return entry["model"], entry["feature_names"]
-        # Fallback v7
-        if self._fallback:
-            return self._fallback["model"], self._fallback["feature_names"]
-        return None, None
 
     def predict(self, result) -> Optional[float]:
         """Prédit la probabilité de trade gagnant pour un DiamondResult.
 
-        Sélectionne automatiquement le modèle per-asset correspondant au symbole.
-        Si le modèle per-asset n'est pas disponible, utilise le fallback v7 unifié.
+        Utilise le modèle unifié v18 (13 symboles, 64% accuracy).
 
         Args:
             result: Instance de DiamondResult.
 
         Returns:
-            Probabilité entre 0.0 et 1.0, ou None si aucun modèle chargé.
+            Probabilité entre 0.0 et 1.0, ou None si modèle non chargé.
         """
         if not self.is_loaded and not self.load():
             return None
 
         features = extract_features(result)
-        symbol = (getattr(result, "symbol", "") or "").upper()
-        asset_type = _classify_asset(symbol)
-
-        model, fnames = self._get_model_for_asset(asset_type)
-        if model is None:
-            return None
+        model = self._model["model"]
+        fnames = self._model["feature_names"]
 
         # Aligner l'ordre des features avec celui du modèle
         if fnames:
@@ -458,8 +402,8 @@ class MLPredictor:
             import numpy as np
             X = np.array([ordered], dtype=np.float32)
             proba = model.predict_proba(X)[0]
-            # proba[0] = probabilité classe 0 (perdant), proba[1] = classe 1 (gagnant)
             return float(proba[1]) if len(proba) > 1 else float(proba[0])
         except Exception as e:
-            logger.error("Erreur prediction ML (%s): %s", asset_type, e)
+            symbol = (getattr(result, "symbol", "") or "").upper()
+            logger.error("Erreur prediction ML (%s): %s", symbol, e)
             return None

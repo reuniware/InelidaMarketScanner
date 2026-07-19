@@ -140,4 +140,4 @@ python main.py track save --force --sl X --tp Y  # scalp manuel
 > **Total commits v1.0.1 :** ~20  
 > **Fichier principal :** `src/diamond_scanner.py` (2840+ lignes, 109 critères)  
 > **Backtest :** 0% win rate sans filtres → 70% avec filtres sur 15 trades  
-> **Crédits :** Projet personnel — développement accéléré par Freebuff AI
+> **Crédits :** Projet personnel — développement accéléré par IA

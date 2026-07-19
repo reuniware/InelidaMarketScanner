@@ -222,7 +222,7 @@ def _identify_candle_structure(c: Dict) -> str:
     return "Indecis"
 
 
-# ─── Détection trade dans la réponse Freebuff ───────────────────────────────
+# ─── Détection trade dans la réponse Gemini ───────────────────────────────
 
 # Patterns regex pour extraire un signal de trade de la réponse NL
 _RE_BUY = re.compile(
@@ -269,7 +269,7 @@ def _safe_float(s: Optional[str]) -> Optional[float]:
 
 
 def _parse_trade_from_analysis(response: str, symbol: str) -> Optional[Dict]:
-    """Extrait un signal de trade haute probabilité de la réponse Freebuff.
+    """Extrait un signal de trade haute probabilité de la réponse Gemini.
 
     Parse le texte en langage naturel pour trouver :
     - Direction (BUY/SELL)
@@ -384,7 +384,7 @@ def _display_trade_alert(trade: Dict, symbol: str, candle_time: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class LiveM5Analyst:
-    """Moniteur temps réel qui analyse chaque bougie M5 via Freebuff."""
+    """Moniteur temps réel qui analyse chaque bougie M5 via Gemini."""
 
     def __init__(
         self,
@@ -502,7 +502,7 @@ class LiveM5Analyst:
             print(f"  [OK] MT5 déconnecté. Analyses dans : {OUTPUT_DIR}")
 
     def _analyze_symbol(self, symbol: str):
-        """Analyse UN symbole via Freebuff à la clôture M5."""
+        """Analyse UN symbole via Gemini à la clôture M5."""
         # 1. Récupérer les données
         candles = _fetch_m5_context(symbol, M5_LOOKBACK)
         if not candles or len(candles) < 2:
@@ -537,7 +537,7 @@ class LiveM5Analyst:
         close = _fmt(latest["close"])
         print(f"    {symbol} [{ct}] {structure} Close={close}")
 
-        # 6. Analyse Gemini (direct API, pas de Freebuff)
+        # 6. Analyse Gemini (direct API, pas de CLI)
         t0 = time.time()
         print(f"    {symbol} [{ct}] ⟳ Envoi Gemini...", end=" ", flush=True)
         result = self._analyst.analyze(prompt)
@@ -575,7 +575,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Live AI Analyst — Analyse ICT M5 via Freebuff (gratuit)"
+        description="Live AI Analyst — Analyse ICT M5 via Gemini (gratuit)"
     )
     parser.add_argument(
         "--symbols", nargs="*", default=None,
