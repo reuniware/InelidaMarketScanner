@@ -170,6 +170,15 @@ python main.py diamond --timezone BROKER
 # Avec envoi Discord automatique
 python main.py diamond --discord
 
+# Mode live (scan toutes les 60 secondes)
+python main.py diamond --timezone BROKER --interval 60
+
+# Live + notifications push mobile (via Discord)
+python main.py diamond --timezone BROKER --interval 120 --discord
+
+# Live + notifications push mobile (via ntfy.sh)
+python main.py diamond --timezone BROKER --interval 60 --notify
+
 # Volume uniquement (HVN/LVN)
 python main.py diamond --volume-only
 ```
@@ -312,9 +321,37 @@ DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/VOTRE_URL
 # Scan Diamond + envoi sur Discord
 python main.py diamond --discord
 
-# Scan Asian + envoi sur Discord (via l'option --discord si disponible)
+# Scan live toutes les 60s + Discord (recois les alertes sur ton telephone)
+python main.py diamond --timezone BROKER --interval 60 --discord
+
+# Scan Asian + envoi sur Discord
 python main.py asian --scan-all --swept-only
 ```
+
+### Mode live avec notifications
+
+Le flag `--interval N` lance le scan en boucle toutes les N secondes.
+Combine avec `--discord` pour recevoir les resultats automatiquement
+sur ton telephone via l'app Discord.
+
+```bash
+# Scan live + Discord (Ctrl+C pour arreter)
+python main.py diamond --timezone BROKER --interval 120 --discord
+```
+
+### Alternative : notifications push mobiles via ntfy.sh
+
+Si tu preferes ne pas passer par Discord, utilise `--notify` :
+
+```bash
+# Installation du topic (a faire une seule fois)
+set NTFY_TOPIC=mon-topic-secret
+
+# Scan live + notifications push
+python main.py diamond --timezone BROKER --interval 60 --notify
+```
+
+Installe l'app gratuite **ntfy** (Android/iOS) et abonne-toi au meme topic.
 
 ### Ce qui est envoyé
 
@@ -403,6 +440,9 @@ INELIDA_WATCHLIST=EURUSD,GBPUSD,USDJPY,AUDUSD,USDCAD,USDCHF,EURJPY,GBPJPY,XAUUSD
 # Webhook Discord
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 
+# Notifications push mobiles (ntfy.sh)
+NTFY_TOPIC=mon-topic-secret
+
 # Fuseau horaire (BROKER, UTC, PARIS)
 INELIDA_TZ=BROKER
 ```
@@ -456,6 +496,8 @@ pip install MetaTrader5
 | Voir les prix et indicateurs rapidement | `python main.py scan --symbols EURUSD` |
 | Trouver des setups ICT (sweep AH/AL) | `python main.py asian --scan-all --swept-only` |
 | Analyse complète Ichimoku + ICT | `python main.py diamond --timezone BROKER` |
+| Scan live toutes les 60s | `python main.py diamond --timezone BROKER --interval 60` |
+| Live + alertes sur telephone (Discord) | `python main.py diamond --timezone BROKER --interval 60 --discord` |
 | Sauvegarder les trades pour suivi | `python main.py diamond && python main.py track save` |
 | Vérifier le P&L des trades passés | `python main.py track report` |
 | Backtester la stratégie | `python backtest_trades_detected.py` |

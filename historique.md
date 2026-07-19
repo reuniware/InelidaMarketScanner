@@ -1941,4 +1941,45 @@ new_analysis_02/algo.md, new_analysis_02/guide_ict_fvg_live.md.
 
 ---
 
+## 20/07/2026 — Notifications push mobiles + mode live
+
+### 🆕 `--interval N` — Mode live
+
+Le scan Diamond boucle automatiquement toutes les N secondes :
+
+```bash
+python main.py diamond --timezone BROKER --interval 60
+```
+
+Ctrl+C arrête proprement (scanner.shutdown()). Le modèle ML reste chargé
+entre les itérations (pas de re-load).
+
+### 🆕 `--notify` — Notifications push mobiles via ntfy.sh
+
+Quand un setup STRONG ou GOOD est détecté, une notification push est envoyée
+sur le téléphone via l'app gratuite ntfy.sh.
+
+Configuration :
+- Installer l'app ntfy (Android/iOS)
+- Choisir un topic (ex: `inelida-diamond`)
+- Définir `NTFY_TOPIC` dans les variables d'environnement
+
+```bash
+set NTFY_TOPIC=inelida-diamond
+python main.py diamond --timezone BROKER --interval 60 --notify
+```
+
+Anti-spam : chaque setup est tracké par fingerprint `symbol|quality|bias`.
+Pas de re-notification tant que la qualité ne change pas.
+
+### Alternative : Discord pour les notifs
+
+Plus simple si Discord est déjà installé sur le téléphone :
+
+```bash
+python main.py diamond --timezone BROKER --interval 120 --discord
+```
+
+---
+
 > **Didier Vally / Reuniware Systems** — InelidaMarketScan

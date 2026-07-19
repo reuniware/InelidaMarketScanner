@@ -150,7 +150,7 @@ GEMINI_API_KEY=ta_cle_ici
 | 🔍 **Scan multi-actifs** | Forex, Métaux, Indices, Crypto — tous les symboles disponibles chez le broker |
 | 🌏 **Session Asiatique** | Calcul du range AH/AL (00-08 UTC) + sweeps post-Asian + extensions Fibonacci ±1.618 à ±4.0 + timestamps de sweep |
 | 🔷 **BSL/SSL Sweeps** | Détection Williams fractals (N=2) avec sweep detection sur M15 à H4 |
-| 💎 **Diamond Analysis** | Ichimoku multi-TF (M5/M15/M30/H1/H4/D1/W1/MN) + mémoire institutionnelle (Tenkan/Kijun flat history) + **scoring 109 critères** (FVG 6 TFs, OB 6 TFs, MSS/BOS 6 TFs, Volume HVN/LVN 6 TFs, Breaker Blocks 6 TFs, AH/AL sweeps, Reversal Pipeline) + **Smart TP** (Kijun, FVG, SSB, nuages, Ext Fibonacci) + **SL proximity safety net** + **--discord** flag + **P&L Tracker** intégré |
+| 💎 **Diamond Analysis** | Ichimoku multi-TF (M5/M15/M30/H1/H4/D1/W1/MN) + mémoire institutionnelle + **scoring 109 critères** (FVG, OB, MSS, Volume, Breaker Blocks, AH/AL sweeps, Reversal Pipeline) + **Smart TP** (Kijun, FVG, SSB, Ext Fibonacci) + **SL safety net** + **ML% filter** + **--discord** + **--notify** (push mobile) + **--interval** (mode live) + **P&L Tracker** |
 | 📈 **Backtest Asian** | Backtest 30 jours BSL/SSL asiatique → sweep London → continuation vers l'autre liquidité |
 | 🏛️ **Niveaux Daily/Weekly** | PDH/PDL / PWH/PWL avec sweeps, breaches et direction cible |
 | 🎯 **ICT FVG** | Stratégie complète en 5 étapes : DOL → Raid → FVG → Retracement → SL/TP |
@@ -236,8 +236,17 @@ python main.py asian-liquidity --scan-all --tf M15
 # Diamond Analysis Ichimoku multi-TF
 python main.py diamond --symbols XAUUSD EURUSD GBPUSD
 
+# Diamond Analysis + live toutes les 60s (Ctrl+C pour arrêter)
+python main.py diamond --timezone BROKER --interval 60
+
 # Diamond Analysis + publication Discord automatique
 python main.py diamond --discord
+
+# Diamond Analysis + notification push mobile (via Discord)
+python main.py diamond --timezone BROKER --interval 120 --discord
+
+# Diamond Analysis + notification push mobile (via ntfy.sh)
+python main.py diamond --timezone BROKER --interval 60 --notify
 
 # Diamond Analysis + sauvegarde P&L des setups actifs
 python main.py track save
