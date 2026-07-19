@@ -77,6 +77,32 @@ python live_trader.py --live --risk-pct 1.0 --rr-min 1.0 --interval 30
 
 ---
 
+## 📚 Ebooks de Recherche — Téléchargement
+
+> **InelidaMarketScan — Analyse Scientifique des Marchés Financiers avec Machine Learning**
+> Par *DVA/Reuniware Systems*
+
+Téléchargez l'ebook complet (16 sections, 109 critères de scoring, 111 features ML,
+analyse de 15 modèles XGBoost, validation OOS, feature importance, matrice de décision)
+dans votre langue :
+
+| Langue | 📄 Markdown | 📖 EPUB | 📕 PDF |
+|:-------|:-----------:|:-------:|:------:|
+| 🇫🇷 **Français** | [Lire](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/fr_inelida_marketscan_research.md) | [Télécharger](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/fr_inelida_marketscan_research.epub) | [Télécharger](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/fr_inelida_marketscan_research.pdf) |
+| 🇬🇧 **English** | [Read](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/en_inelida_marketscan_research.md) | [Download](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/en_inelida_marketscan_research.epub) | [Download](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/en_inelida_marketscan_research.pdf) |
+| 🇩🇪 **Deutsch** | [Lesen](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/de_inelida_marketscan_research.md) | [Herunterladen](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/de_inelida_marketscan_research.epub) | [Herunterladen](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/de_inelida_marketscan_research.pdf) |
+| 🇪🇸 **Español** | [Leer](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/es_inelida_marketscan_research.md) | [Descargar](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/es_inelida_marketscan_research.epub) | [Descargar](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/es_inelida_marketscan_research.pdf) |
+| 🇮🇹 **Italiano** | [Leggi](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/it_inelida_marketscan_research.md) | [Scarica](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/it_inelida_marketscan_research.epub) | [Scarica](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/it_inelida_marketscan_research.pdf) |
+| 🇵🇹 **Português** | [Ler](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/pt_inelida_marketscan_research.md) | [Baixar](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/pt_inelida_marketscan_research.epub) | [Baixar](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/pt_inelida_marketscan_research.pdf) |
+| 🇨🇳 **中文** | [阅读](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/zh_inelida_marketscan_research.md) | [下载](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/zh_inelida_marketscan_research.epub) | [下载](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/zh_inelida_marketscan_research.pdf) |
+| 🇯🇵 **日本語** | [読む](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/ja_inelida_marketscan_research.md) | [ダウンロード](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/ja_inelida_marketscan_research.epub) | [ダウンロード](https://raw.githubusercontent.com/reuniware/InelidaMarketScanner/main/ebooks/ja_inelida_marketscan_research.pdf) |
+
+> **Contenu :** 16 sections couvrant les fondements théoriques ICT, l'architecture du scanner Diamond (109 critères),
+> le pipeline ML (111 features, 15 modèles XGBoost, validation OOS), la simulation de capital,
+> la matrice de décision biais × alignment × news × Wednesday, et les limites connues.
+
+---
+
 ## ⚙️ Configuration
 
 Trois façons de configurer la watchlist (symboles scannés) :

@@ -1,0 +1,5 @@
+# Include ebooks in source distribution (PyPI sdist)
+recursive-include ebooks/ *.md *.epub *.pdf
+
+# Include documentation
+include README.md LICENSE GUIDE_UTILISATEUR.md tradingskills.md
