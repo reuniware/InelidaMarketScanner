@@ -1742,6 +1742,11 @@ class DiamondScanner:
         d1_h, d1_l = [x[1] for x in d1], [x[2] for x in d1]
         h1_t = [x[0] for x in h1]
         h4_t = [x[0] for x in h4]
+        # ── Stale data detection (marche ferme ?) ──
+        _now_ts = _time.time()
+        _last_h1_ts = h1_t[-1] if h1_t else 0
+        _last_bar_age_sec = _now_ts - _last_h1_ts if _last_h1_ts > 0 else 0
+        _stale_market = _last_bar_age_sec > 3600  # > 1h = marche probablement ferme
         d1_t = [x[0] for x in d1]
 
         # ═══ Asian Range + Sweep detection (H1 deja charge) ═══════════════
@@ -2942,6 +2947,15 @@ class DiamondScanner:
                     "HIGH NEWS DAY: biais BULL downgrade — "
                     "setups BULL non fiables, privilegier BEAR ou attendre (Lecon #8, 15/15 erreurs)"
                 )
+
+        # ── Stale market detection ──
+        if _stale_market:
+            _age_h = _last_bar_age_sec / 3600.0
+            _last_dt = datetime.fromtimestamp(_last_h1_ts, UTC).strftime("%d/%m %H:%M UTC")
+            r.warnings.append(
+                f"MARCHE FERME: derniere bougie {_last_dt} "
+                f"({_age_h:.0f}h sans donnees) — prix et indicateurs potentiellement obsoletes"
+            )
 
         # ── ML% Filter ──
         # Backtest v4-v18 : ML% >= 50% → PF 2.27 vs 1.02 sans filtre.
