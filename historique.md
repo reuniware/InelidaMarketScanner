@@ -1651,3 +1651,120 @@ que le modèle n'a jamais vues).
 | `MACHINE_LEARNING_GUIDE.md` | Mise à jour avec v4, 111 features, simulation ML% |
 | `historique.md` | Ce document |
 
+---
+
+## 19/07/2026 — Session Finance Quantitative & ML v18
+
+### 🧮 Nouveau module : `src/stochastic_analytics.py`
+
+**Déclencheur :** L'utilisateur demande d'ajouter le calcul stochastique (utilisé en finance quant).
+
+**6 fonctions implémentées :**
+
+| Fonction | Concept | Utilité |
+|:---|:---|:---|
+| **Ornstein-Uhlenbeck** (`compute_ou_score`) | Processus mean-reversion | Détecte l'overextension — OU% affiché dans le scan |
+| **Hurst Exponent** (`compute_hurst`) | Analyse fractale | Classifie RANGE (<0.45) vs TREND (>0.55) — Hst affiché |
+| **Monte Carlo** (`monte_carlo_sim`) | 10 000 trajectoires simulées | P(SL touché) et P(TP touché) |
+| **GARCH(1,1)** (`garch_forecast`) | Prévision de volatilité | Persistance, volatilité long-terme, demi-vie des chocs |
+| **Kelly Criterion** (`kelly_fraction`) | Position sizing optimal | f* = (b×p - q)/b par type d'actif |
+| **FTMO Ruin** (`ftmo_ruin_probability`) | Simulation drawdown 10% | Probabilité de ruine d'un compte prop firm |
+
+**Intégration dans le Diamond Scanner :**
+- Chaque `_scan_symbol()` appelle `compute_ou_score()`, `compute_hurst()`, `garch_forecast()`, `monte_carlo_sim()`
+- Nouvelles colonnes dans le tableau principal : **OU%**, **Hst**
+- Nouvelle ligne stochastique dans le détail : `OU: 85% | Hurst: 0.32 RANGE | MC P(TP): 72% | Garch: P=0.97 HL=23b`
+- Scoring étendu avec les critères OU et Hurst
+- Affichage dans l'embed Discord
+
+### 🤖 ML v15-v18 — Le vrai saut de performance
+
+#### v15 → v16 : Features GARCH dans le ML
+
+Backtest 6 symboles (852 trades) avec GARCH features → **CV 56.9%, F1 0.434**.
+Les features GARCH apparaissent dans le top 20 (gain #15-#19). Premier signal
+que la volatilité prédictive est utile.
+
+#### v16 → v17 : Kelly dynamique par actif
+
+Remplacé `_p = 0.40` par les vrais WR historiques :
+
+| Actif | WR réel | Kelly f* (RR=2) |
+|:---|---:|---:|
+| DXY | 73.0% | **0.595** |
+| Forex | 30.9% | **0.000** (EV négatif) |
+| XAU | 36.5% | 0.048 |
+| Indices | 36.4% | 0.046 |
+
+**Résultat :** `kelly_full` et `kelly_ev` toujours au rang #124-#125 (gain=0.00).
+Le Kelly est une transformation linéaire de RR — XGBoost l'apprend déjà.
+→ **Kelly supprimé de extract_features()** dans v18.
+
+#### v17 → v18 : Dataset 13 symboles + max_depth=6
+
+| | v16/v17 | **v18** |
+|:--|:-------:|:-------:|
+| Trades | 541 | **1 210** |
+| Symbols | 6 | **13** |
+| Features | 125 | **123** (Kelly supprimé) |
+| Accuracy | 56.9% | **64.0%** |
+| Precision | 38.3% | **52.4%** |
+| F1 | 0.434 | **0.503** |
+| max_depth | 4 | **6** |
+
+**Top 3 features v18 :**
+1. `rr` — le ratio risque/récompense
+2. `is_dxy` — DXY = 73% WR → signal massif
+3. `tkx_h1` — croix Tenkan/Kijun H1
+
+**Activé en production :** `_DEFAULT_MODEL = historical_v18.xgb`
+
+#### MLPredictor simplifié (code review)
+
+**Avant :** 5 `joblib.load()` — 1 fallback v7 + 4 per-asset v13 (tous vers le même fichier v18)
+**Après :** 1 `joblib.load()` — modèle unifié v18
+
+| | Avant | Après |
+|:--|:------|:------|
+| Modèles chargés | **5** | **1** |
+| Lignes de code | ~70 | **~30** |
+| Code mort | `_classify_asset`, `_ASSET_KEYWORDS`, etc. | ✅ Supprimé |
+
+**API inchangée :** `.load()`, `.predict()`, `.is_loaded` — DiamondScanner fonctionne sans modif.
+
+### 📊 Backtest 2025-2026 (v19)
+
+```bash
+python backtest_historical_diamond.py --start 2025-01-01 --end 2026-07-17
+```
+
+**Résultat :** 5 177 trades, 3 045 outcomes, WR 36.0%.
+Mais l'entraînement sur 18 mois donne une CV plus faible (61.7%) que v18 (64.0%).
+
+**Leçon :** 2025 ≠ 2026 — les régimes de marché sont différents. Ajouter plus
+de données historiques **dilue** le signal récent. v18 (6 mois) > v19 (18 mois).
+
+### 🎯 Bilan de la session
+
+| Ajout | Impact |
+|:---|:---|
+| **OU% / Hst** | Diagnostic de régime en temps réel (range vs trend) |
+| **GARCH** | Prévision de volatilité — signal ML nouveau (gain #15-#19) |
+| **Monte Carlo** | P(SL/TP) — aide à la décision, pas encore top feature |
+| **Kelly** | Redondant avec RR — abandonné après 2 datasets confirmant gain=0 |
+| **FTMO Ruin** | Utile pour risk management, pas intégré au ML |
+| **v18** | **Meilleur modèle unifié** — 64% CV, F1=0.503, 1 210 trades |
+| **MLPredictor simplifié** | 1 load au lieu de 5, 30 lignes gagnées |
+
+### 📁 Fichiers créés/modifiés
+
+| Fichier | Changement |
+|:---|:---|
+| `src/stochastic_analytics.py` | Nouveau module — 6 fonctions quantitatives |
+| `src/ml_predictor.py` | v18 actif, Kelly supprimé, MLPredictor simplifié (1 load) |
+| `src/diamond_scanner.py` | Intégration OU/Hurst/GARCH/Monte Carlo + scoring |
+| `main.py` | Colonnes OU%/Hst, ligne stochastique, Discord embed |
+| `backtest_historical_diamond.py` | Features stochastiques dans le backtest |
+| `models/historical_v18.xgb` | Nouveau modèle de production |
+| `data/historical_v19_2025_2026.csv` | Dataset 18 mois (5 177 trades) |
+

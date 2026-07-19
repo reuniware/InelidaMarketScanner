@@ -1,9 +1,9 @@
 # 🤖 Machine Learning Guide — InelidaMarketScan
 
 > **Objectif :** Profit factor > 2.0, win rate > 55%.
-> **Moyen :** Un modèle XGBoost entraîné sur 25 features Ichimoku sélectionnées,
+> **Moyen :** Un modèle XGBoost entraîné sur 123 features (Ichimoku + ICT + Stochastic + GARCH),
 > avec backtest historique sur 3 045 trades (2025-2026).
-> **Modèle actif :** `historical_v7.xgb` — 60.1% CV, PF OOS = 1.173.
+> **Modèle actif :** `historical_v18.xgb` — 64.0% CV, 1 210 trades, MLPredictor simplifié (1 load).
 
 ---
 
@@ -20,6 +20,8 @@
 9. [Limitations et pièges](#9-limitations-et-pièges)
 10. [Roadmap](#10-roadmap)
 11. [Résultats — Simulation ML% filtering (v4)](#11-résultats--simulation-ml-filtering-v4)
+12. [Features Stochastic & Finance Quantitative](#12-features-stochastic--finance-quantitative)
+13. [MLPredictor Simplifié (19/07)](#13-mlpredictor-simplifié-1907)
 
 ---
 
@@ -495,6 +497,9 @@ Il faut plus de données et des features ICT réelles (FVG/OB/MSS calculés dans
 | P9 | ~~Multi-class (3 classes)~~ → ✅ **FAIT** (v12) | Échec — effondré sur LOSS |
 | P10 | ~~Per-asset models~~ → ✅ **FAIT** (v13, PF=4.000) | 🏆 Best OOS, 15 trades |
 | P11 | Backtest 2024-2025 per-asset (>2000 trades/actif) | Confirmer v13 |
+| P12 | ~~**Finance Quantitative : OU + Hurst + GARCH + Monte Carlo**~~ → ✅ **FAIT** | Features volatilité dans le ML |
+| P13 | ~~**Kelly Criterion + FTMO Ruin**~~ → ✅ **FAIT** | Kelly redondant (gain=0), FTMO utile |
+| P14 | ~~**MLPredictor simplifié : 1 load au lieu de 5**~~ → ✅ **FAIT** | Code mort supprimé, 30 lignes gagnées |
 
 ### Historique des modèles
 
@@ -513,6 +518,7 @@ Il faut plus de données et des features ICT réelles (FVG/OB/MSS calculés dans
 | `historical_v11_reg.xgb` | 13 symboles | 25 (regression P&L%) | 2 923 | R²=-0.004 | 3.000* | ❌ Prédit du bruit |
 | `historical_v12_mc.xgb` | 13 symboles | 25 (multi-class 3) | 2 923 | 67.3% | 14.000* | ❌ Effondré sur LOSS |
 | **`historical_v13_{dxy,xau,index,forex}.xgb`** | 4 modèles | 25 (per-asset) | 2 923 | 53-64% | **4.000** | 🥇 **Best OOS (15 trades)** |
+| **`historical_v18.xgb`** | 13 symboles | 123 (GARCH, max_depth=6) | 1 210 | **64.0%** | 0.503 F1 | 🥇 **Production actif** |
 
 ### 🏆 Classement OOS (sans data leakage)
 
@@ -586,10 +592,11 @@ Trois tentatives de changement de paradigme au-delà du classifieur binaire :
 ## 📚 Références
 
 - **Fichiers du projet :**
-  - `src/ml_predictor.py` — Extraction de features + prédiction (218 lignes, 10 fonctions)
+  - `src/ml_predictor.py` — Extraction de features + prédiction (simplifié, ~80 lignes)
   - `src/ml_trainer.py` — Entraînement XGBoost + métriques (185 lignes, 4 fonctions)
   - `src/ml_labeler.py` — Génération CSV labellisé (493 lignes, 10 fonctions)
   - `src/diamond_scanner.py` — Intégration ML dans le scanner
+  - `src/stochastic_analytics.py` — OU, Hurst, Monte Carlo, GARCH, Kelly, FTMO Ruin
 
 - **Documentation externe :**
   - [XGBoost Documentation](https://xgboost.readthedocs.io/)
@@ -597,10 +604,113 @@ Trois tentatives de changement de paradigme au-delà du classifieur binaire :
 
 ---
 
-> **Dernière mise à jour :** 18 juillet 2026 (soir — final)
-> **Statut :** 13 modèles entraînés (v1→v13). **Best OOS : v13 per-asset (PF=4.000, 15 trades).**
-> **Classement final :** 🥇 v13 (4.000) > 🥈 v7/v8 (1.173) > 🥉 v5 (0.91) > v10c (0.882) > v6 (0.87) > v9 (0.827) > v11 (3.0* noise) > v12 (14.0* noise)
-> **Leçon définitive :** La spécialisation par actif (v13) est le seul changement de paradigme qui a dépassé le classifieur binaire unifié. À confirmer avec plus de données OOS.
+---
+
+## 12. Features Stochastic & Finance Quantitative
+
+### Pourquoi ces features ?
+
+Les features Ichimoku capturent le **prix** et la **tendance**. Les features ICT (FVG/OB/MSS)
+capturent la **structure**. Mais il manquait une dimension : la **volatilité** et le **régime**.
+
+Les modèles v15-v18 ont intégré 6 nouvelles fonctions de finance quantitative :
+
+| Feature | Module | Type de signal | Gain ML (v16) |
+|:---|:---|:---|---:|
+| **OU Score** (`ou_score`) | Ornstein-Uhlenbeck | Overextension → mean-reversion | **#16** (6.15) |
+| **Hurst Exponent** (`hurst_h`) | Analyse fractale | Range (<0.45) vs Trend (>0.55) | **#30** (5.14) |
+| **GARCH Persistence** (`garch_persistence`) | GARCH(1,1) | Mémoire des chocs de volatilité | **#15** (6.32) |
+| **GARCH Long-Run Vol** (`garch_long_run_vol`) | GARCH(1,1) | Volatilité d'équilibre long terme | **#19** (6.05) |
+| **GARCH Half-Life** (`garch_half_life`) | GARCH(1,1) | Demi-vie des chocs (en barres) | #42 (4.12) |
+| **Monte Carlo P(SL)** (`mc_p_sl`) | Simulation 10K paths | Probabilité que le SL soit touché | #39 (4.38) |
+| **Monte Carlo P(TP)** (`mc_p_tp`) | Simulation 10K paths | Probabilité que le TP soit touché | #48 (3.87) |
+| **Kelly f\*** | Kelly Criterion | Position sizing optimal | **#124 (0.00)** ❌ |
+| **Kelly EV** | Kelly Criterion | Expected value par trade | **#125 (0.00)** ❌ |
+| **FTMO Ruin** | Simulation drawdown | Probabilité de ruine (10% DD) | Non testé |
+
+> **Leçon :** Les features de volatilité (GARCH, OU, Hurst) apportent un **vrai signal**
+> que le modèle ne pouvait pas déduire des features de prix existantes. Le Kelly est
+> redondant (transformation linéaire de RR) → supprimé dans v18.
+
+### Où voir ces features en live ?
+
+```bash
+python main.py diamond --timezone BROKER
+```
+
+Les colonnes **OU%** et **Hst** apparaissent dans le tableau principal. La ligne stochastique
+s'affiche dans le détail des setups actifs :
+
+```
+OU: 85% | Hurst: 0.32 RANGE | MC P(TP): 72% | Garch: P=0.97 HL=23b
+```
+
+### Interprétation
+
+| OU% | Signification |
+|:---:|:---|
+| 0-20% | Prix proche de sa moyenne — normal |
+| 20-50% | Légèrement overextended |
+| 50-80% | Fortement overextended — retournement probable |
+| 80-100% | Extrême — mean-reversion quasi certaine |
+
+| Hurst | Signification |
+|:---:|:---|
+| < 0.40 | **RANGE** fort — le prix revient à la moyenne |
+| 0.40-0.55 | Aléatoire — pas de tendance claire |
+| 0.55-0.70 | **TREND** — momentum directionnel |
+| > 0.70 | Tendance très forte — suivre la direction |
+
+---
+
+## 13. MLPredictor Simplifié (19/07)
+
+### Avant la simplification
+
+Le `MLPredictor` chargeait **5 modèles** à l'initialisation :
+- 1 fallback (`historical_v7.xgb`)
+- 4 per-asset (`historical_v13_dxy.xgb`, `_xau.xgb`, `_index.xgb`, `_forex.xgb`)
+
+Problème : après le passage à v18 (modèle unifié), les 4 per-asset pointaient tous
+vers le même fichier `historical_v18.xgb`. Résultat : **5 `joblib.load()` sur le même modèle**.
+
+### Après la simplification
+
+```python
+class MLPredictor:
+    _model_path = "models/historical_v18.xgb"
+    
+    def load(self):
+        self._model = {"model": joblib.load(self._model_path), 
+                       "feature_names": [...]}
+        return True
+    
+    def predict(self, result):
+        features = extract_features(result)
+        ordered = [features.get(name, 0.0) for name in self._model["feature_names"]]
+        return float(self._model["model"].predict_proba([ordered])[0][1])
+```
+
+| | Avant | Après |
+|:--|:------|:------|
+| Modèles chargés | **5** | **1** |
+| `joblib.load()` | 5 appels | 1 appel |
+| Lignes de code | ~70 | ~30 |
+| Code mort | `_classify_asset`, `_ASSET_KEYWORDS`, etc. | ✅ Supprimé |
+
+### Impact
+
+- **Même ML%** — EURUSD 35.2%, DXY 77.8%, XAUUSD 52.0% (inchangé)
+- **Plus rapide** — 1 chargement de modèle au lieu de 5
+- **Plus simple** — 30 lignes au lieu de 70, plus facile à maintenir
+
+---
+
+> **Dernière mise à jour :** 19 juillet 2026 (session quantitative)
+> **Statut :** 18 modèles entraînés (v1→v18). **Production : v18 unifié (123 features, 64.0% CV, 1 210 trades).**
+> **Nouveautés 19/07 :** OU%, Hurst, GARCH, Monte Carlo, Kelly Criterion, FTMO Ruin. MLPredictor simplifié (1 joblib.load).
+> **Classement final :** 🥇 v13 (4.000) > 🥈 v7/v8 (1.173) > 🥉 v18 (production) > v5 (0.91)
+> **Leçon définitive :** Les features de volatilité (GARCH/OU/Hurst) apportent du signal neuf ; le Kelly est redondant avec RR.
 > **Prochaine étape :** Backtest 2024-2025 per-asset pour confirmer le PF=4.000 avec 100+ trades OOS.
 
 ---

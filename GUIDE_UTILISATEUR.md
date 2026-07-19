@@ -188,6 +188,27 @@ EURUSD     40/109 BULL    WAIT     1.14472   1.14537   BEAR     INSIDE
 | **Qualité** | STRONG (feu vert), GOOD (orange), WAIT (rouge — ne pas trader) |
 | **T/Kx H1** | Tenkan/Kijun croisement H1 : BULL ou BEAR |
 | **Kumo H1** | Position par rapport au nuage : ABOVE (au-dessus), BELOW (en-dessous), INSIDE (dedans) |
+| **OU%** | Ornstein-Uhlenbeck : score d'overextension (0-100%). >80% = retournement probable |
+| **Hst** | Exposant de Hurst : <0.45=RANGE, >0.55=TREND. Indique le régime de marché |
+| **ML%** | Probabilité de gain prédite par le modèle XGBoost v18 (123 features) |
+
+### 🧮 Indicateurs quantitatifs (nouveautés 19/07/2026)
+
+Le scan Diamond affiche désormais des indicateurs de finance quantitative :
+
+| Indicateur | Description |
+|:---|:---|
+| **OU%** | Score Ornstein-Uhlenbeck (0-100%) — détecte quand le prix est trop loin de sa moyenne. >80% = retournement très probable |
+| **Hst** | Exposant de Hurst (0-1) — classifie le régime : <0.45 = RANGE (mean-reversion), >0.55 = TREND (momentum) |
+| **GARCH** | Prévision de volatilité — persistance des chocs, volatilité long-terme, demi-vie |
+| **Monte Carlo** | Simulation de 10 000 trajectoires — probabilité que le TP soit touché avant le SL |
+| **Kelly Criterion** | Dimensionnement optimal des positions par type d'actif (DXY=73%, Forex=31%, etc.) |
+| **FTMO Ruin** | Probabilité de ruine d'un compte prop firm avec drawdown 10% |
+
+Ces indicateurs sont visibles dans la ligne de détail des setups actifs :
+```
+OU: 85% | Hurst: 0.32 RANGE | MC P(TP): 72% | Garch: P=0.97 HL=23b
+```
 
 ### ⚠️ Les 3 garde-fous automatiques (ajoutés le 17/07/2026)
 
@@ -396,7 +417,7 @@ INELIDA_TZ=BROKER
 
 ---
 
-## 10. Dépannage
+## 11. Dépannage
 
 ### « MT5 initialization failed »
 
