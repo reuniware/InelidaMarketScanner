@@ -518,6 +518,102 @@ Cible 7 symboles avec 1 seul sweep London :
 
 > **Prochaine session :** track verify --session 6ad79a41 / DXY 100.681 / setups
 
+---
+
+## 19/07/2026 — Code Review + Regression Test + PyPI
+
+### 🐛 4 bugs critiques corrigés
+
+| # | Fichier | Bug |
+|:---:|:---|:---|
+| 🐛1 | `diamond_scanner.py` | Code mort dans `ml_available` — symboles jamais activés |
+| 🐛2 | `stochastic_analytics.py` | GARCH fallback silencieux quand aucun (α,β) valide |
+| 🐛3 | `stochastic_analytics.py` | Monte Carlo ignorait le fallback de volatilité |
+| 🐛4 | `stochastic_analytics.py` | FTMO : `pnl_avg` hors try → fragile |
+
+### 🧪 Régression : 9/9 tests passés
+
+- Syntax check : diamond_scanner.py, stochastic_analytics.py, ml_predictor.py, main.py
+- OU : theta=0.087, score=12%, Hurst=0.498 (random), Monte Carlo P(SL)=0.67 P(TP)=0.03
+- GARCH : persistence=0.954, half-life=14.7, forecast_vol=0.0089
+- MLPredictor : chargé, 123 features, stochastic features in model
+
+### 📚 24 ebooks régénérés (8 langues × 3 formats)
+
+- Traductions complètes (DE, ES, IT, PT, ZH, JA) — plus de placeholder anglais
+- Signature : Didier Vally / Reuniware Systems
+- Formats : .md, .epub, .pdf
+- PyPI v1.0.6 publiée
+
+### ✍️ 42 fichiers signés
+
+- 18 `.md` projet + 24 ebooks
+- Signature uniforme `Didier Vally / Reuniware Systems`
+
+---
+
+## 20/07/2026 — Session Asian Open (Dimanche 23h Paris)
+
+### 🆕 3 améliorations du Diamond Scanner
+
+| # | Fonctionnalité | Commit | Effet |
+|:---:|:---|:---:|:---|
+| 1 | **ML% Filter** | `cb53ad3` | ML% < 50% → STRONG→GOOD, GOOD→WAIT (backtest: PF 1.02→2.27) |
+| 2 | **Scoring visible pour tous** | `7f26a0b` | Score/Max + % + barre `███░░` + critères pour chaque symbole |
+| 3 | **Détection marché fermé** | `065a681` | Dernière bougie > 1h → ⚠️ MARCHÉ FERMÉ |
+
+### 🔬 Découverte : DXY.cash fermé le dimanche sur FTMO
+
+- Dernière bougie M1 DXY.cash = 17/07 23:49 UTC (vendredi)
+- EURUSD = 20/07 00:20 UTC (live)
+- Le tick (`symbol_info_tick`) renvoie un prix fantôme (dernier connu)
+- Les indicateurs Ichimoku DXY sont basés sur des données obsolètes
+- **Solution :** détection automatique via `_stale_market` dans `_scan_symbol()`
+
+### 📊 Scan 00:14 BROKER
+
+5 symboles fermés (DXY, US500, US100, US30, XAUUSD) — 8 symboles live
+
+**Top 3 live :**
+
+| Rang | Symbole | Score | Biais | ML% |
+|:---:|:---|:---:|:---|:---:|
+| 1 | USDCAD | 40/111 (36%) | BEAR | 35% |
+| 2 | GBPJPY | 35/111 (32%) | BULL | 40% |
+| 3 | USDJPY | 32/111 (29%) | BULL | 38% |
+
+### 🎯 GBPJPY — Analyse détaillée
+
+**Structure :** H1 BEAR ↘ / H4-D1-W1-MN BULL ↗
+
+- Scanner a détecté le conflit T/Kx H1 → WAIT
+- Prix chuté de 218.49 → 218.24 (−25 pips) en 30 min
+- Le H1 BEAR avait raison sur le court terme
+- Pullback vers Kijun H4 à 218.13 (support majeur)
+- Scénario : rebond à l'ouverture London si Kj H4 tient
+
+### 📦 Pipeline de décision final
+
+```
+_scan_symbol()
+  → 109 critères
+  → Score & Biais
+  → T/Kx H1 conflit ?    → WAIT
+  → MFE (flat bars) ?    → downgrade
+  → SL proximity ?        → downgrade
+  → HIGH NEWS DAY ?       → downgrade BULL
+  → 🆕 ML% < 50% ?       → downgrade
+  → 🆕 Marché fermé ?     → ⚠️ avertissement
+  → Quality finale
+```
+
+### 📦 PyPI v1.0.7
+
+- Liens README corrigés (GUIDE_UTILISATEUR.md absolu, EPUB/PDF raw)
+- v1.0.8 en préparation avec les 3 nouveautés
+
+---
+
 ## 17/07/2026 — Session Asian Open (~22:15 UTC)
 
 ### 🆕 M30 Kijun Cross — Nouveau critère de scoring Diamond

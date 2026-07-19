@@ -167,6 +167,9 @@ GEMINI_API_KEY=ta_cle_ici
 | 🔗 **Sweep Watchlist** | Sauvegarde des niveaux LH/LL London avec obstacles Ichimoku inter-TF pour vérification de sweep en fin de session NY |
 | 🐛 **Intra-Asian Sweep Fix** | Détection des sweeps AH/AL pendant la session asiatique (avant 08:00 UTC) — corrigé 16/07 |
 | 💎 **Asian Sweep Scoring** | Les sweeps AH/AL sont des critères de scoring dans le Diamond Scanner (max_score: 109) avec affichage console + Discord |
+| 🧠 **ML% Filter** | Le modèle XGBoost v18 prédit la probabilité de win — si ML% < 50%, STRONG→GOOD, GOOD→WAIT (backtest : PF 1.02→2.27) |
+| 📊 **Scoring visible pour tous** | Score/Max + % + barre visuelle `███░░` + critères affichés pour chaque symbole (pas seulement STRONG/GOOD) |
+| 🚨 **Détection marché fermé** | Avertissement automatique quand la dernière bougie H1 date de >1h (ex: DXY.cash gelé le dimanche) |
 
 ---
 
@@ -195,14 +198,15 @@ python main.py <commande> [options]
 
 ### 🛡️ Garde-fous automatiques (Leçons du backtest 16-17/07/2026)
 
-Le Diamond Scanner applique **3 filtres de sécurité** basés sur l'analyse
-rétrospective de 15 trades réels :
+Le Diamond Scanner applique **4 filtres de sécurité** basés sur l'analyse
+rétrospective de 15 trades réels + backtest ML 5000+ trades :
 
 | Filtre | Règle | Effet |
 |:---|:---|:---|
 | **T/Kx H1 conflit** | Si le biais contredit le croisement Tenkan/Kijun H1 | Qualité → WAIT |
 | **Respiration MFE** | Si Kijun plat + prix coincé dans le Kumo | Downgrade -1 niveau |
 | **HIGH NEWS DAY** | Si ≥2 événements macro (Trump, FOMC, CPI...) | BULL downgradé |
+| **🆕 ML% < 50%** | Si le modèle XGBoost prédit < 50% de chance de win | STRONG→GOOD, GOOD→WAIT |
 
 > 📖 Guide complet : [GUIDE_UTILISATEUR.md](https://github.com/reuniware/InelidaMarketScanner/blob/main/GUIDE_UTILISATEUR.md)
 

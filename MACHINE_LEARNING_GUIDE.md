@@ -885,4 +885,60 @@ streamlit run app_ml.py
 
 ---
 
+## 11. ML% Filter Activation (20/07/2026)
+
+### Pipeline de décision
+
+Le modèle ML est maintenant **actif dans le pipeline de décision** du Diamond Scanner.
+Il n'est plus seulement affiché — il **downgrade la qualité** des setups.
+
+```
+_scan_symbol()
+  → scoring 109 critères
+  → T/Kx H1 conflit ? → WAIT
+  → MFE downgrade ?
+  → SL proximity ?
+  → HIGH NEWS DAY ?
+  → 🆕 ML% < 50% ? → STRONG→GOOD, GOOD→WAIT
+  → return r
+```
+
+### Règle
+
+| Condition | Effet |
+|:---|:---|
+| ML% ≥ 50% | Aucun changement |
+| ML% < 50% + STRONG | → GOOD (avertissement: `ML% FILTRE: 35% < 50% — STRONG → GOOD`) |
+| ML% < 50% + GOOD | → WAIT (avertissement: `ML% FILTRE: 42% < 50% — GOOD → WAIT`) |
+| ML% < 50% + WAIT | Inchangé |
+
+### Validation backtest
+
+| Seuil ML% | Trades | Win Rate | Profit Factor | P&L (10k€) |
+|:---|---:|---:|---:|---:|
+| Aucun filtre | 1 210 | 37.6% | 1.02 | +1 442 € |
+| **ML% ≥ 50%** | 374 | 54.3% | **2.27** 🔥 | +2 857 € |
+| ML% ≥ 69% (optimal) | 174 | 59.8% | 3.04 | +1 962 € |
+
+Le seuil de 50% a été choisi comme défaut car il équilibre nombre de trades et profit factor.
+
+### Implémentation
+
+```python
+# src/diamond_scanner.py — _scan_symbol()
+ML_THRESHOLD = 0.50
+if r.ml_win_pct is not None and r.ml_win_pct < ML_THRESHOLD:
+    if r.quality == "STRONG":
+        r.quality = "GOOD"
+        r.warnings.append(f"ML% FILTRE: {r.ml_win_pct*100:.0f}% < 50% — STRONG → GOOD")
+    elif r.quality == "GOOD":
+        r.quality = "WAIT"
+        r.warnings.append(f"ML% FILTRE: {r.ml_win_pct*100:.0f}% < 50% — GOOD → WAIT")
+```
+
+Le filtre s'exécute **après** tous les autres (T/Kx H1, MFE, SL proximity, HIGH NEWS DAY)
+et a le **dernier mot** sur la qualité du setup.
+
+---
+
 > **Didier Vally / Reuniware Systems** — InelidaMarketScan
