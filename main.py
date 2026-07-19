@@ -1701,7 +1701,7 @@ def _build_diamond_discord_embed(results, symbols_count: int, tz_mode: str = "")
 
         detail = (
             f"**{r.symbol}** {bias_icon} {r.bias} | Score: {r.score}/{r.max_score} | Align: {r.alignment} | RR: {r.rr:.1f}x\n"
-            f"> SL: {_fmt(r.sl)} | TP: {tp_str} | ΔKj4: {_fmt(r.d_kj4)}p"
+            f"> Entry: {_fmt(r.price)} | SL: {_fmt(r.sl)} | TP: {tp_str} | ΔKj4: {_fmt(r.d_kj4)}p"
         )
         if r.horizon:
             detail += f" | Horizon: {r.horizon}"
