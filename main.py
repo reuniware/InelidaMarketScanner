@@ -1125,6 +1125,7 @@ def cmd_diamond(args):
 
     try:
         notified_setups: set = set()  # anti-spam : ne notifie qu'une fois par setup
+        first_scan = True               # premier scan toujours poste
         while True:
             results = scanner.scan_all()
             _render_diamond_results(results, symbols, volume_only=getattr(args, 'volume_only', False), tz_mode=tz_mode)
@@ -1159,22 +1160,25 @@ def cmd_diamond(args):
                               f" Installe l'app ntfy.sh et definis NTFY_TOPIC={DIM}ton-topic{RESET}{YELLOW}.{RESET}")
                     notified_setups = current_fps
 
-            # ── Discord posting (seulement si STRONG/GOOD detectes) ──────
+            # ── Discord posting (1er scan toujours, puis seulement si STRONG/GOOD) ──
             if getattr(args, 'discord', False):
                 webhook_url = _load_discord_webhook()
                 if webhook_url:
-                    if new_fps:
+                    if first_scan or new_fps:
                         ok = _post_diamond_to_discord(webhook_url, results, symbols, tz_mode=tz_mode)
                         if ok:
-                            print(f"\n{GREEN}📤 Resultats postes sur Discord ({len(active)} setup(s) actifs).{RESET}")
+                            tag = "(scan initial)" if first_scan else f"({len(active)} setup(s) actifs)"
+                            print(f"\n{GREEN}📤 Resultats postes sur Discord {tag}.{RESET}")
                             notified_setups = current_fps
+                            first_scan = False
                         else:
                             print(f"\n{RED}❌ Echec de l'envoi Discord.{RESET}")
                     elif interval <= 0:
                         print(f"\n{GRAY}📤 Discord: aucun nouveau setup (deja poste).{RESET}")
                 else:
-                    if interval <= 0:
+                    if interval <= 0 or first_scan:
                         print(f"\n{YELLOW}⚠ --discord active mais aucun webhook (DISCORD_WEBHOOK_URL non defini).{RESET}")
+                        first_scan = False
 
             if interval <= 0:
                 break
