@@ -484,6 +484,21 @@ def ftmo_ruin_probability(
         pnl_avg = avg_final_eq - initial_capital if final_equities else 0.0
         roi_avg = (pnl_avg / initial_capital) * 100.0 if final_equities else 0.0
 
+        return {
+            "ruin_prob": round(ruin_prob, 4),
+            "survival_rate": round(survival_rate, 4),
+            "avg_trades_to_ruin": round(avg_trades_to_ruin, 1),
+            "avg_final_equity": round(avg_final_eq, 2),
+            "median_final_equity": round(median_final_eq, 2),
+            "best_equity": round(best_eq, 2),
+            "worst_equity": round(worst_eq, 2),
+            "avg_pnl": round(pnl_avg, 2),
+            "avg_roi_pct": round(roi_avg, 2),
+            "position_pct": round(position_pct * 100, 2),
+            "kelly_summary": kelly,
+            "error": "",
+        }
+
     except Exception as e:
         logger.warning("FTMO ruin simulation error: %s", e)
         return {
@@ -494,21 +509,6 @@ def ftmo_ruin_probability(
             "kelly_summary": kelly,
             "error": f"Erreur simulation: {e}",
         }
-
-    return {
-        "ruin_prob": round(ruin_prob, 4),
-        "survival_rate": round(survival_rate, 4),
-        "avg_trades_to_ruin": round(avg_trades_to_ruin, 1),
-        "avg_final_equity": round(avg_final_eq, 2),
-        "median_final_equity": round(median_final_eq, 2),
-        "best_equity": round(best_eq, 2),
-        "worst_equity": round(worst_eq, 2),
-        "avg_pnl": round(pnl_avg, 2),
-        "avg_roi_pct": round(roi_avg, 2),
-        "position_pct": round(position_pct * 100, 2),
-        "kelly_summary": kelly,
-        "error": "",
-    }
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -612,6 +612,14 @@ def garch_11_fit(
                 if ll > best_ll:
                     best_ll = ll
                     best_params = (float(alpha), float(beta), float(omega))
+
+        # Verifier qu'au moins une paire valide a ete trouvee
+        if best_ll <= -1e100:
+            return {"omega": 0.0, "alpha": 0.0, "beta": 0.0,
+                    "log_likelihood": 0.0, "last_sigma2": 0.0, "last_eps2": 0.0,
+                    "long_run_var": 0.0, "long_run_vol": 0.0,
+                    "sigma2_series": [], "n_obs": n,
+                    "error": "aucune paire (alpha,beta) stable trouvee dans la grille"}
 
         # ── Etape 2 : raffinement local (sub-grille fine) ──
         alpha0, beta0, omega0 = best_params
@@ -811,15 +819,21 @@ def analyze_stochastic(
     theta, mu, sigma, ou_score = ornstein_uhlenbeck_fit(prices)
     h = hurst_exponent(prices)
 
-    if sigma > 0 or len(prices) <= 1:
-        vol = sigma
+    if sigma > 0:
+        vol_ou = sigma
     else:
-        log_rets = [math.log(max(p, 1e-10)) for p in prices]
-        diffs = [log_rets[i+1] - log_rets[i] for i in range(len(log_rets)-1)]
-        mean_d = sum(diffs) / len(diffs) if diffs else 0.0
-        vol = math.sqrt(sum((d - mean_d)**2 for d in diffs) / max(len(diffs)-1, 1)) if diffs else 0.0
+        vol_ou = 0.0
 
-    p_sl, p_tp = monte_carlo_sweep_probability(current_price, sl, tp, vol)
+    # Fallback : volatilite calculee depuis les log-rendements (toujours calcule)
+    log_rets = [math.log(max(p, 1e-10)) for p in prices]
+    diffs = [log_rets[i+1] - log_rets[i] for i in range(len(log_rets)-1)]
+    mean_d = sum(diffs) / len(diffs) if diffs else 0.0
+    vol_fallback = math.sqrt(sum((d - mean_d)**2 for d in diffs) / max(len(diffs)-1, 1)) if diffs else 0.0
+
+    # Utiliser le meilleur sigma disponible (OU sinon fallback)
+    vol_used = vol_ou if vol_ou > 0 else vol_fallback
+
+    p_sl, p_tp = monte_carlo_sweep_probability(current_price, sl, tp, vol_used) if vol_used > 0 else (0.0, 0.0)
 
     # ── GARCH(1,1) — utilise les rendements log des prix ──
     if len(prices) >= _GARCH_MIN_OBS:

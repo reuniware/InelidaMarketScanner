@@ -471,24 +471,24 @@ class DiamondScanner:
         if not mt5.initialize():
             logger.error("MT5 initialization failed")
             return False
-        # Tenter de charger le modèle ML (non-bloquant, lazy import)
+        # Activer les symboles dans le Market Watch MT5
+        for sym in self.symbols:
+            mt5.symbol_select(sym, True)
+        self._initialized = True
+        # Tenter de charger le modele ML (non-bloquant, lazy import)
         if self._ml_predictor is None:
             try:
                 from src.ml_predictor import MLPredictor
                 self._ml_predictor = MLPredictor()
                 self._ml_predictor.load()
             except ImportError as e:
-                logger.info("ML non disponible (dépendances manquantes: %s)", e)
+                logger.info("ML non disponible (dependances manquantes: %s)", e)
                 self._ml_predictor = None
         return True
 
     @property
     def ml_available(self) -> bool:
         return self._ml_predictor is not None and self._ml_predictor.is_loaded
-        for sym in self.symbols:
-            mt5.symbol_select(sym, True)
-        self._initialized = True
-        return True
 
     def shutdown(self):
         """Ferme MT5."""
