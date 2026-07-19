@@ -472,3 +472,12 @@ pip install MetaTrader5
 ---
 
 > **Didier Vally / Reuniware Systems** — InelidaMarketScan
+
+---
+
+## 🌐 Communauté
+
+Rejoignez le serveur Discord **Trading Pro** pour échanger avec d'autres utilisateurs,
+partager vos setups Diamond et suivre les analyses en temps réel :
+
+[![Rejoindre Trading Pro](https://img.shields.io/badge/Discord-Rejoindre%20Trading%20Pro-5865F2?style=for-the-badge&logo=discord)](https://discord.gg/u9JApXqhXy)

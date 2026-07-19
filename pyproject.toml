@@ -33,6 +33,7 @@ Homepage = "https://reuniware.vercel.app"
 Documentation = "https://github.com/reuniware/InelidaMarketScanner/blob/main/GUIDE_UTILISATEUR.md"
 Repository = "https://github.com/reuniware/InelidaMarketScanner"
 Issues = "https://github.com/reuniware/InelidaMarketScanner/issues"
+Discord = "https://discord.gg/u9JApXqhXy"
 
 [project.scripts]
 inelida = "main:main"

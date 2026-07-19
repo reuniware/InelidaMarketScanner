@@ -19,6 +19,8 @@
 [Dashboard](#-dashboard-streamlit) •
 [Dépannage](#-dépannage)
 
+[![Discord](https://img.shields.io/badge/Discord-Trading%20Pro-5865F2?style=flat-square&logo=discord)](https://discord.gg/u9JApXqhXy)
+
 </div>
 
 ---
@@ -436,6 +438,15 @@ Ce projet est développé par un **ingénieur en développement et chef de proje
 ### Philosophie
 
 > *La finance de marché et le trading algorithmique sont le terrain de jeu idéal pour appliquer une double compétence : rigueur d'ingénierie système et vision stratégique de chef de projet. InelidaMarketScanner est né de cette conviction — un outil qui parle le langage des traders tout en restant modulaire, testable et documenté comme un logiciel professionnel.*
+
+---
+
+## 🌐 Communauté
+
+Rejoignez le serveur Discord **Trading Pro** pour échanger avec d'autres utilisateurs,
+partager vos setups Diamond et suivre les analyses en temps réel :
+
+[![Rejoindre Trading Pro](https://img.shields.io/badge/Discord-Rejoindre%20Trading%20Pro-5865F2?style=for-the-badge&logo=discord)](https://discord.gg/u9JApXqhXy)
 
 ---
 
