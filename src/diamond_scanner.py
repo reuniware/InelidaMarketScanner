@@ -2145,9 +2145,9 @@ class DiamondScanner:
         d_tk_h4 = self._pips(sym, price, tk4)
         d_tk_d1 = self._pips(sym, price, td1)
         tk_h4_thresh = 20.0 if sym == 'XAUUSD' else (5.0 if 'JPY' in sym else 20.0)
-        tk_d1_thresh = 40.0 if sym == 'XAUUSD' else (10.0 if 'JPY' in sym else 40.0)
+        tk_d1_thresh = 40.0 if sym == 'XAUUSD' else (40.0 if 'JPY' in sym else 40.0)
         kj4_score_thresh = 30.0 if sym == 'XAUUSD' else (7.0 if 'JPY' in sym else 30.0)
-        kj_d1_thresh = 50.0 if sym == 'XAUUSD' else (12.0 if 'JPY' in sym else 50.0)
+        kj_d1_thresh = 50.0 if sym == 'XAUUSD' else (50.0 if 'JPY' in sym else 50.0)
         # TK4: Tenkan H4
         if tk4 > 0 and direction != 0 and abs(d_tk_h4) < tk_h4_thresh:
             if (direction == 1 and price > tk4) or (direction == -1 and price < tk4):
