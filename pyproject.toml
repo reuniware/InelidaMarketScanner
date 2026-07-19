@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "inelida-marketscan"
-version = "1.0.6"
+version = "1.0.7"
 description = "Scanner multi-TF ICT x Ichimoku automatise — Diamond Analysis, Asian Sweeps, P&L Tracker"
 readme = "README.md"
 license = {file = "LICENSE"}
