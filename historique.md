@@ -1770,4 +1770,79 @@ de données historiques **dilue** le signal récent. v18 (6 mois) > v19 (18 mois
 
 ---
 
+## 19/07/2026 — Samedi : Code Review, Corrections Critiques & Régénération Ebooks
+
+### 🔍 Code Review approfondi — 4 bugs critiques corrigés
+
+Revue complète de `src/diamond_scanner.py`, `src/stochastic_analytics.py`,
+`src/ml_predictor.py` après les modifications massives (stochastique, MLPredictor,
+v18). Résultats :
+
+| # | Gravité | Fichier | Description |
+|:---:|:---|:---|:---|
+| 🐛1 | **CRITIQUE** | `diamond_scanner.py` | Code mort après `return` dans `ml_available` — la boucle d'activation des symboles ne s'exécutait jamais. `initialize()` n'activait pas les symboles et ne mettait pas `_initialized = True`. |
+| 🐛2 | **HAUTE** | `stochastic_analytics.py` | GARCH : si aucune paire (α,β) valide trouvée par le grid search, retournait un fallback silencieux avec des paramètres inventés (`best_ll = -inf` jamais vérifié). |
+| 🐛3 | MOYENNE | `stochastic_analytics.py` | Monte Carlo : le fallback de volatilité (log-returns) était calculé mais jamais utilisé — `monte_carlo_sweep_probability()` retourne (0,0) quand sigma=0. P(SL)/P(TP) = 0.0 sur marchés flat. |
+| 🐛4 | BASSE | `stochastic_analytics.py` | FTMO : `pnl_avg`/`roi_avg` hors du bloc try — fragile si code ajouté entre. Déplacé dans le bloc try. |
+
+### 🔧 Correctifs appliqués
+
+- `diamond_scanner.py` : Code mort supprimé de `ml_available` (propriété). `initialize()` ajoute maintenant `for sym in self.symbols: mt5.symbol_select(sym, True)` + `self._initialized = True`.
+- `stochastic_analytics.py` : GARCH vérifie `if best_ll <= -1e100` après le grid search → retourne un dict error si aucun couple valide. Monte Carlo utilise `vol_used = vol_ou if vol_ou > 0 else vol_fallback` (log-returns). FTMO : le return dict construit dans le bloc try.
+
+### 🧪 Test de régression : 9/9 PASSED
+
+```
+TEST 1: GARCH invalid data (zero variance) → PASS
+TEST 2: Monte Carlo with fallback vol (OU sigma=0) → PASS
+TEST 3: FTMO ruin with valid Kelly → PASS
+TEST 4: Full stochastic pipeline → PASS
+TEST 5: Syntax (diamond_scanner, stochastic_analytics, ml_predictor, main) → PASS ×4
+TEST 6: MLPredictor v18 → PASS (loaded, 123 features, 8 stochastic features)
+```
+
+- **OU** : 61.9% (overextension détectée)
+- **Hurst** : H=0.28 (régime RANGE confirmé)
+- **GARCH** : persistence=0.983, half-life=23b
+- **Monte Carlo** : P(SL)=0.85, P(TP)=0.15
+- **MLPredictor v18** : 123 features nommées chargées, 8 features stochastiques (ou_score, hurst_h, mc_p_sl, mc_p_tp, garch_persistence, garch_long_run_vol, garch_half_life, garch_forecast_vol_1)
+
+### 📚 Ebooks régénérés — 8 langues × 3 formats
+
+Les 24 fichiers ebooks (8 `.md` + 8 `.epub` + 8 `.pdf`) ont été régénérés avec :
+- Mise à jour du contenu : finance quantitative (OU, Hurst, GARCH, Monte Carlo, Kelly, FTMO), v18 (64% CV, F1=0.503), MLPredictor simplifié, analyse Kelly (gain=0.00)
+- Signature corrigée : **Didier Vally / Reuniware Systems** (remplace l'ancienne `DVA/Reuniware`)
+- Pandoc 3.10 (winget) pour EPUB, wkhtmltopdf pour PDF
+- Vérification PyPDF2 : 16/16 signatures OK dans les PDFs (FlateDecode)
+- Vérification Python/zipfile : 16/16 signatures OK dans les EPUBs (XHTML)
+
+### ✍️ Signature étendue à tout le projet
+
+18 fichiers `.md` non-ebooks signés `Didier Vally / Reuniware Systems` :
+README.md, MACHINE_LEARNING_GUIDE.md, GUIDE_UTILISATEUR.md, historique.md,
+diamond-analysis-skill.md, tradingskills.md, RELEASE_NOTES_v1.0.1.md,
+suggested_followups.md, DXY.lundi.md → DXY.vendredi.md, weekend_watchlist_17jul2026.md,
+analysis_dxy_usdjpy_20260716.md, analysis_eurusd_compression_20260716.md,
+new_analysis_02/algo.md, new_analysis_02/guide_ict_fvg_live.md.
+
+0 référence restante à `DVA/Reuniware`.
+
+### 📊 Commits du jour
+
+| Hash | Description |
+|:---|:---|
+| `fix: 4 bugs — dead code, GARCH silent fallback, Monte Carlo sigma, FTMO scoping` | Corrections diamon_scanner + stochastic_analytics |
+| `docs: regenerate all 8 ebooks with Didier Vally / Reuniware Systems (v1.0.2)` | .md + .epub + .pdf régénérés |
+| `docs: add Didier Vally / Reuniware Systems to all 18 project .md files` | Signature étendue |
+| `docs: regenerate all 8 PDFs with Didier Vally / Reuniware Systems (wkhtmltopdf)` | PDFs via wkhtmltopdf |
+
+### 🔮 Prochaines étapes
+
+- Installer pdflatex/xelatex pour des PDFs de meilleure qualité (wkhtmltopdf = qualité basique)
+- Ré-entraîner v19 avec les features GARCH réelles (backtest 2025-2026 complet)
+- Test OOS Juillet 2026 avec le modèle corrigé
+- Scan live Lundi matin pour valider le pipeline complet avec les corrections
+
+---
+
 > **Didier Vally / Reuniware Systems** — InelidaMarketScan
