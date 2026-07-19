@@ -2943,6 +2943,22 @@ class DiamondScanner:
                     "setups BULL non fiables, privilegier BEAR ou attendre (Lecon #8, 15/15 erreurs)"
                 )
 
+        # ── ML% Filter ──
+        # Backtest v4-v18 : ML% >= 50% → PF 2.27 vs 1.02 sans filtre.
+        # Downgrade quality si le modele predit < 50% de chance de win.
+        ML_THRESHOLD = 0.50
+        if r.ml_win_pct is not None and r.ml_win_pct < ML_THRESHOLD:
+            if r.quality == "STRONG":
+                r.quality = "GOOD"
+                r.warnings.append(
+                    f"ML% FILTRE: {r.ml_win_pct*100:.0f}% < 50% — STRONG → GOOD"
+                )
+            elif r.quality == "GOOD":
+                r.quality = "WAIT"
+                r.warnings.append(
+                    f"ML% FILTRE: {r.ml_win_pct*100:.0f}% < 50% — GOOD → WAIT"
+                )
+
         return r
 
     def _predict_ml(self, r: DiamondResult) -> None:
