@@ -14,12 +14,16 @@
 
 ## Resume
 
-Ce document presente les resultats de recherche du projet InelidaMarketScan...
+Ce document presente les resultats de recherche du projet InelidaMarketScan, un systeme de trading algorithmique integrant les concepts ICT, l'analyse Ichimoku multi-timeframe et l'apprentissage automatique supervise (XGBoost). Le systeme comprend un moteur d'analyse a 109 criteres couvrant 8 timeframes, un pipeline ML avec 111 caracteristiques, un backtest historique sur 3045 trades, et 15 modeles XGBoost.
+
+Contributions majeures: les caracteristiques ICT n'ont aucun pouvoir predictif supplementaire (is_dxy, rr, tkx_h1 sont les 3 meilleures avec gains 14.2, 10.0, 9.2); la specialisation par actif ameliore le PF OOS de 340%; les mercredis FOMC sont la 6e caracteristique (gain 6.4); 50% des heures sont anormales pendant les HIGH NEWS DAYS.
+
+DXY: 73% WR (233 trades). Simulation 10k EUR, 1%/trade, ML%>=50%: PF 2.27, +25842 EUR. OOS reel: v7 PF=1.173, v13 PF=4.000 (15 trades).
 
 ## 1. Introduction
 ### 1.1 Contexte et Problematique
 
-Le trading algorithmique a connu une croissance exponentielle...
+Le trading algorithmique a connu une croissance exponentielle. Selon la BRI (2022), le trading automatise represente plus de 70% des volumes Forex. Cependant, la plupart des systemes reposent sur des indicateurs traditionnels avec plus de 70% de faux signaux. Les concepts ICT proposent d'analyser la liquidite institutionnelle mais leur nature qualitative rend l'automatisation difficile.
 
 ### 1.2 Objectifs de Recherche
 
@@ -36,44 +40,49 @@ Section 2: theorie. Section 3: architecture. Section 4: Diamond Scanner. Section
 ## 2. Fondements Theoriques
 ### 2.1 Concepts ICT
 
-Les concepts ICT ont ete developpes par Michael Huddleston...
+Les concepts ICT ont ete developpes par Michael Huddleston. Ils postulent que les marches sont structures par les flux institutionnels.
 
 #### 2.1.1 Sweep de Liquidite
-Les institutions poussent les prix au-dela des supports/resistances...
+Les institutions poussent les prix au-dela des supports/resistances pour declencher les stop-loss avant de retourner.
+
 #### 2.1.2 Fair Value Gap (FVG)
-Un FVG est un desequilibre offre/demande sur 3 bougies...
+Un FVG est un desequilibre offre/demande sur 3 bougies. Baissier: bougie-1 bas > bougie-3 haut. Haussier: bougie-1 haut < bougie-3 bas.
+
 #### 2.1.3 Order Block (OB)
-Les Order Blocks sont des zones d'impulsion institutionnelle...
+Les Order Blocks sont des zones d'impulsion institutionnelle. Detectes via ATR(14).
+
 #### 2.1.4 Changement de Structure (MSS) et BOS
-Structure via fractales 5 barres. BULL: HH+HL. BEAR: LH+LL...
+Structure via fractales 5 barres. BULL: HH+HL. BEAR: LH+LL. BOS: casse du dernier swing.
+
 #### 2.1.5 Analyse de Volume (HVN/LVN)
-Volume tick: HVN > 1.5x moyenne, LVN < 0.5x moyenne...
+Volume tick: HVN > 1.5x moyenne, LVN < 0.5x moyenne sur 20 zones de prix.
+
 ### 2.2 Ichimoku Kinko Hyo
 
-Ichimoku Kinko Hyo de Goichi Hosoda (annees 1930, publie 1969)...
+Ichimoku Kinko Hyo de Goichi Hosoda (annees 1930, publie 1969). Cinq composantes interdependantes :
 
-1. **Tenkan-sen:** (haut+bas)/2 sur 9 periodes
-2. **Kijun-sen:** (haut+bas)/2 sur 26 periodes
-3. **Senkou Span A:** (Tenkan+Kijun)/2 projete 26 periodes
-4. **Senkou Span B:** moyenne haut/bas 52 periodes projetee
-5. **Chikou Span:** cloture decalee 26 periodes en arriere
+1. **Tenkan-sen:** (haut+bas)/2 sur 9 periodes. Momentum court terme.
+2. **Kijun-sen:** (haut+bas)/2 sur 26 periodes. S/R dynamique.
+3. **Senkou Span A:** (Tenkan+Kijun)/2 projete 26 periodes.
+4. **Senkou Span B:** moyenne haut/bas 52 periodes projetee.
+5. **Chikou Span:** cloture decalee 26 periodes en arriere.
 
 **Principes d'interpretation :**
-- TK cross signale changement de momentum
+- TK cross signale changement de momentum (BULL si Tenkan > Kijun)
 - Position prix vs Kumo indique tendance
 - Kijun est S/R dynamique, plus fort en multi-TF
 - Flat lines = zones de memoire institutionnelle
 
-Application multi-TF: 8 timeframes (M5 a MN)...
+Application multi-TF: 8 timeframes (M5 a MN) avec fenetres adaptees.
 
 ### 2.3 Apprentissage Automatique Supervise
 #### 2.3.1 Selection de l'Algorithme
 
 - **Donnees minimales:** XGBoost avec 50-100 echantillons
 - **Entrainement < 1 seconde:** 
-- **Fonctionne sur CPU:** 
+- **Fonctionne sur CPU (Windows):** 
 - **Feature importance integree (gain):** 
-- **Regularisation integree:** 
+- **Regularisation integree (gamma, alpha, lambda):** 
 
 #### 2.3.2 Hyperparametres
 
@@ -88,12 +97,12 @@ scale_pos_weight: 1 | eval_metric: logloss | early_stopping: 10
 
 #### 2.3.3 Validation Hors-Echantillon (OOS)
 
-OOS temporel: entrainement Jan 2025-Juin 2026 (2923 trades), test Juillet 2026 (152 trades)...
+OOS temporel: entrainement Jan 2025-Juin 2026 (2923 trades), test Juillet 2026 (152 trades). PF IS 2.27 effondre a 0.72 OOS (-68%).
 
 ## 3. Architecture du Systeme
 ### 3.1 Vue d'Ensemble
 
-Trois couches: (1) Moteurs d'analyse; (2) Pipeline ML; (3) Infrastructure...
+Trois couches: (1) Moteurs d'analyse; (2) Pipeline ML; (3) Infrastructure.
 
 ### 3.2 Composants
 
@@ -103,9 +112,10 @@ Diamond Scanner: 2750 lignes, 16+ methodes, 109 criteres.
 
 ML Predictor: extract_features() -> vecteur 111 features.
 
-### 3.3 Timeframes
+### 3.3 Periodes
 
 | TF | Periods | Tenkan | Kijun | Kumo | Application |
+| --- | --- | --- | --- | --- | --- |
 | M5 | 9/26/52 | 45m | 2h | 4h | Intraday entries |
 | M15 | 9/26/52 | 2h | 6h | 13h | Session scalping |
 | M30 | 9/26/52 | 4h | 13h | 26h | London breakouts |
@@ -118,9 +128,10 @@ ML Predictor: extract_features() -> vecteur 111 features.
 ## 4. Diamond Scanner
 ### 4.1 Scoring (109 Criteres)
 
-109 criteres binaires en 12 categories, ponderes uniformement.
+109 criteres binaires en 12 categories, ponderes uniformement, normalises en % du max.
 
 | Category | Count |
+| --- | --- |
 | Ichimoku Multi-TF | 9 |
 | T/K Cross | 5 |
 | Flat Lines + Memory | 12 |
@@ -136,17 +147,17 @@ ML Predictor: extract_features() -> vecteur 111 features.
 
 ### 4.2 Garde-Fous
 
-Correctif #1 TKx H1 (P0): Conflit force WAIT. 60% faux positifs elimines.
+Correctif #1 TKx H1 (P0): Conflit de biais force WAIT. 60% des faux positifs elimines.
 
 Correctif #2 MFE (P1): Kijun plat + prix dans Kumo = downgrade.
 
-Correctif #3 HIGH NEWS DAY (P0): >=2 evenements -> BULL downgrade.
+Correctif #3 HIGH NEWS DAY (P0): >=2 evenements -> BULL downgrade. BEAR non affecte.
 
 ### 4.3 Smart TP et Filet de Securite SL
 
-Smart TP: remplace RR=2.0 fixe par niveaux reels...
+Smart TP: remplace RR=2.0 fixe par niveaux reels (Kijun, Tenkan, FVG, SSB, Kumo, Fib).
 
-SL Safety Net: <10% range SL-TP = WAIT...
+SL Safety Net: <10% range SL-TP = WAIT. 10-20% = GOOD.
 
 ## 5. Pipeline ML
 ### 5.1 Architecture
@@ -159,6 +170,7 @@ SL Safety Net: <10% range SL-TP = WAIT...
 ### 5.2 111 Caracteristiques
 
 | Category | Count | Examples |
+| --- | --- | --- |
 | Ichimoku | 24 | kj_h1, tkx_h1, kumo_h1 |
 | Sweep | 18 | ah_swept, al_swept, lh_swept |
 | FVG | 12 | fvg_h1_bear_top, fvg_h1_bull_bot |
@@ -174,6 +186,7 @@ SL Safety Net: <10% range SL-TP = WAIT...
 
 ```
 | Rank | Feature | Gain |
+| --- | --- | --- |
 | 1 | is_dxy | 14.2 |
 | 2 | rr | 10.0 |
 | 3 | tkx_h1 | 9.2 |
@@ -201,7 +214,7 @@ SL Safety Net: <10% range SL-TP = WAIT...
 | 25 | d_kj_mn | 2.4 |
 ```
 
-Aucune ICT dans Top 25. is_dxy en tete (gain 14.2).
+Aucune ICT dans Top 25. is_dxy en tete (gain 14.2, 42% au-dessus de #2).
 
 ## 6. Protocole de Backtest
 ### 6.1 Methodologie
@@ -225,6 +238,7 @@ Aucune ICT dans Top 25. is_dxy en tete (gain 14.2).
 ### 6.3 Jeux de Donnees
 
 | Dataset | Period | Trades | WR | PF | Use |
+| --- | --- | --- | --- | --- | --- |
 | v4_36feat | Jan-Jul 2026 | 1210 | 37.6% | 1.02 | Baseline |
 | v5_111feat | 2025-Jul 2026 | 3045 | 38.2% | 1.03 | Full features |
 | v6_recent | Jan-Jun 2026 | 2923 | 37.9% | 1.02 | Recent only |
@@ -234,6 +248,7 @@ Aucune ICT dans Top 25. is_dxy en tete (gain 14.2).
 ### 7.1 Classement des Modeles
 
 | Model | Feats | Trades | WR | CV (%) | OOS PF |
+| --- | --- | --- | --- | --- | --- |
 | v1 | 36 | 852 | 34.1 | 60.2 | -- |
 | v2 | 36 | 1846 | 35.8 | 61.1 | -- |
 | v3 | 36 | 1210 | 37.6 | 61.8 | -- |
@@ -253,6 +268,7 @@ Aucune ICT dans Top 25. is_dxy en tete (gain 14.2).
 ### 7.2 Par Type d'Actif
 
 | Asset | Trades | WR (%) | CV (%) | Note |
+| --- | --- | --- | --- | --- |
 | DXY.cash | 233 | 73.0 | 63.5 | Top performer |
 | XAUUSD | 198 | 41.4 | 62.1 | Weak signal |
 | US500.cash | 156 | 38.5 | 60.8 | Poor |
@@ -274,6 +290,7 @@ Aucune ICT dans Top 25. is_dxy en tete (gain 14.2).
 ### 7.3 Simulation de Capital
 
 | ML% Min | Trades | WR (%) | PF | P&L 10k EUR |
+| --- | --- | --- | --- | --- |
 | None | 1210 | 37.6 | 1.02 | +1,442 |
 | >=40% | 881 | 45.2 | 1.38 | +8,251 |
 | >=45% | 661 | 54.3 | 1.91 | +17,942 |
@@ -282,11 +299,12 @@ Aucune ICT dans Top 25. is_dxy en tete (gain 14.2).
 | >=60% | 102 | 69.6 | 3.51 | +11,908 |
 | >=65% | 38 | 73.7 | 4.20 | +5,560 |
 
-Chiffres In-Sample. OOS: v7 PF=1.173, v13 PF=4.000.
+Chiffres In-Sample. OOS: v7 PF=1.173, v13 PF=4.000. Data leakage: 2.27->0.72 (-68%).
 
 ### 7.4 Distribution du ML%
 
 | ML% Range | Trades | WR (%) | PF | Note |
+| --- | --- | --- | --- | --- |
 | <30% | 312 | 22.1 | 0.45 | Avoid |
 | 30-39% | 401 | 28.9 | 0.67 | Avoid |
 | 40-49% | 460 | 38.7 | 1.05 | Caution |
@@ -299,6 +317,7 @@ Correlation ML% vs WR R=0.94. Survit en OOS.
 ### 7.5 Recherche par Grille (Grid Search)
 
 | Threshold | PF OOS | WR OOS (%) | Trades OOS |
+| --- | --- | --- | --- |
 | 40% | 0.89 | 38.1 | 42 |
 | 45% | 0.95 | 41.2 | 34 |
 | 50% | 1.08 | 44.4 | 27 |
@@ -308,12 +327,13 @@ Correlation ML% vs WR R=0.94. Survit en OOS.
 | 69% | 1.26 | 55.6 | 18 |
 | 70% | 1.21 | 53.3 | 15 |
 
-Optimal 69%: PF 1.26, 55.6% WR, 18 trades.
+Optimal 69%: PF 1.26, 55.6% WR, 18 trades. Pratique: 55-60%.
 
 ## 8. Analyse des Caracteristiques
 ### 8.1 Les Caracteristiques ICT sont du Bruit
 
 | Feature | Detection Rate (%) | Gain | Predictive |
+| --- | --- | --- | --- |
 | FVG H1 Bear | 67 | <0.5 | No |
 | FVG H1 Bull | 63 | <0.5 | No |
 | OB H1 Bear | 91 | <0.1 | No |
@@ -322,11 +342,12 @@ Optimal 69%: PF 1.26, 55.6% WR, 18 trades.
 | MSS H1 Bull | 52 | <0.3 | No |
 | Breaker H1 Bear | 48 | <0.2 | No |
 
-Patterns ICT trop frequents (91% OB, 67% FVG) pour discriminer.
+Patterns ICT trop frequents (91% OB, 67% FVG) pour discriminer en classification binaire.
 
-### 8.2 Data Leakage
+### 8.2 Fuite de Donnees (Data Leakage)
 
 | Type | Train PF | OOS PF | Drop (%) |
+| --- | --- | --- | --- |
 | No filter (IS) | 2.27 | 0.72 | -68 |
 | ML% >=50% | 2.27 | 1.08 | -52 |
 | ML% >=60% | 3.51 | 1.18 | -66 |
@@ -336,7 +357,7 @@ Patterns ICT trop frequents (91% OB, 67% FVG) pour discriminer.
 
 1. **Regression P&L (v11):** R2=-0.004
 
-2. **Multi-classes (v12):** effondrement
+2. **Multi-classes (v12):** effondrement classe majoritaire
 
 3. **Cross-features (v9):** surapprentissage PF 0.827
 
@@ -347,9 +368,10 @@ Patterns ICT trop frequents (91% OB, 67% FVG) pour discriminer.
 ## 9. Anomalies de Marche
 ### 9.1 Paradoxe DXY-EURUSD
 
-17 juillet 2026: 50% correlation anormale DXY-EURUSD.
+17 juillet 2026: 50% correlation horaire anormale DXY-EURUSD (meme sens). 100% dans fenetres de news.
 
 | Hour UTC | DXY | EURUSD | Correlation |
+| --- | --- | --- | --- |
 | 06:00 | 100.720 | 1.14370 | Normal |
 | 07:00 | 100.705 | 1.14410 | Normal |
 | 08:00 | 100.688 | 1.14480 | Abnormal |
@@ -359,18 +381,18 @@ Patterns ICT trop frequents (91% OB, 67% FVG) pour discriminer.
 | 12:00 | 100.715 | 1.14420 | Normal |
 | 13:00 | 100.710 | 1.14430 | Normal |
 
-8/16 heures anormales. Toutes dans fenetres de news.
+8/16 heures anormales. Toutes dans fenetres pre/post-news. Heures normales: 100% correlation normale.
 
 ### 9.2 Implications
 
->=2 evenements majeurs = HIGH NEWS DAY. BULL downgrade.
+>=2 evenements majeurs = HIGH NEWS DAY. Trades BULL downgrades. BEAR non affectes (asymetrie risque macro).
 
 ## 10. Risque de News
 ### 10.1 Architecture du Scraper
 
 1. Cache JSON (TTL 24h)
-2. Scraping ForexFactory
-3. MAJOR_EVENTS hardcode
+2. Scraping ForexFactory: flux XML puis fallback HTML
+3. Fallback MAJOR_EVENTS hardcode
 
 ### 10.2 Evenements
 
@@ -382,22 +404,22 @@ Patterns ICT trop frequents (91% OB, 67% FVG) pour discriminer.
 
 ### 10.3 Resultats
 
-- 15/15 trades BULL faux pendant HIGH NEWS DAY
-- BEAR non affectes
-- day_wednesday = feature #6 (gain 6.4)
+- 15/15 trades BULL faux pendant HIGH NEWS DAY (16-17 juillet 2026)
+- Trades BEAR non affectes
+- day_wednesday = feature #6 (gain=6.4)
 
 ## 11. Analyse Cross-Pair
 ### 11.1 Caracteristiques
 
-1. **dxy_vs_price_ratio:** .
-2. **dxy_kj_h1_norm:** .
-3. **dxy_divergence:** .
-4. **dxy_trend:** .
-5. **dxy_trend_x_bias:** .
+1. **dxy_vs_price_ratio:** prix DXY / prix courant.
+2. **dxy_kj_h1_norm:** tendance DXY normalisee.
+3. **dxy_divergence:** anomalie JPY-aware.
+4. **dxy_trend:** 1=hausster, -1=baissier.
+5. **dxy_trend_x_bias:** interaction.
 
 ### 11.2 Resultat
 
-v15 pas d'amelioration. Redondant avec is_dxy (gain 14.2).
+v15 pas d'amelioration. Redondant avec is_dxy (gain=14.2).
 
 ## 12. Modeles par Actif
 ### 12.1 Principe
@@ -411,7 +433,7 @@ v15 pas d'amelioration. Redondant avec is_dxy (gain 14.2).
 | v13_dxy | DXY | 233 | 73% | 63.5% | 4.000 |
 | v13_forex | Forex | 1803 | 31% | 61.6% | -- |
 
-Modele DXY: OOS PF 4.000 mais seulement 15 trades.
+Modele DXY: OOS PF 4.000 mais seulement 15 trades OOS.
 
 ## 13. Guide de Trading
 ### 13.1 Workflow
@@ -437,28 +459,31 @@ Meilleures sessions par jour avec volume et strategie:
 
 ### 13.3 Regle du Vendredi
 
-**Regle absolue du vendredi:** Pas de trades le weekend. Fermer avant 17h Paris.
+**Regle absolue du vendredi:** Pas de trades le weekend. Fermer avant 17h Paris. Gaps lundi >50 pips.
 **Matrice de Decision:**
 
 **Matrice de decision:**
 ML%>=60% + TKx aligne + pas NEWS -> GO
+ML%>=60% + TKx conflit -> WAIT
 ML% 50-60% + TKx aligne -> ATTENTION
 ML%<50% -> NO GO
+ML%=N/A -> Fallback score brut
 
 ## 14. Limitations
 ### 14.1 Limitations Actuelles
 
-| | Limitation | Priorite | |
-| | Petit echantillon OOS (15-23) | P0 | |
-| | Broker unique (FTMO) | P1 | |
-| | Pas de slippage/frais | P2 | |
-| | Fenetre 18 mois | P2 | |
+| Limitation | Priorite |
+| --- | --- |
+| Petit echantillon OOS (15-23 trades) | P0 |
+| Broker unique (FTMO) | P1 |
+| Pas de slippage/frais | P2 |
+| Fenetre 18 mois | P2 |
 
 ### 14.2 Travaux Futurs
 
-**P0:** Backtest 2024-2025 per-asset
+**P0:** Backtest 2024-2025 per-asset (>2000 trades/actif)
 
-**P1:** Modeles ensemblistes
+**P1:** Modeles ensemblistes (XGBoost+LightGBM+RF)
 
 **P2:** Poids temporels adaptatifs
 
@@ -471,13 +496,13 @@ ML%<50% -> NO GO
 
 **1. DXY 73% WR** (p<0.001, 233 trades)
 
-**2. Les features ICT sont du bruit**
+**2. Les features ICT sont du bruit** (Top 25 = Ichimoku)
 
-**3. Specialisation per-asset PF +340%**
+**3. Specialisation per-asset PF +340%** (1.173 -> 4.000)
 
-**4. Data leakage: IS 2.27 -> OOS 0.72**
+**4. Data leakage: IS 2.27 -> OOS 0.72 (-68%)**
 
-**5. Mercredi FOMC = regime special**
+**5. Mercredi FOMC = regime special** (feature #6, gain 6.4)
 
 ### 15.2 Impact Pratique
 

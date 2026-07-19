@@ -14,12 +14,16 @@
 
 ## 摘要
 
-This document presents the research findings...
+This document presents the research findings of the InelidaMarketScan project, an algorithmic trading system integrating ICT concepts, multi-timeframe Ichimoku analysis, and supervised ML (XGBoost). Developed in July 2026, the system comprises a 109-criteria analysis engine covering 8 timeframes, a complete ML pipeline with 111 features, a historical backtest on 3,045 trades (2025-2026), and 15 XGBoost models.
+
+Major contributions: ICT features (FVG, OB, MSS) have zero additional predictive power compared to Ichimoku price levels (is_dxy, rr, tkx_h1 top-3 with gains 14.2, 10.0, 9.2); per-asset specialization improves OOS PF by 340% (1.173 to 4.000); FOMC Wednesdays are the 6th most important feature (gain 6.4); 50% of hours are abnormal during HIGH NEWS DAYS.
+
+DXY native WR: 73% (233 trades). Capital simulation on 10k EUR, 1%/trade, ML%>=50%: PF 2.27, +25,842 EUR. OOS reality: v7 PF=1.173, v13 PF=4.000 (15 trades).
 
 ## 1. 引言
 ### 1.1 背景与问题
 
-Algorithmic trading has grown exponentially...
+Algorithmic trading has grown exponentially. According to the BIS (2022), automated trading accounts for over 70% of FX volumes. However, most systems rely on traditional indicators with false signal rates exceeding 70%. ICT concepts propose analyzing institutional liquidity, but their qualitative nature makes automation difficult.
 
 ### 1.2 研究目标
 
@@ -36,21 +40,26 @@ Section 2: theory. Section 3: architecture. Section 4: Diamond Scanner. Section 
 ## 2. 理论基础
 ### 2.1 ICT 概念
 
-ICT concepts were developed by Michael Huddleston...
+ICT concepts were developed by Michael Huddleston. They postulate markets are structured by institutional order flows.
 
 #### 2.1.1 流动性扫幅
-Institutions push prices beyond support/resistance...
+Institutions push prices beyond support/resistance to trigger retail stop-losses before reversing.
+
 #### 2.1.2 公平价值缺口 (FVG)
-A FVG is a supply-demand imbalance across 3 candles...
+A FVG is a supply-demand imbalance across 3 candles. Bearish: candle-1 low > candle-3 high. Bullish: candle-1 high < candle-3 low.
+
 #### 2.1.3 市场单 (OB)
-Order Blocks are price zones where institutional impulses...
+Order Blocks are price zones where institutional impulses were initiated. Detected via ATR(14) impulse threshold.
+
 #### 2.1.4 市场结构转变 (MSS) 和 BOS
-Market structure via 5-bar fractal swings...
+Market structure via 5-bar fractal swings. BULL: HH+HL. BEAR: LH+LL. BOS breaks last swing. CHoCH detects reversals.
+
 #### 2.1.5 成交量分析 (HVN/LVN)
-Tick volume analysis: HVN > 1.5x avg, LVN < 0.5x avg...
+Tick volume analysis: HVN > 1.5x avg, LVN < 0.5x avg across 20 price zones.
+
 ### 2.2 Ichimoku Kinko Hyo
 
-Ichimoku Kinko Hyo by Goichi Hosoda (1930s, published 1969)...
+Ichimoku Kinko Hyo by Goichi Hosoda (1930s, published 1969). Five interdependent components:
 
 1. **Tenkan-sen:** (high+low)/2 over 9 periods
 2. **Kijun-sen:** (high+low)/2 over 26 periods
@@ -61,10 +70,10 @@ Ichimoku Kinko Hyo by Goichi Hosoda (1930s, published 1969)...
 **解释原则：**
 - TK cross signals momentum change
 - Price vs Kumo indicates trend direction
-- Kijun is dynamic S/R, stronger on multi-TF confluence
-- Flat lines indicate institutional memory zones
+- Kijun is dynamic S/R on multi-TF confluence
+- Flat lines = institutional memory zones
 
-Multi-TF application: 8 timeframes (M5 to MN)...
+Multi-TF application: 8 timeframes (M5 to MN) with adapted windows.
 
 ### 2.3 监督机器学习
 #### 2.3.1 算法选择
@@ -72,7 +81,7 @@ Multi-TF application: 8 timeframes (M5 to MN)...
 - **Minimal data:** XGBoost works with 50-100 samples
 - **Training under 1 second:** 
 - **CPU-only operation:** 
-- **Native feature importance via gain:** 
+- **Native feature importance (gain):** 
 - **Built-in regularization:** 
 
 #### 2.3.2 超参数
@@ -88,12 +97,12 @@ scale_pos_weight: 1 | eval_metric: logloss | early_stopping: 10
 
 #### 2.3.3 样本外验证 (OOS)
 
-Temporal OOS: train Jan 2025-Jun 2026 (2923 trades), test Jul 2026 (152 trades)...
+Temporal OOS: train Jan 2025-Jun 2026 (2923 trades), test Jul 2026 (152 trades). IS PF 2.27 collapsed to 0.72 OOS (-68%).
 
 ## 3. 系统架构
 ### 3.1 概览
 
-Three layers: (1) Analysis Engines; (2) ML Pipeline; (3) Infrastructure...
+Three layers: (1) Analysis Engines; (2) ML Pipeline; (3) Infrastructure.
 
 ### 3.2 组件
 
@@ -106,6 +115,7 @@ ML Predictor: extract_features() -> 111-feature vector.
 ### 3.3 时间框架
 
 | TF | Periods | Tenkan | Kijun | Kumo | Application |
+| --- | --- | --- | --- | --- | --- |
 | M5 | 9/26/52 | 45m | 2h | 4h | Intraday entries |
 | M15 | 9/26/52 | 2h | 6h | 13h | Session scalping |
 | M30 | 9/26/52 | 4h | 13h | 26h | London breakouts |
@@ -121,6 +131,7 @@ ML Predictor: extract_features() -> 111-feature vector.
 109 binary criteria in 12 categories, uniformly weighted.
 
 | Category | Count |
+| --- | --- |
 | Ichimoku Multi-TF | 9 |
 | T/K Cross | 5 |
 | Flat Lines + Memory | 12 |
@@ -144,9 +155,9 @@ Fix #3 HIGH NEWS DAY (P0): >=2 events -> BULL downgraded.
 
 ### 4.3 Smart TP 和 SL 安全网
 
-Smart TP: replaces fixed RR=2.0 with real levels...
+Smart TP: replaces fixed RR=2.0 with real levels (Kijun, Tenkan, FVG, SSB, Kumo, Fib).
 
-SL Safety Net: <10% SL-TP range = WAIT...
+SL Safety Net: <10% SL-TP range = WAIT. 10-20% = GOOD.
 
 ## 5. ML 流程
 ### 5.1 架构
@@ -159,6 +170,7 @@ SL Safety Net: <10% SL-TP range = WAIT...
 ### 5.2 111 个特征
 
 | Category | Count | Examples |
+| --- | --- | --- |
 | Ichimoku | 24 | kj_h1, tkx_h1, kumo_h1 |
 | Sweep | 18 | ah_swept, al_swept, lh_swept |
 | FVG | 12 | fvg_h1_bear_top, fvg_h1_bull_bot |
@@ -174,6 +186,7 @@ SL Safety Net: <10% SL-TP range = WAIT...
 
 ```
 | Rank | Feature | Gain |
+| --- | --- | --- |
 | 1 | is_dxy | 14.2 |
 | 2 | rr | 10.0 |
 | 3 | tkx_h1 | 9.2 |
@@ -201,13 +214,13 @@ SL Safety Net: <10% SL-TP range = WAIT...
 | 25 | d_kj_mn | 2.4 |
 ```
 
-Zero ICT features in Top 25. is_dxy leads (gain 14.2).
+Zero ICT features in Top 25. is_dxy leads (gain 14.2, 42% above #2).
 
 ## 6. 回测协议
 ### 6.1 方法论
 
 1. Data: MT5 H1 bars
-2. Each day Jan 2025-Jul 2026 simulated
+2. Each Jan 2025-Jul 2026 simulated
 3. Ichimoku recalculated
 4. 109 criteria evaluated
 5. Entry H1 close, SL Kijun H4, TP 2x SL
@@ -225,6 +238,7 @@ Zero ICT features in Top 25. is_dxy leads (gain 14.2).
 ### 6.3 数据集
 
 | Dataset | Period | Trades | WR | PF | Use |
+| --- | --- | --- | --- | --- | --- |
 | v4_36feat | Jan-Jul 2026 | 1210 | 37.6% | 1.02 | Baseline |
 | v5_111feat | 2025-Jul 2026 | 3045 | 38.2% | 1.03 | Full features |
 | v6_recent | Jan-Jun 2026 | 2923 | 37.9% | 1.02 | Recent only |
@@ -234,6 +248,7 @@ Zero ICT features in Top 25. is_dxy leads (gain 14.2).
 ### 7.1 模型排名
 
 | Model | Feats | Trades | WR | CV (%) | OOS PF |
+| --- | --- | --- | --- | --- | --- |
 | v1 | 36 | 852 | 34.1 | 60.2 | -- |
 | v2 | 36 | 1846 | 35.8 | 61.1 | -- |
 | v3 | 36 | 1210 | 37.6 | 61.8 | -- |
@@ -253,6 +268,7 @@ Zero ICT features in Top 25. is_dxy leads (gain 14.2).
 ### 7.2 按资产类型
 
 | Asset | Trades | WR (%) | CV (%) | Note |
+| --- | --- | --- | --- | --- |
 | DXY.cash | 233 | 73.0 | 63.5 | Top performer |
 | XAUUSD | 198 | 41.4 | 62.1 | Weak signal |
 | US500.cash | 156 | 38.5 | 60.8 | Poor |
@@ -269,11 +285,12 @@ Zero ICT features in Top 25. is_dxy leads (gain 14.2).
 - Multi-currency composition
 - Direct macro correlation
 - Institutional volume
-- No carry trade distortion
+- No carry trade
 
 ### 7.3 资本模拟
 
 | ML% Min | Trades | WR (%) | PF | P&L 10k EUR |
+| --- | --- | --- | --- | --- |
 | None | 1210 | 37.6 | 1.02 | +1,442 |
 | >=40% | 881 | 45.2 | 1.38 | +8,251 |
 | >=45% | 661 | 54.3 | 1.91 | +17,942 |
@@ -282,11 +299,12 @@ Zero ICT features in Top 25. is_dxy leads (gain 14.2).
 | >=60% | 102 | 69.6 | 3.51 | +11,908 |
 | >=65% | 38 | 73.7 | 4.20 | +5,560 |
 
-In-Sample figures. OOS: v7 PF=1.173, v13 PF=4.000.
+In-Sample figures. OOS: v7 PF=1.173, v13 PF=4.000. Data leakage: 2.27->0.72 (-68%).
 
 ### 7.4 ML% 分布
 
 | ML% Range | Trades | WR (%) | PF | Note |
+| --- | --- | --- | --- | --- |
 | <30% | 312 | 22.1 | 0.45 | Avoid |
 | 30-39% | 401 | 28.9 | 0.67 | Avoid |
 | 40-49% | 460 | 38.7 | 1.05 | Caution |
@@ -299,6 +317,7 @@ ML% vs WR correlation R=0.94. Survives OOS.
 ### 7.5 网格搜索
 
 | Threshold | PF OOS | WR OOS (%) | Trades OOS |
+| --- | --- | --- | --- |
 | 40% | 0.89 | 38.1 | 42 |
 | 45% | 0.95 | 41.2 | 34 |
 | 50% | 1.08 | 44.4 | 27 |
@@ -308,12 +327,13 @@ ML% vs WR correlation R=0.94. Survives OOS.
 | 69% | 1.26 | 55.6 | 18 |
 | 70% | 1.21 | 53.3 | 15 |
 
-Optimal 69%: PF 1.26, 55.6% WR, 18 trades.
+Optimal 69%: PF 1.26, 55.6% WR, 18 trades. Practical: 55-60%.
 
 ## 8. 特征分析
 ### 8.1 ICT 特征是噪声
 
 | Feature | Detection Rate (%) | Gain | Predictive |
+| --- | --- | --- | --- |
 | FVG H1 Bear | 67 | <0.5 | No |
 | FVG H1 Bull | 63 | <0.5 | No |
 | OB H1 Bear | 91 | <0.1 | No |
@@ -327,6 +347,7 @@ ICT patterns too frequent (91% OB, 67% FVG) to discriminate.
 ### 8.2 数据泄漏
 
 | Type | Train PF | OOS PF | Drop (%) |
+| --- | --- | --- | --- |
 | No filter (IS) | 2.27 | 0.72 | -68 |
 | ML% >=50% | 2.27 | 1.08 | -52 |
 | ML% >=60% | 3.51 | 1.18 | -66 |
@@ -338,18 +359,19 @@ ICT patterns too frequent (91% OB, 67% FVG) to discriminate.
 
 2. **Multi-class (v12):** collapsed
 
-3. **Cross-features (v9):** overfit PF 0.827
+3. **Cross-features (v9):** overfit
 
 4. **Deeper trees (v10):** max_depth=4 ideal
 
-5. **Filtered OBs (v8):** identical to v7
+5. **Filtered OBs (v8):** identical
 
 ## 9. 市场异常
 ### 9.1 DXY-EURUSD 毛盾
 
-July 17, 2026: 50% abnormal correlation DXY-EURUSD.
+July 17, 2026: 50% abnormal hourly correlation DXY-EURUSD. 100% in news windows.
 
 | Hour UTC | DXY | EURUSD | Correlation |
+| --- | --- | --- | --- |
 | 06:00 | 100.720 | 1.14370 | Normal |
 | 07:00 | 100.705 | 1.14410 | Normal |
 | 08:00 | 100.688 | 1.14480 | Abnormal |
@@ -359,17 +381,17 @@ July 17, 2026: 50% abnormal correlation DXY-EURUSD.
 | 12:00 | 100.715 | 1.14420 | Normal |
 | 13:00 | 100.710 | 1.14430 | Normal |
 
-8/16 hours abnormal. All within news windows.
+8/16 hours abnormal. All in news windows. Normal hours: 100% normal correlation.
 
 ### 9.2 含义
 
->=2 major events = HIGH NEWS DAY. BULL downgraded.
+>=2 major events = HIGH NEWS DAY. BULL downgraded. BEAR unaffected (macro risk asymmetry).
 
 ## 10. 新闻风险
 ### 10.1 爬虫架构
 
 1. JSON cache (24h TTL)
-2. ForexFactory scraping
+2. ForexFactory scraping: XML then HTML fallback
 3. Hardcoded MAJOR_EVENTS
 
 ### 10.2 事件
@@ -382,22 +404,22 @@ July 17, 2026: 50% abnormal correlation DXY-EURUSD.
 
 ### 10.3 结果
 
-- 15/15 BULL trades false during HIGH NEWS DAY
+- 15/15 BULL false during HIGH NEWS DAY
 - BEAR unaffected
-- day_wednesday = feature #6 (gain 6.4)
+- day_wednesday = feature #6 (gain=6.4)
 
 ## 11. 跨币对分析
 ### 11.1 特征
 
-1. **dxy_vs_price_ratio:** .
-2. **dxy_kj_h1_norm:** .
-3. **dxy_divergence:** .
-4. **dxy_trend:** .
-5. **dxy_trend_x_bias:** .
+1. **dxy_vs_price_ratio:** DXY price / current price.
+2. **dxy_kj_h1_norm:** normalized DXY trend.
+3. **dxy_divergence:** JPY-aware anomaly.
+4. **dxy_trend:** 1=bullish, -1=bearish.
+5. **dxy_trend_x_bias:** interaction.
 
 ### 11.2 结果
 
-v15 no improvement. Redundant with is_dxy (gain 14.2).
+v15 no improvement. Redundant with is_dxy (gain=14.2).
 
 ## 12. 按资产模型
 ### 12.1 原理
@@ -411,7 +433,7 @@ v15 no improvement. Redundant with is_dxy (gain 14.2).
 | v13_dxy | DXY | 233 | 73% | 63.5% | 4.000 |
 | v13_forex | Forex | 1803 | 31% | 61.6% | -- |
 
-DXY model: OOS PF 4.000 but only 15 trades.
+DXY model: OOS PF 4.000 but only 15 OOS trades.
 
 ## 13. 交易指南
 ### 13.1 工作流程
@@ -437,28 +459,31 @@ Best sessions by day with volume and strategy:
 
 ### 13.3 周五规则
 
-**Absolute Friday rule:** No trades over weekend. Close before 17:00 Paris.
+**Absolute Friday rule:** No trades over weekend. Close before 17:00 Paris. Monday gaps >50 pips.
 **决策矩阵:**
 
 **Decision matrix:**
 ML%>=60% + TKx aligned + no NEWS -> GO
+ML%>=60% + TKx conflict -> WAIT
 ML% 50-60% + TKx aligned -> ATTENTION
 ML%<50% -> NO GO
+ML%=N/A -> Fallback raw score
 
 ## 14. 局限性
 ### 14.1 当前局限
 
-| | Limitation | Priority | |
-| | Small OOS (15-23 trades) | P0 | |
-| | Single broker (FTMO) | P1 | |
-| | No slippage/costs | P2 | |
-| | 18-month window | P2 | |
+| Limitation | Priority |
+| --- | --- |
+| Small OOS sample (15-23 trades) | P0 |
+| Single broker (FTMO) | P1 |
+| No slippage/costs | P2 |
+| 18-month window | P2 |
 
 ### 14.2 未来工作
 
 **P0:** 2024-2025 per-asset backtest
 
-**P1:** Ensemble models
+**P1:** Ensemble models (XGBoost+LightGBM+RF)
 
 **P2:** Adaptive temporal weights
 
@@ -471,13 +496,13 @@ ML%<50% -> NO GO
 
 **1. DXY 73% WR** (p<0.001, 233 trades)
 
-**2. ICT features are noise**
+**2. ICT features are noise** (Top 25 = Ichimoku prices)
 
-**3. Per-asset PF +340%**
+**3. Per-asset PF +340%** (1.173 -> 4.000)
 
-**4. Data leakage: IS 2.27 -> OOS 0.72**
+**4. Data leakage: IS 2.27 -> OOS 0.72 (-68%)**
 
-**5. FOMC Wednesday = special regime**
+**5. FOMC Wednesday = special regime** (feature #6, gain 6.4)
 
 ### 15.2 实际影响
 
