@@ -44,14 +44,14 @@ Lo scanner Diamond analizza 8 timeframe simultaneamente. Per ogni TF, vengono ca
 
 | Timeframe | Tenkan | Kijun | Kumo | T/K Cross | Flat History |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| **M5** | ✅ | ✅ | — | ✅ | — |
-| **M15** | ✅ | ✅ | — | ✅ | — |
-| **M30** | ✅ | ✅ | — | ✅ | — |
-| **H1** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **H4** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **D1** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **W1** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **MN** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **M5** | X | X | - | X | - |
+| **M15** | X | X | - | X | - |
+| **M30** | X | X | - | X | - |
+| **H1** | X | X | X | X | X |
+| **H4** | X | X | X | X | X |
+| **D1** | X | X | X | X | X |
+| **W1** | X | X | X | X | X |
+| **MN** | X | X | X | X | X |
 
 ## 4. Architettura dello Scanner Diamond
 
@@ -111,7 +111,7 @@ Il modello v18 è il modello di produzione attivo. Addestrato su 1.210 trade sto
 | v7 | 13 simboli | 25 migliori | 2.923 | 60.1% | 1.173 | 🥇 Migliore OOS unificato |
 | v13 | 4 modelli/asset | 25 | 2.923 | 53-64% | 4.000 | 🏆 Per asset (15 trade) |
 | v15 | 2025-2026 | 25 + OU/Hurst | 5.009 | 59.8% | — | Stocastico integrato |
-| v18 | 13 simboli | 123 (GARCH) | 1.210 | 64.0% | 0.503 F1 | ✅ Produzione attivo |
+| v18 | 13 simboli | 123 (GARCH) | 1.210 | 64.0% | 0.503 F1 | [X] Produzione attivo |
 
 ## 8. Importanza delle Feature (v4)
 
