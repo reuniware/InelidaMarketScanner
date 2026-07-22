@@ -491,6 +491,97 @@ pip install MetaTrader5
 
 ## 🎯 Résumé : quel scan utiliser selon votre besoin ?
 
+## 8. Maintenance de la base de données
+
+Le scanner sauvegarde automatiquement les résultats dans **une base SQLite**
+(`inelida_market_data.db`). Depuis le 20 juillet 2026, **tous les scans Diamond**
+sont conservés, y compris les symboles en WAIT.
+
+### 📊 Consulter l'historique
+
+```bash
+# Statistiques générales
+python main.py db stats
+
+# Historique des scans Diamond
+python main.py db scan-history
+python main.py db scan-history --symbol DXY.cash        # filtrer par symbole
+python main.py db scan-history --date 2026-07-20        # filtrer par date
+python main.py db scan-history --limit 100              # plus de lignes
+```
+
+### 💾 Exporter les scans pour le Machine Learning
+
+Les scans sauvegardés peuvent alimenter le **modèle v19** :
+
+```bash
+# Exporter TOUS les scans
+python main.py db export-scans
+
+# Exporter seulement les 30 derniers jours
+python main.py db export-scans --days 30 --output data/diamond_scans_recent.csv
+
+# Puis entraîner le modèle avec le CSV généré
+python -m src.ml_trainer --data data/diamond_scans_recent.csv --output models/historical_v19.xgb
+```
+
+### 🧹 Purger les vieux scans
+
+> ⚠️ **À faire SEULEMENT après avoir exporté et entraîné le modèle.**
+> Les données sont précieuses pour le training — ne les supprimez pas avant.
+
+```bash
+# Supprimer les scans de plus de 60 jours (garder les 60 derniers jours)
+python main.py db prune --keep-days 60
+
+# Supprimer avec sauvegarde automatique avant purge
+python main.py db prune --keep-days 60 --export-before
+```
+
+### 📈 Évolution estimée de la taille
+
+| Durée d'utilisation | Taille estimée de la DB |
+|:---|---:|
+| 1 jour (mode live) | ~3-10 MB |
+| 1 semaine | ~50-100 MB |
+| 1 mois | ~200-500 MB |
+| 3 mois | ~500-1500 MB |
+
+> La commande `db prune --keep-days 30` permet de plafonner la taille autour de 200-500 MB.
+
+---
+
+## 9. Foire aux questions
+
+### `MetaTrader5` n'est pas trouvé
+
+```bash
+pip install MetaTrader5
+```
+
+→ MetaTrader 5 n'est pas lancé ou pas connecté.
+   Ouvrez MT5, connectez-vous à un compte, puis relancez.
+
+### Aucun symbole scanné
+
+→ Ajoutez `INELIDA_WATCHLIST` dans le fichier `.env` ou utilisez `--symbols`.
+
+### Symbole non trouvé
+
+→ Le symbole n'est pas dans la Market Watch MT5.
+   Ajoutez-le manuellement dans MT5 (Ctrl+U → chercher le symbole → double-clic).
+
+### Caractères spéciaux dans le terminal
+
+→ Problème d'encodage Windows. Solution :
+```bash
+chcp 65001
+```
+
+---
+
+## 📋 Résumé des commandes
+
 | Vous voulez... | Commande |
 |:---|:---|
 | Voir les prix et indicateurs rapidement | `python main.py scan --symbols EURUSD` |
@@ -513,7 +604,7 @@ pip install MetaTrader5
 
 ---
 
-> **Didier Vally / Reuniware Systems** — InelidaMarketScan
+> **Reuniware Systems** — InelidaMarketScan
 
 ---
 

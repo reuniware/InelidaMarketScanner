@@ -170,4 +170,4 @@ Le niveau pivot est **100.588** (Kijun D1). Tant que DXY tient au-dessus, le bou
 
 ---
 
-> **Didier Vally / Reuniware Systems** — InelidaMarketScan
+> **Reuniware Systems** — InelidaMarketScan

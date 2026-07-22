@@ -500,6 +500,47 @@ Il faut plus de données et des features ICT réelles (FVG/OB/MSS calculés dans
 | P12 | ~~**Finance Quantitative : OU + Hurst + GARCH + Monte Carlo**~~ → ✅ **FAIT** | Features volatilité dans le ML |
 | P13 | ~~**Kelly Criterion + FTMO Ruin**~~ → ✅ **FAIT** | Kelly redondant (gain=0), FTMO utile |
 | P14 | ~~**MLPredictor simplifié : 1 load au lieu de 5**~~ → ✅ **FAIT** | Code mort supprimé, 30 lignes gagnées |
+| P15 | ~~**Sauvegarde DB de tous les scans Diamond**~~ → ✅ **FAIT** (20/07) | `diamond_scans` table + `--save-db` flag |
+| P16 | **Export CSV → v19** | `db export-scans` = exporter les `diamond_scans` en CSV pour entraîner le modèle v19 |
+| P17 | **Prune après training** | `db prune --keep-days 30` = nettoyer les vieux scans APRÈS avoir entraîné v19 |
+
+### 📊 Nouvelle source de données : `diamond_scans` (DB)
+
+Depuis le **20 juillet 2026**, tous les scans Diamond (WAIT inclus, pas seulement STRONG/GOOD)
+sont sauvegardés dans la table `diamond_scans` de la base SQLite.
+
+**Ce que ça apporte pour le ML v19 :**
+
+| Avantage | Pourquoi c'est mieux que les CSV existants |
+|:---|---|
+| **Scores évolutifs** | Voir comment le score DXY passe de 32→28→22 avant un trade |
+| **ML% dans le temps** | Corrélation entre évolution du ML% et résultat final |
+| **Tous les symboles** | Pas seulement les trades STRONG/GOOD — les WAIT sont aussi des données |
+| **Features JSON** | Critères détaillés (FVG, OB, MSS) stockés pour analyse offline |
+
+**Workflow recommandé pour v19 :**
+
+```bash
+# 1. Attendre d'avoir accumulé 30+ jours de scans
+#    (les données sont automatiquement sauvegardées par --save-db)
+
+# 2. Exporter les scans en CSV
+python main.py db export-scans --days 60 --output data/diamond_scans_v19.csv
+
+# 3. Adapter ml_labeler.py pour lire ce nouveau CSV
+#    (les colonnes sont différentes de trades_labeled.csv)
+
+# 4. Entraîner le modèle v19
+python -m src.ml_trainer --data data/diamond_scans_v19.csv --output models/historical_v19.xgb
+
+# 5. Nettoyer les vieux scans (optionnel, après training)
+python main.py db prune --keep-days 30
+#    ou avec sauvegarde automatique avant suppression :
+python main.py db prune --keep-days 30 --export-before
+```
+
+> **Rappel :** Ne pas purger avant d'avoir exporté et entraîné le modèle. Les données
+> sont précieuses pour le training. La purge ne sert qu'à limiter la taille de la DB.
 
 ### Historique des modèles
 
@@ -941,4 +982,4 @@ et a le **dernier mot** sur la qualité du setup.
 
 ---
 
-> **Didier Vally / Reuniware Systems** — InelidaMarketScan
+> **Reuniware Systems** — InelidaMarketScan

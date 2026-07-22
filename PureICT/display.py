@@ -137,10 +137,10 @@ def _print_fibonacci(results: List[AsianLevels]):
     print(sep)
     hdr = f"  {'Symbole':<14} {'Mid':>12}"
     for lvl in fib_levels:
-        hdr += f" {'\\u25b2'+str(lvl):>12}"
+        hdr += f" {'\u25b2'+str(lvl):>12}"
     hdr += "  |"
     for lvl in fib_levels:
-        hdr += f" {'\\u25bc'+str(lvl):>12}"
+        hdr += f" {'\u25bc'+str(lvl):>12}"
     print(hdr)
     print(sep)
 
@@ -259,7 +259,7 @@ def export_csv(results: List[AsianLevels], filepath: str):
         writer.writeheader()
         for r in results:
             writer.writerow(asdict(r))
-    print(f"\n  \\u2705 {len(results)} lignes exportees -> {os.path.abspath(filepath)}")
+    print(f"\n  \u2705 {len(results)} lignes exportees -> {os.path.abspath(filepath)}")
 
 
 def export_json(results: List[AsianLevels], filepath: str):
@@ -274,4 +274,4 @@ def export_json(results: List[AsianLevels], filepath: str):
                 d[k] = None
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-    print(f"\n  \\u2705 {len(results)} symboles exportes -> {os.path.abspath(filepath)}")
+    print(f"\n  \u2705 {len(results)} symboles exportes -> {os.path.abspath(filepath)}")

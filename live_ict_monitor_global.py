@@ -124,19 +124,7 @@ def _is_weekend_date(day_str: str) -> bool:
     return datetime.strptime(day_str, "%Y-%m-%d").replace(tzinfo=UTC).weekday() >= 5
 
 
-def _is_market_closed() -> bool:
-    """Le marché forex est fermé du vendredi 22h UTC au dimanche 22h UTC."""
-    now = datetime.now(UTC)
-    wd = now.weekday()
-    h = now.hour
-
-    if wd == 5:                          # Samedi — toujours fermé
-        return True
-    if wd == 6 and h < 22:               # Dimanche avant 22h UTC — fermé
-        return True
-    if wd == 4 and h >= 22:              # Vendredi après 22h UTC — fermé
-        return True
-    return False
+from src.time_utils import is_market_open
 
 
 def _classify_symbol(sym: str) -> str:
@@ -953,7 +941,7 @@ def main():
                 followed_today.clear()
 
             # Skip marché fermé
-            if _is_market_closed():
+            if not is_market_open():
                 print(f"  {_now_str()} | Marché fermé — en attente...", end="\r")
                 sys.stdout.flush()
                 time.sleep(60)

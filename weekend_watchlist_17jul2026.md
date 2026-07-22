@@ -295,4 +295,4 @@
 
 ---
 
-> **Didier Vally / Reuniware Systems** — InelidaMarketScan
+> **Reuniware Systems** — InelidaMarketScan

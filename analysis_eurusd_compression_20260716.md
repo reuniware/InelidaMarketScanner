@@ -184,4 +184,4 @@ python main.py track update                         # Mettre à jour
 
 ---
 
-> **Didier Vally / Reuniware Systems** — InelidaMarketScan
+> **Reuniware Systems** — InelidaMarketScan

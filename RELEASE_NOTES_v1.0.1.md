@@ -144,4 +144,4 @@ python main.py track save --force --sl X --tp Y  # scalp manuel
 
 ---
 
-> **Didier Vally / Reuniware Systems** — InelidaMarketScan
+> **Reuniware Systems** — InelidaMarketScan

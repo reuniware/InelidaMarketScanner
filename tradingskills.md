@@ -1527,4 +1527,4 @@ python live_ict_monitor_global.py --require-macro --require-killzone      # Les 
 
 ---
 
-> **Didier Vally / Reuniware Systems** — InelidaMarketScan
+> **Reuniware Systems** — InelidaMarketScan

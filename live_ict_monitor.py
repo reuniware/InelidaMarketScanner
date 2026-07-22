@@ -96,29 +96,12 @@ def _paris_hour() -> str:
     return f"{h:02d}:{n.minute:02d}"
 
 
+from src.time_utils import is_market_open
+
+
 def _is_weekend_date(day_str: str) -> bool:
-    """Vérifie si une date (string YYYY-MM-DD) est un samedi ou dimanche."""
+    """Verifie si une date (string YYYY-MM-DD) est un samedi ou dimanche."""
     return datetime.strptime(day_str, "%Y-%m-%d").replace(tzinfo=UTC).weekday() >= 5
-
-
-def _is_market_closed() -> bool:
-    """Le marché forex est fermé du vendredi 22h UTC au dimanche 22h UTC.
-
-    Samedi (weekday=5) : toujours fermé.
-    Dimanche (weekday=6) : fermé avant 22h UTC, ouvert après.
-    Vendredi (weekday=4) : fermé après 22h UTC (pas critique pour le script).
-    """
-    now = datetime.now(UTC)
-    wd = now.weekday()
-    h = now.hour
-
-    if wd == 5:                          # Samedi — toujours fermé
-        return True
-    if wd == 6 and h < 22:               # Dimanche avant 22h UTC — fermé
-        return True
-    if wd == 4 and h >= 22:              # Vendredi après 22h UTC — fermé
-        return True
-    return False
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -580,7 +563,7 @@ def main():
                 followed_today.clear()
 
             # ── Skip marché fermé ──────────────────────────────────
-            if _is_market_closed():
+            if not is_market_open():
                 print(f"  {_now_str()} | Marché fermé — en attente...", end="\r")
                 sys.stdout.flush()
                 time.sleep(60)

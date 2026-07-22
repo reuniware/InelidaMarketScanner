@@ -474,4 +474,4 @@ setups actifs, triés par RR décroissant :
 
 ---
 
-> **Didier Vally / Reuniware Systems** — InelidaMarketScan
+> **Reuniware Systems** — InelidaMarketScan

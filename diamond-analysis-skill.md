@@ -1386,4 +1386,4 @@ Ne jamais présenter un trade comme une certitude.
 
 ---
 
-> **Didier Vally / Reuniware Systems** — InelidaMarketScan
+> **Reuniware Systems** — InelidaMarketScan

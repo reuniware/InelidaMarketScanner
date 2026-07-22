@@ -82,7 +82,7 @@ python live_trader.py --live --risk-pct 1.0 --rr-min 1.0 --interval 30
 ## 📚 Ebooks de Recherche — Téléchargement
 
 > **InelidaMarketScan — Analyse Scientifique des Marchés Financiers avec Machine Learning**
-> Par *Didier Vally / Reuniware Systems*
+> Par *Reuniware Systems*
 
 Téléchargez l'ebook complet (16 sections, 109 critères de scoring, 111 features ML,
 analyse de 15 modèles XGBoost, validation OOS, feature importance, matrice de décision)
@@ -195,7 +195,7 @@ python main.py <commande> [options]
 | `trade` | Liste ou exécute des ordres MT5 |
 | `account` | Infos compte MT5 |
 | `terminal` | Infos terminal MT5 |
-| `db` | Statistiques et requêtes SQLite |
+| `db` | Statistiques, historique, export/prune base SQLite |
 | `watchlist` | Affiche la watchlist configurée |
 
 ### 🛡️ Garde-fous automatiques (Leçons du backtest 16-17/07/2026)
@@ -269,6 +269,16 @@ python main.py trade execute --rr-min 1.5 --yes
 # Base de données
 python main.py db stats
 python main.py db list --symbol XAUUSD
+python main.py db scan-history --symbol DXY.cash
+python main.py db scan-history --date 2026-07-20
+
+# Exporter les scans Diamond en CSV pour entrainement ML
+python main.py db export-scans
+python main.py db export-scans --days 30 --output data/diamond_scans_recent.csv
+
+# Purger les vieux scans (APRES avoir exporté et entrainé le modèle)
+python main.py db prune --keep-days 30
+python main.py db prune --keep-days 30 --export-before  # sauvegarde CSV avant suppression
 ```
 
 📖 **Documentation détaillée des colonnes et des flags** → `tradingskills.md`

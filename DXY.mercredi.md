@@ -237,4 +237,4 @@ DXY.cash  Score=55/109  Biais=BEAR  Qualité=STRONG
 
 ---
 
-> **Didier Vally / Reuniware Systems** — InelidaMarketScan
+> **Reuniware Systems** — InelidaMarketScan

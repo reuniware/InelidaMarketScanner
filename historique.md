@@ -541,14 +541,14 @@ Cible 7 symboles avec 1 seul sweep London :
 ### 📚 24 ebooks régénérés (8 langues × 3 formats)
 
 - Traductions complètes (DE, ES, IT, PT, ZH, JA) — plus de placeholder anglais
-- Signature : Didier Vally / Reuniware Systems
+- Signature : Reuniware Systems
 - Formats : .md, .epub, .pdf
 - PyPI v1.0.6 publiée
 
 ### ✍️ 42 fichiers signés
 
 - 18 `.md` projet + 24 ebooks
-- Signature uniforme `Didier Vally / Reuniware Systems`
+- Signature uniforme `Reuniware Systems`
 
 ---
 
@@ -1907,30 +1907,30 @@ TEST 6: MLPredictor v18 → PASS (loaded, 123 features, 8 stochastic features)
 
 Les 24 fichiers ebooks (8 `.md` + 8 `.epub` + 8 `.pdf`) ont été régénérés avec :
 - Mise à jour du contenu : finance quantitative (OU, Hurst, GARCH, Monte Carlo, Kelly, FTMO), v18 (64% CV, F1=0.503), MLPredictor simplifié, analyse Kelly (gain=0.00)
-- Signature corrigée : **Didier Vally / Reuniware Systems** (remplace l'ancienne `DVA/Reuniware`)
+- Signature corrigée : **Reuniware Systems** (remplace l'ancienne `Reuniware`)
 - Pandoc 3.10 (winget) pour EPUB, wkhtmltopdf pour PDF
 - Vérification PyPDF2 : 16/16 signatures OK dans les PDFs (FlateDecode)
 - Vérification Python/zipfile : 16/16 signatures OK dans les EPUBs (XHTML)
 
 ### ✍️ Signature étendue à tout le projet
 
-18 fichiers `.md` non-ebooks signés `Didier Vally / Reuniware Systems` :
+18 fichiers `.md` non-ebooks signés `Reuniware Systems` :
 README.md, MACHINE_LEARNING_GUIDE.md, GUIDE_UTILISATEUR.md, historique.md,
 diamond-analysis-skill.md, tradingskills.md, RELEASE_NOTES_v1.0.1.md,
 suggested_followups.md, DXY.lundi.md → DXY.vendredi.md, weekend_watchlist_17jul2026.md,
 analysis_dxy_usdjpy_20260716.md, analysis_eurusd_compression_20260716.md,
 new_analysis_02/algo.md, new_analysis_02/guide_ict_fvg_live.md.
 
-0 référence restante à `DVA/Reuniware`.
+0 référence restante à `Reuniware`.
 
 ### 📊 Commits du jour
 
 | Hash | Description |
 |:---|:---|
 | `fix: 4 bugs — dead code, GARCH silent fallback, Monte Carlo sigma, FTMO scoping` | Corrections diamon_scanner + stochastic_analytics |
-| `docs: regenerate all 8 ebooks with Didier Vally / Reuniware Systems (v1.0.2)` | .md + .epub + .pdf régénérés |
-| `docs: add Didier Vally / Reuniware Systems to all 18 project .md files` | Signature étendue |
-| `docs: regenerate all 8 PDFs with Didier Vally / Reuniware Systems (wkhtmltopdf)` | PDFs via wkhtmltopdf |
+| `docs: regenerate all 8 ebooks with Reuniware Systems (v1.0.2)` | .md + .epub + .pdf régénérés |
+| `docs: add Reuniware Systems to all 18 project .md files` | Signature étendue |
+| `docs: regenerate all 8 PDFs with Reuniware Systems (wkhtmltopdf)` | PDFs via wkhtmltopdf |
 
 ### 🔮 Prochaines étapes
 
@@ -1982,4 +1982,4 @@ python main.py diamond --timezone BROKER --interval 120 --discord
 
 ---
 
-> **Didier Vally / Reuniware Systems** — InelidaMarketScan
+> **Reuniware Systems** — InelidaMarketScan

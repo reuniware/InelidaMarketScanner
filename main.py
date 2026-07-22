@@ -20,6 +20,8 @@ import urllib.request
 import urllib.error
 from datetime import datetime as _dt, timedelta as _td, timezone as _tz
 
+from src.time_utils import today_str
+
 from src.config import (
     DB, MT5, OUT, SWEEP, ASIAN, resolve_watchlist, DEFAULT_WATCHLIST,
     tz_label as _tz_lbl, tz_offset as _tz_off, DEFAULT_TZ_MODE,
@@ -324,7 +326,7 @@ def cmd_asian(args):
         )
         scanned_count = len(scanned) if not symbols_override else len(symbols_override)
 
-    date_str = session_date or _dt.utcfromtimestamp(time.time()).strftime("%Y-%m-%d")
+    date_str = session_date or today_str()
 
     # Filtre --swept-only
     display_results = all_results
@@ -632,6 +634,27 @@ def cmd_db(args):
         print(f"  {BOLD}Dernieres sessions:{RESET}")
         for d in stats.get("last_dates", []):
             print(f"    {d['session_date']} : {d['cnt']} symbole(s)")
+        print(f"")
+        print(f"  {BOLD}Diamond Trades (P&L) :{RESET}")
+        print(f"    Total trades        : {stats.get('diamond_total', 0)}")
+        print(f"    Ouverts             : {stats.get('diamond_open', 0)}")
+        print(f"    Fermes              : {stats.get('diamond_closed', 0)}")
+        print(f"")
+        print(f"  {BOLD}Diamond Scans (historique) :{RESET}")
+        print(f"    Total scans         : {stats.get('diamond_scans', 0)}")
+        print(f"    Jours de scans      : {stats.get('diamond_scan_days', 0)}")
+        print(f"    Symboles distincts  : {stats.get('diamond_scan_symbols', 0)}")
+        # Taille DB
+        taille = os.path.getsize(db.db_path) if os.path.exists(db.db_path) else 0
+        if taille > 0:
+            if taille >= 1024 * 1024:
+                taille_str = f"{taille / (1024 * 1024):.1f} MB"
+            elif taille >= 1024:
+                taille_str = f"{taille / 1024:.1f} KB"
+            else:
+                taille_str = f"{taille} octets"
+            print(f"")
+            print(f"  {BOLD}Taille DB :{RESET} {taille_str}")
         return 0
 
     if db_action == "list":
@@ -715,6 +738,135 @@ def cmd_db(args):
         taille = os.path.getsize(db.db_path) if os.path.exists(db.db_path) else 0
         if taille > 0:
             print(f"  Taille : {taille / 1024:.1f} Ko")
+        return 0
+
+    if db_action == "scan-history":
+        db = get_db()
+        if not db.connect():
+            print(f"{RED}Impossible d'ouvrir la base de donnees.{RESET}")
+            return 2
+
+        symbol_filter = args.symbol.upper() if args.symbol else None
+        limit = args.limit or 30
+
+        rows = db.get_diamond_scan_history(
+            symbol=symbol_filter,
+            scan_date=args.date,
+            limit=limit,
+        )
+        if not rows:
+            print(f"{YELLOW}Aucun scan trouve dans l'historique.{RESET}")
+            return 0
+
+        print(f"{BOLD}{CYAN}═══ Historique des scans Diamond ═══{RESET}")
+        print(f"  {GRAY}Filtre:{RESET} symbole={symbol_filter or 'tous'} date={args.date or 'toutes'} ({len(rows)} lignes)")
+        print(f"")
+        print(
+            f"  {BOLD}{'Heure':>16} {'Symbole':<10} {'Score':>5} {'Qualite':>8} {'Biais':>6} "
+            f"{'Prix':>10} {'ML%':>5} {'KjH1':>10} {'KjH4':>10} {'KjD1':>10}{RESET}"
+        )
+        print(f"  {GRAY}{'-' * 95}{RESET}")
+        for r in rows:
+            scan_ts = time.strftime("%m/%d %H:%M", time.gmtime(r["scan_time"]))
+            ml = f"{r['ml_pct']:.0f}" if r["ml_pct"] is not None else "-"
+            print(
+                f"  {scan_ts:>16} "
+                f"{MAGENTA}{r['symbol']:<10}{RESET} "
+                f"{r['score']:>5} "
+                f"{r['quality']:>8} "
+                f"{r['bias']:>6} "
+                f"{r['price']:>10.5f} "
+                f"{ml:>5} "
+                f"{r['kj_h1']:>10.5f} {r['kj_h4']:>10.5f} {r['kj_d1']:>10.5f}"
+            )
+
+        # Resume par symbole
+        print(f"")
+        print(f"  {BOLD}Resume:{RESET}")
+        symbols_in_view = set(r["symbol"] for r in rows)
+        for sym in sorted(symbols_in_view):
+            sym_rows = [r for r in rows if r["symbol"] == sym]
+            scores = [r["score"] for r in sym_rows]
+            qualites = [r["quality"] for r in sym_rows]
+            best_good = sum(1 for q in qualites if q in ("GOOD", "STRONG"))
+            print(f"    {MAGENTA}{sym:<12}{RESET} {len(sym_rows):>3} scans | scores {min(scores)}->{max(scores)} | "
+                  f"{'🟢' if best_good > 0 else '⚪'} {best_good}x GOOD/STRONG")
+        return 0
+
+    if db_action == "export-scans":
+        db = get_db()
+        if not db.connect():
+            print(f"{RED}Impossible d'ouvrir la base de donnees.{RESET}")
+            return 2
+
+        output = args.output or f"diamond_scans_export_{time.strftime('%Y%m%d_%H%M%S')}.csv"
+        days = args.days if args.days and args.days > 0 else None  # 0 = tout exporter
+
+        count = db.export_diamond_scans_csv(output_path=output, days=days)
+        if count > 0:
+            print(f"{GREEN}✅ {count} scans Diamond exportes vers :{RESET}")
+            print(f"  {CYAN}{os.path.abspath(output)}{RESET}")
+            print(f"")
+            print(f"  {GRAY}Pour entrainer le modele ML v19 :{RESET}")
+            print(f"  {GRAY}  python -m src.ml_trainer --data {output} --output models/historical_v19.xgb{RESET}")
+            print(f"")
+            print(f"  {YELLOW}⚠ Apres entrainement, tu peux purger les vieux scans :{RESET}")
+            print(f"  {YELLOW}  python main.py db prune --keep-days 30{RESET}")
+        else:
+            print(f"{YELLOW}Aucun scan a exporter.{RESET}")
+        return 0
+
+    if db_action == "prune":
+        db = get_db()
+        if not db.connect():
+            print(f"{RED}Impossible d'ouvrir la base de donnees.{RESET}")
+            return 2
+
+        keep_days = args.keep_days
+        if keep_days < 1:
+            print(f"{RED}Erreur : --keep-days doit etre >= 1 (defaut 30).{RESET}")
+            print(f"{YELLOW}Utilise --keep-days 30 pour garder les 30 derniers jours.{RESET}")
+            return 1
+
+        export_before = args.export_before
+
+        print(f"{BOLD}{YELLOW}⚠  Purge des scans Diamond ⚠{RESET}")
+        print(f"  {GRAY}Supprime les scans plus vieux que {keep_days} jours.{RESET}")
+        print(f"  {YELLOW}Ne lance cette commande QU'APRES avoir exporte les donnees{RESET}")
+        print(f"  {YELLOW}et entraine le modele v19, sinon les donnees sont perdues.{RESET}")
+        print(f"")
+
+        if export_before:
+            export_path = (
+                args.output
+                or f"diamond_scans_purge_{time.strftime('%Y%m%d_%H%M%S')}.csv"
+            )
+            print(f"  {GRAY}L'export avant purge est actif.{RESET}")
+            print(f"  {GRAY}Les donnees SUPPRIMEES seront sauvees dans :{RESET}")
+            print(f"  {CYAN}{os.path.abspath(export_path)}{RESET}")
+            print(f"")
+
+        # Confirmation
+        print(f"  {BOLD}Continuer ? [y/N] {RESET}", end="", flush=True)
+        try:
+            ans = input()
+        except EOFError:
+            ans = ""
+        ans = (ans or "").strip().lower()
+        if ans not in ("y", "yes", "o", "oui"):
+            print(f"{YELLOW}Purge annulee.{RESET}")
+            return 130
+
+        count = db.prune_diamond_scans(
+            keep_days=keep_days,
+            export_before=export_before,
+            export_path=args.output if export_before else None,
+        )
+        if count > 0:
+            print(f"{GREEN}✅ {count} scan(s) purges (> {keep_days} jours).{RESET}")
+            print(f"  {GRAY}L'espace disque a ete recupere par VACUUM.{RESET}")
+        else:
+            print(f"{YELLOW}Aucun scan a purger (tous < {keep_days} jours).{RESET}")
         return 0
 
     print(f"{RED}Action inconnue : {db_action}{RESET}")
@@ -934,7 +1086,7 @@ def cmd_setups(args):
         print(f"{YELLOW}Aucun setup directionnel detecte sur {len(all_results)} symboles.{RESET}")
         return 0
 
-    date_str = session_date or time.strftime("%Y-%m-%d", time.gmtime())
+    date_str = session_date or today_str()
     lines: list = []
     lines.append(f"{BOLD}{CYAN}== Setups directionnels (sweep AH/AL + mouvement vers l'autre liquidite) =={RESET}")
     lines.append(
@@ -1159,6 +1311,12 @@ def cmd_diamond(args):
                         print(f"\n{YELLOW}⚠ --notify active mais NTFY_TOPIC non defini."
                               f" Installe l'app ntfy.sh et definis NTFY_TOPIC={DIM}ton-topic{RESET}{YELLOW}.{RESET}")
                     notified_setups = current_fps
+
+            # ── Sauvegarde en DB (--save-db) ─────────────────────────────────────
+            if getattr(args, 'save_db', False):
+                saved = get_db().save_diamond_scans(results)
+                if saved > 0:
+                    print(f"  {GRAY}📦 {saved} scan(s) sauvegardes dans la base.{RESET}")
 
             # ── Discord posting (1er scan toujours, puis seulement si STRONG/GOOD) ──
             if getattr(args, 'discord', False):
@@ -2337,6 +2495,9 @@ def _render_diamond_detail(r, lines: list):
         (r.ssb_h1, "SSB H1"),
         (r.ssb_h4, "SSB H4"),
         (r.ssb_d1, "SSB D1"),
+        (r.ssb_m30, "SSB M30"),
+        (r.ssb_m15, "SSB M15"),
+        (r.ssb_m5, "SSB M5"),
         (r.ssb_w1, "SSB W1"),
         (r.ssb_mn, "SSB MN"),
     ]
@@ -2703,6 +2864,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Envoie une notification push mobile (via ntfy.sh) quand un setup STRONG/GOOD est detecte."
         " Necessite NTFY_TOPIC dans les variables d'environnement."
     )
+    p_diamond.add_argument(
+        "--save-db", action="store_true",
+        help="Sauvegarde tous les resultats du scan dans la table diamond_scans de la base SQLite."
+        " Utile pour l'historique et l'analyse d'evolution dans le temps."
+    )
 
     # ── track (P&L) ───────────────────────────────────────────────────────
     p_track = sub.add_parser(
@@ -2753,8 +2919,8 @@ def build_parser() -> argparse.ArgumentParser:
         "db",
         help="Interagir avec la base de donnees SQLite (stats, list, path).",
     )
-    p_db.add_argument("db_action", choices=("stats", "list", "path"),
-                      help="Action : 'stats' = statistiques, 'list' = lister, 'path' = chemin.")
+    p_db.add_argument("db_action", choices=("stats", "list", "path", "scan-history", "export-scans", "prune"),
+                      help="Action : 'stats' = statistiques, 'list' = lister, 'path' = chemin, 'scan-history' = historique, 'export-scans' = export CSV pour ML, 'prune' = purge des vieux scans.")
     p_db.add_argument("--what", choices=("asian", "sweeps"), default="asian",
                       help="Type de donnees a lister (defaut 'asian').")
     p_db.add_argument("--symbol", default=None,
@@ -2763,6 +2929,14 @@ def build_parser() -> argparse.ArgumentParser:
                       help="Filtre sur une date YYYY-MM-DD (list asian).")
     p_db.add_argument("--limit", type=int, default=30,
                       help="Nombre max de lignes a afficher (defaut 30).")
+    p_db.add_argument("--output", default=None,
+                      help="Chemin du fichier CSV de sortie (export-scans).")
+    p_db.add_argument("--keep-days", type=int, default=30,
+                      help="Nombre de jours a conserver (prune, ex: 30 = garder les 30 derniers jours, defaut 30).")
+    p_db.add_argument("--days", type=int, default=0,
+                      help="Nombre de jours de donnees a exporter (export-scans, defaut 0 = tout exporter).")
+    p_db.add_argument("--export-before", action="store_true",
+                      help="Exporter les donnees en CSV avant de les purger (prune).")
     _add_common(p_db)
 
     return parser

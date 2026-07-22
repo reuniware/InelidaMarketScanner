@@ -5,6 +5,8 @@ Configuration centralisee pour le scanner de marche temps reel InelidaMarketScan
 import os
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+
+from src.time_utils import now_datetime
 from typing import List, Optional
 
 
@@ -22,7 +24,7 @@ def _dst_eu_summer(dt: Optional[datetime] = None) -> bool:
     DST Europe : dernier dimanche de Mars → dernier dimanche d'Octobre.
     """
     if dt is None:
-        dt = datetime.now()
+        dt = now_datetime()
     year = dt.year
     # Dernier dimanche de Mars
     mar_last = datetime(year, 3, 31).date()

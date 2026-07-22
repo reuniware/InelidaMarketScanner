@@ -13,10 +13,14 @@ Tables :
   - diamond_snapshots : historique des prix et distances des trades suivis
 """
 
+import csv
+import json
 import logging
 import os
 import sqlite3
 import time
+
+from .time_utils import now_epoch, now_gmtime
 from typing import List, Optional
 
 from .config import DB
@@ -211,6 +215,55 @@ CREATE INDEX IF NOT EXISTS idx_watchlist_status
 
 CREATE INDEX IF NOT EXISTS idx_watchlist_symbol
     ON sweep_watchlist(symbol);
+
+-- Diamond Scan History (tous les scans, pas seulement les STRONG/GOOD)
+
+CREATE TABLE IF NOT EXISTS diamond_scans (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    scan_time       REAL    NOT NULL,             -- epoch UTC
+    scan_date       TEXT    NOT NULL,             -- YYYY-MM-DD pour requetes
+    scan_hour       INTEGER NOT NULL,             -- heure UTC pour analyse intraday
+    symbol          TEXT    NOT NULL,
+    score           INTEGER NOT NULL,
+    max_score       INTEGER NOT NULL,
+    quality         TEXT    NOT NULL,             -- STRONG/GOOD/WAIT
+    bias            TEXT    NOT NULL,             -- BULL/BEAR/FLAT
+    alignment       INTEGER NOT NULL DEFAULT 0,   -- 0-5 TFs alignes
+    price           REAL    NOT NULL,
+    ml_pct          REAL,                         -- ML% prediction (0-100)
+    kj_h1           REAL,                         -- Kijun H1
+    kj_h4           REAL,                         -- Kijun H4
+    kj_d1           REAL,                         -- Kijun D1
+    tkx_h1          TEXT,                         -- TK cross H1
+    tkx_h4          TEXT,                         -- TK cross H4
+    kumo_h1         TEXT,                         -- Kumo position H1
+    kumo_h4         TEXT,                         -- Kumo position H4
+    kumo_d1         TEXT,                         -- Kumo position D1
+    ou_score         REAL,                        -- Ornstein-Uhlenbeck score
+    hurst_h          REAL,                        -- Hurst exponent
+    mc_p_sl          REAL,                        -- Monte Carlo P(atteindre SL)
+    mc_p_tp          REAL,                        -- Monte Carlo P(atteindre TP)
+    features_json   TEXT,                         -- JSON complet de tous les criteres
+    ssb_h1          TEXT,                         -- SSB H1 JSON [(level, dist_pips), ...]
+    ssb_h4          TEXT,                         -- SSB H4 JSON [(level, dist_pips), ...]
+    ssb_d1          TEXT,                         -- SSB D1 JSON [(level, dist_pips), ...]
+    ssb_w1          TEXT,                         -- SSB W1 JSON [(level, dist_pips), ...]
+    ssb_mn          TEXT,                         -- SSB MN JSON [(level, dist_pips), ...]
+    ssb_m30         TEXT,                         -- SSB M30 JSON [(level, dist_pips), ...]
+    ssb_m15         TEXT,                         -- SSB M15 JSON [(level, dist_pips), ...]
+    ssb_m5          TEXT,                         -- SSB M5 JSON [(level, dist_pips), ...]
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(scan_time, symbol)
+);
+
+CREATE INDEX IF NOT EXISTS idx_diamond_scans_date
+    ON diamond_scans(scan_date, symbol);
+
+CREATE INDEX IF NOT EXISTS idx_diamond_scans_symbol
+    ON diamond_scans(symbol, scan_time);
+
+CREATE INDEX IF NOT EXISTS idx_diamond_scans_quality
+    ON diamond_scans(quality, scan_date);
 """
 
 
@@ -602,9 +655,353 @@ class DatabaseManager:
             )
             stats["diamond_closed"] = cur.fetchone()[0]
 
+            # Diamond scan history stats
+            cur = self.conn.execute("SELECT COUNT(*) FROM diamond_scans")
+            stats["diamond_scans"] = cur.fetchone()[0]
+
+            cur = self.conn.execute(
+                "SELECT COUNT(DISTINCT scan_date) FROM diamond_scans"
+            )
+            stats["diamond_scan_days"] = cur.fetchone()[0]
+
+            cur = self.conn.execute(
+                "SELECT COUNT(DISTINCT symbol) FROM diamond_scans"
+            )
+            stats["diamond_scan_symbols"] = cur.fetchone()[0]
+
         except sqlite3.Error as e:
             logger.error("Erreur DB get_statistics : %s", e)
         return stats
+
+    # ─── Diamond Scan History ────────────────────────────────────────────────
+
+    def save_diamond_scans(self, results: list, scan_time: Optional[float] = None) -> int:
+        """Sauvegarde tous les resultats d'un scan Diamond dans la table diamond_scans.
+
+        Sauvegarde TOUS les symboles (WAIT/GOOD/STRONG) pour historique.
+        Accepte une liste de DiamondResult ou de dict (si dict: cle 'symbol' requise).
+
+        Args:
+            results: Liste de DiamondResult ou dict avec au moins 'symbol', 'score',
+                     'max_score', 'quality', 'bias', 'price'.
+            scan_time: Epoch UTC du scan (defaut: maintenant).
+
+        Returns:
+            Nombre de lignes inserees.
+        """
+        if self.conn is None:
+            return 0
+        if not results:
+            return 0
+
+        now = scan_time or now_epoch()
+        scan_date = time.strftime("%Y-%m-%d", time.gmtime(now))
+        scan_hour = int(time.strftime("%H", time.gmtime(now)))
+        saved = 0
+
+        for r in results:
+            try:
+                # Support both DiamondResult objects (hasattr) and plain dicts
+                if not isinstance(r, dict):
+                    # DiamondResult object
+                    sym = r.symbol
+                    score = r.score
+                    max_score = r.max_score
+                    quality = r.quality
+                    bias = r.bias
+                    alignment = r.alignment
+                    price = r.price
+                    ml_pct = r.ml_win_pct
+                    ml_val = round(ml_pct * 100, 1) if ml_pct is not None else None
+                    kj_h1 = r.kj_h1
+                    kj_h4 = r.kj_h4
+                    kj_d1 = r.kj_d1
+                    tkx_h1 = r.tkx_h1
+                    tkx_h4 = r.tkx_h4
+                    kumo_h1 = r.kumo_h1
+                    kumo_h4 = r.kumo_h4
+                    kumo_d1 = r.kumo_d1
+                    ou_score = r.ou_score
+                    hurst_h = r.hurst_h
+                    mc_p_sl = r.mc_p_sl
+                    mc_p_tp = r.mc_p_tp
+
+                    # Extraire les SSB en JSON (tous les TFs)
+                    ssb_h1_json = json.dumps(r.ssb_h1, ensure_ascii=False) if hasattr(r, 'ssb_h1') and r.ssb_h1 else None
+                    ssb_h4_json = json.dumps(r.ssb_h4, ensure_ascii=False) if hasattr(r, 'ssb_h4') and r.ssb_h4 else None
+                    ssb_d1_json = json.dumps(r.ssb_d1, ensure_ascii=False) if hasattr(r, 'ssb_d1') and r.ssb_d1 else None
+                    ssb_w1_json = json.dumps(r.ssb_w1, ensure_ascii=False) if hasattr(r, 'ssb_w1') and r.ssb_w1 else None
+                    ssb_mn_json = json.dumps(r.ssb_mn, ensure_ascii=False) if hasattr(r, 'ssb_mn') and r.ssb_mn else None
+                    ssb_m30_json = json.dumps(r.ssb_m30, ensure_ascii=False) if hasattr(r, 'ssb_m30') and r.ssb_m30 else None
+                    ssb_m15_json = json.dumps(r.ssb_m15, ensure_ascii=False) if hasattr(r, 'ssb_m15') and r.ssb_m15 else None
+                    ssb_m5_json = json.dumps(r.ssb_m5, ensure_ascii=False) if hasattr(r, 'ssb_m5') and r.ssb_m5 else None
+
+                    # Extraire les features en JSON (DiamondResult uniquement)
+                    features_json = None
+                    try:
+                        criteria_list = [c for c in r.criteria if c]
+                        if criteria_list:
+                            features_json = json.dumps({
+                                "criteria": criteria_list,
+                                "warnings": r.warnings,
+                                "sl": r.sl,
+                                "tp": r.tp,
+                                "rr": r.rr,
+                                "tp_label": r.tp_label,
+                                "asian_high": r.asian_high,
+                                "asian_low": r.asian_low,
+                            }, ensure_ascii=False)
+                    except Exception:
+                        pass
+                else:
+                    # Plain dict
+                    sym = r.get('symbol', '')
+                    score = r.get('score', 0)
+                    max_score = r.get('max_score', 109)
+                    quality = r.get('quality', 'WAIT')
+                    bias = r.get('bias', 'FLAT')
+                    alignment = r.get('alignment', 0)
+                    price = r.get('price', 0.0)
+                    ml_raw = r.get('ml_win_pct') or r.get('ml_pct')
+                    ml_val = round(ml_raw * 100, 1) if ml_raw is not None else None
+                    kj_h1 = r.get('kj_h1', 0.0)
+                    kj_h4 = r.get('kj_h4', 0.0)
+                    kj_d1 = r.get('kj_d1', 0.0)
+                    tkx_h1 = r.get('tkx_h1', 'N/A')
+                    tkx_h4 = r.get('tkx_h4', 'N/A')
+                    kumo_h1 = r.get('kumo_h1', 'N/A')
+                    kumo_h4 = r.get('kumo_h4', 'N/A')
+                    kumo_d1 = r.get('kumo_d1', 'N/A')
+                    ou_score = r.get('ou_score', 0.0)
+                    hurst_h = r.get('hurst_h', 0.0)
+                    mc_p_sl = r.get('mc_p_sl', 0.0)
+                    mc_p_tp = r.get('mc_p_tp', 0.0)
+                    features_json = None  # Pas de features JSON pour les dicts
+                    ssb_h1_json = json.dumps(r.get('ssb_h1', []) or [], ensure_ascii=False) if r.get('ssb_h1') else None
+                    ssb_h4_json = json.dumps(r.get('ssb_h4', []) or [], ensure_ascii=False) if r.get('ssb_h4') else None
+                    ssb_d1_json = json.dumps(r.get('ssb_d1', []) or [], ensure_ascii=False) if r.get('ssb_d1') else None
+                    ssb_w1_json = json.dumps(r.get('ssb_w1', []) or [], ensure_ascii=False) if r.get('ssb_w1') else None
+                    ssb_mn_json = json.dumps(r.get('ssb_mn', []) or [], ensure_ascii=False) if r.get('ssb_mn') else None
+                    ssb_m30_json = json.dumps(r.get('ssb_m30', []) or [], ensure_ascii=False) if r.get('ssb_m30') else None
+                    ssb_m15_json = json.dumps(r.get('ssb_m15', []) or [], ensure_ascii=False) if r.get('ssb_m15') else None
+                    ssb_m5_json = json.dumps(r.get('ssb_m5', []) or [], ensure_ascii=False) if r.get('ssb_m5') else None
+
+                if not sym:
+                    continue
+
+                self.conn.execute(
+                    """
+                    INSERT INTO diamond_scans (
+                        scan_time, scan_date, scan_hour, symbol,
+                        score, max_score, quality, bias, alignment, price, ml_pct,
+                        kj_h1, kj_h4, kj_d1,
+                        tkx_h1, tkx_h4,
+                        kumo_h1, kumo_h4, kumo_d1,
+                        ou_score, hurst_h, mc_p_sl, mc_p_tp,
+                        features_json,
+                        ssb_h1, ssb_h4, ssb_d1, ssb_w1, ssb_mn,
+                        ssb_m30, ssb_m15, ssb_m5
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                              ?, ?, ?,
+                              ?, ?,
+                              ?, ?, ?,
+                              ?, ?, ?, ?,
+                              ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (now, scan_date, scan_hour, sym,
+                     score, max_score, quality, bias, alignment, price, ml_val,
+                     kj_h1, kj_h4, kj_d1,
+                     tkx_h1, tkx_h4,
+                     kumo_h1, kumo_h4, kumo_d1,
+                     ou_score, hurst_h, mc_p_sl, mc_p_tp,
+                     features_json,
+                     ssb_h1_json, ssb_h4_json, ssb_d1_json, ssb_w1_json, ssb_mn_json,
+                     ssb_m30_json, ssb_m15_json, ssb_m5_json),
+                )
+                saved += 1
+
+            except Exception as e:
+                logger.error("Erreur sauvegarde diamond_scan %s: %s",
+                            getattr(r, 'symbol', r.get('symbol', '?')), e)
+
+        if saved > 0:
+            self.conn.commit()
+            logger.info("DB : %d scan(s) Diamond enregistre(s) (%s, %d symboles).",
+                       saved, scan_date, len(results))
+        return saved
+
+    def export_diamond_scans_csv(
+        self,
+        output_path: str,
+        days: Optional[int] = None,
+    ) -> int:
+        """Exporte les scans Diamond en CSV pour entrainement ML.
+
+        Args:
+            output_path: Chemin du fichier CSV de sortie.
+            days: Exporter seulement les N derniers jours (defaut: tous).
+
+        Returns:
+            Nombre de lignes exportees.
+        """
+        if self.conn is None:
+            return 0
+
+        query = "SELECT * FROM diamond_scans WHERE 1=1"
+        params: list = []
+
+        if days is not None and days > 0:
+            since = time.time() - (days * 86400)
+            query += " AND scan_time > ?"
+            params.append(since)
+
+        query += " ORDER BY scan_time ASC"
+
+        try:
+            cur = self.conn.execute(query, params)
+            rows = cur.fetchall()
+            if not rows:
+                logger.warning("Aucun scan Diamond a exporter.")
+                return 0
+
+            with open(output_path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow([desc[0] for desc in cur.description])
+                for row in rows:
+                    writer.writerow(list(row))
+
+            logger.info(
+                "DB : %d scans Diamond exportes vers %s",
+                len(rows), output_path,
+            )
+            return len(rows)
+        except Exception as e:
+            logger.error("Erreur export CSV diamond_scans : %s", e)
+            return 0
+
+    def prune_diamond_scans(
+        self,
+        keep_days: int = 30,
+        export_before: bool = False,
+        export_path: Optional[str] = None,
+    ) -> int:
+        """Purge les scans Diamond plus vieux que keep_days.
+
+        A lancer SEULEMENT apres avoir entraine le modele ML avec les donnees,
+        sinon les donnees de training sont perdues.
+
+        Args:
+            keep_days: Nombre de jours de donnees a conserver (defaut: 30).
+            export_before: Exporter les donnees SUPPRIMEES en CSV avant purge.
+            export_path: Chemin CSV (defaut: diamond_scans_purge_YYYYMMDD.csv).
+
+        Returns:
+            Nombre de lignes supprimees.
+        """
+        if self.conn is None:
+            return 0
+
+        cutoff = time.time() - (keep_days * 86400)
+
+        # 1. Compter les lignes a purger
+        try:
+            cur = self.conn.execute(
+                "SELECT COUNT(*) FROM diamond_scans WHERE scan_time < ?",
+                (cutoff,),
+            )
+            count = cur.fetchone()[0]
+            if count == 0:
+                logger.info(
+                    "DB : aucun scan a purger (tous < %d jours).", keep_days
+                )
+                return 0
+        except Exception as e:
+            logger.error("Erreur comptage scans a purger : %s", e)
+            return 0
+
+        # 2. Exporter avant si demande
+        if export_before:
+            export_path = (
+                export_path
+                or f"diamond_scans_purge_{time.strftime('%Y%m%d')}.csv"
+            )
+            try:
+                cur = self.conn.execute(
+                    "SELECT * FROM diamond_scans WHERE scan_time < ?",
+                    (cutoff,),
+                )
+                rows = cur.fetchall()
+                with open(export_path, 'w', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    writer.writerow([desc[0] for desc in cur.description])
+                    for row in rows:
+                        writer.writerow(list(row))
+                logger.info(
+                    "DB : %d scans sauvegardes vers %s avant purge.",
+                    len(rows), export_path,
+                )
+            except Exception as e:
+                logger.error("Erreur export avant purge : %s", e)
+                return 0
+
+        # 3. Purge + VACUUM
+        try:
+            self.conn.execute(
+                "DELETE FROM diamond_scans WHERE scan_time < ?", (cutoff,)
+            )
+            self.conn.commit()
+            self.conn.execute("VACUUM")
+            logger.info(
+                "DB : %d scans Diamond purges (> %d jours). "
+                "VACUUM execute pour recuperer l'espace.",
+                count, keep_days,
+            )
+            return count
+        except Exception as e:
+            logger.error("Erreur purge diamond_scans : %s", e)
+            return 0
+
+    def get_diamond_scan_history(
+        self,
+        symbol: Optional[str] = None,
+        scan_date: Optional[str] = None,
+        limit: int = 50,
+        since: Optional[float] = None,
+    ) -> List[sqlite3.Row]:
+        """Recupere l'historique des scans Diamond.
+
+        Args:
+            symbol: Filtrer par symbole (defaut: tous).
+            scan_date: Filtrer par date YYYY-MM-DD (defaut: tous).
+            limit: Nombre max de lignes (defaut: 50).
+            since: Epoch UTC — ne retourner que les scans apres ce timestamp.
+
+        Returns:
+            Liste de sqlite3.Row.
+        """
+        if self.conn is None:
+            return []
+        query = "SELECT * FROM diamond_scans WHERE 1=1"
+        params: list = []
+        if symbol:
+            query += " AND symbol = ?"
+            params.append(symbol)
+        if scan_date:
+            query += " AND scan_date = ?"
+            params.append(scan_date)
+        if since is not None:
+            query += " AND scan_time > ?"
+            params.append(since)
+        query += " ORDER BY scan_time DESC"
+        if limit:
+            query += " LIMIT ?"
+            params.append(limit)
+        try:
+            cur = self.conn.execute(query, params)
+            return cur.fetchall()
+        except sqlite3.Error as e:
+            logger.error("Erreur DB get_diamond_scan_history : %s", e)
+            return []
 
     # ─── Migration ────────────────────────────────────────────────────────────
 
@@ -615,6 +1012,14 @@ class DatabaseManager:
             ("asian_sessions", "asian_low_breached", "INTEGER NOT NULL DEFAULT 0"),
             ("level_sweeps", "high_breached", "INTEGER NOT NULL DEFAULT 0"),
             ("level_sweeps", "low_breached", "INTEGER NOT NULL DEFAULT 0"),
+            ("diamond_scans", "ssb_h1", "TEXT"),
+            ("diamond_scans", "ssb_h4", "TEXT"),
+            ("diamond_scans", "ssb_d1", "TEXT"),
+            ("diamond_scans", "ssb_w1", "TEXT"),
+            ("diamond_scans", "ssb_mn", "TEXT"),
+            ("diamond_scans", "ssb_m30", "TEXT"),
+            ("diamond_scans", "ssb_m15", "TEXT"),
+            ("diamond_scans", "ssb_m5", "TEXT"),
         ]
         for table, column, col_type in migrations:
             try:

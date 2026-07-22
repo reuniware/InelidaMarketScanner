@@ -1,7 +1,7 @@
 # InelidaMarketScan — 基于机器学习的金融市场科学分析
 
 > **量化金融研究：ICT、一目均衡表、XGBoost与随机计算**
-> 作者 **Didier Vally / Reuniware Systems**
+> 作者 **Reuniware Systems**
 > 版本 1.0.6 — 2026-07-19
 > 📦 PyPI: [https://pypi.org/project/inelida-marketscan](https://pypi.org/project/inelida-marketscan) | GitHub: [https://github.com/reuniware/InelidaMarketScanner](https://github.com/reuniware/InelidaMarketScanner)
 
@@ -224,5 +224,5 @@ InelidaMarketScan项目证明，基于一目均衡表特征训练的ML管道可�
 
 ---
 
-> **Didier Vally / Reuniware Systems** — InelidaMarketScan v1.0.6
+> **Reuniware Systems** — InelidaMarketScan v1.0.6
 > 2026-07-19

@@ -1,7 +1,7 @@
 # InelidaMarketScan — Análisis Científico de los Mercados Financieros con Machine Learning
 
 > **Investigación en Finanzas Cuantitativas: ICT, Ichimoku, XGBoost y Cálculo Estocástico**
-> Por **Didier Vally / Reuniware Systems**
+> Por **Reuniware Systems**
 > Versión 1.0.6 — 2026-07-19
 > 📦 PyPI: [https://pypi.org/project/inelida-marketscan](https://pypi.org/project/inelida-marketscan) | GitHub: [https://github.com/reuniware/InelidaMarketScanner](https://github.com/reuniware/InelidaMarketScanner)
 
@@ -224,5 +224,5 @@ El proyecto InelidaMarketScan demuestra que un pipeline ML entrenado con feature
 
 ---
 
-> **Didier Vally / Reuniware Systems** — InelidaMarketScan v1.0.6
+> **Reuniware Systems** — InelidaMarketScan v1.0.6
 > 2026-07-19

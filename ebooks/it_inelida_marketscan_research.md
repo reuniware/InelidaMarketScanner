@@ -1,7 +1,7 @@
 # InelidaMarketScan — Analisi Scientifica dei Mercati Finanziari con Machine Learning
 
 > **Ricerca in Finanza Quantitativa: ICT, Ichimoku, XGBoost e Calcolo Stocastico**
-> Di **Didier Vally / Reuniware Systems**
+> Di **Reuniware Systems**
 > Versione 1.0.6 — 2026-07-19
 > 📦 PyPI: [https://pypi.org/project/inelida-marketscan](https://pypi.org/project/inelida-marketscan) | GitHub: [https://github.com/reuniware/InelidaMarketScanner](https://github.com/reuniware/InelidaMarketScanner)
 
@@ -224,5 +224,5 @@ Unisciti al server Discord **Trading Pro** per connetterti con la community: htt
 
 ---
 
-> **Didier Vally / Reuniware Systems** — InelidaMarketScan v1.0.6
+> **Reuniware Systems** — InelidaMarketScan v1.0.6
 > 2026-07-19

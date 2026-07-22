@@ -27,6 +27,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Tuple
 
+from src.time_utils import now_epoch, today_str, is_market_open
+
 import MetaTrader5 as mt5
 
 from src.config import tz_offset as _tz_off, tz_label as _tz_lbl, DEFAULT_TZ_MODE
@@ -146,6 +148,9 @@ class DiamondResult:
     ssb_d1: List[Tuple[float, float]] = field(default_factory=list)
     ssb_w1: List[Tuple[float, float]] = field(default_factory=list)
     ssb_mn: List[Tuple[float, float]] = field(default_factory=list)
+    ssb_m30: List[Tuple[float, float]] = field(default_factory=list)   # SSB M30
+    ssb_m15: List[Tuple[float, float]] = field(default_factory=list)   # SSB M15
+    ssb_m5: List[Tuple[float, float]] = field(default_factory=list)    # SSB M5
 
     # Future Kumo projection (TOUS les TFs — 26 barres forward)
     cloud_fut_h1_top: float = 0.0
@@ -596,7 +601,7 @@ class DiamondScanner:
         Returns:
             (AH, AL) — les deux a 0.0 si pas assez de barres.
         """
-        session_date = _time.strftime("%Y-%m-%d", _time.gmtime())
+        session_date = today_str()
         if h1_data is None:
             h1_data = self._get_rates(sym, mt5.TIMEFRAME_H1, 32)
         if h1_data is None:
@@ -664,7 +669,7 @@ class DiamondScanner:
         """
         if not h1_data:
             return (0.0, 0.0)
-        session_date = _time.strftime("%Y-%m-%d", _time.gmtime())
+        session_date = today_str()
         lh = None
         ll = None
         for bar in h1_data:
@@ -1401,7 +1406,7 @@ class DiamondScanner:
 
         # ── Étape 1 : Compter les barres H1 depuis le dernier sweep ──
         bars_since_sweep = 0
-        now_ts = _time.time()
+        now_ts = now_epoch()
         for bar in h1_data:
             bar_ts = bar[0]
             dt = datetime.fromtimestamp(bar_ts, UTC)
@@ -1742,23 +1747,24 @@ class DiamondScanner:
         d1_h, d1_l = [x[1] for x in d1], [x[2] for x in d1]
         h1_t = [x[0] for x in h1]
         h4_t = [x[0] for x in h4]
-        # ── Stale data detection (marche ferme ?) ──
-        _now_ts = _time.time()
+        # ── Market status detection (marche ferme ?) ──
+        _now_ts = now_epoch()
         _last_h1_ts = h1_t[-1] if h1_t else 0
         _last_bar_age_sec = _now_ts - _last_h1_ts if _last_h1_ts > 0 else 0
-        _stale_market = _last_bar_age_sec > 3600  # > 1h = marche probablement ferme
-        # Correction : le marche peut avoir rouvert sans H1 complete.
-        # On verifie les M5 : si une bougie M5 recente existe, le marche est ouvert.
-        if _stale_market:
+        _stale_data = _last_bar_age_sec > 3600  # > 1h = donnees probablement obsoletes
+        _market_closed = not is_market_open()               # vrai si weekend/fermeture
+        _stale_market = _market_closed or _stale_data
+        # Si donnees stales mais marche ouvert : verifier M5 (broker peut avoir repris)
+        if _stale_data and not _market_closed:
             _m5_check = mt5.copy_rates_from_pos(sym, mt5.TIMEFRAME_M5, 0, 1)
             if _m5_check is not None and len(_m5_check) > 0:
                 _m5_age = _now_ts - int(_m5_check[0][0])
-                if _m5_age < 600:  # M5 < 10 min = marche ouvert
+                if _m5_age < 600:  # M5 < 10 min = broker OK
                     _stale_market = False
         d1_t = [x[0] for x in d1]
 
         # ═══ Asian Range + Sweep detection (H1 deja charge) ═══════════════
-        session_date = _time.strftime("%Y-%m-%d", _time.gmtime())
+        session_date = today_str()
         asian_high, asian_low = self._detect_asian_range(sym, h1_data=h1)
         ah_swept, al_swept, ah_at, al_at, ah_sess, al_sess = self._detect_asian_sweeps(
             h1, asian_high, asian_low, session_date
@@ -1804,6 +1810,8 @@ class DiamondScanner:
         ssb_h1 = self._detect_ssb_near(h1_h, h1_l, price, sym)
         ssb_h4 = self._detect_ssb_near(h4_h, h4_l, price, sym)
         ssb_d1 = self._detect_ssb_near(d1_h, d1_l, price, sym)
+
+
 
 
 
@@ -2040,6 +2048,10 @@ class DiamondScanner:
         m5_raw = self._get_rates(sym, mt5.TIMEFRAME_M5, 120)
         m15_raw = self._get_rates(sym, mt5.TIMEFRAME_M15, 80)
         m30_raw = self._get_rates(sym, mt5.TIMEFRAME_M30, 60)
+        # Initialize SSB lower TFs to empty (populated inside the if block below)
+        ssb_m30: list = []
+        ssb_m15: list = []
+        ssb_m5: list = []
         if m5_raw and m15_raw and m30_raw:
             m5_h = [x[1] for x in m5_raw]; m5_l = [x[2] for x in m5_raw]; m5_c = [x[3] for x in m5_raw]; m5_t = [x[0] for x in m5_raw]
             m15_h = [x[1] for x in m15_raw]; m15_l = [x[2] for x in m15_raw]; m15_c = [x[3] for x in m15_raw]; m15_t = [x[0] for x in m15_raw]
@@ -2067,6 +2079,11 @@ class DiamondScanner:
             mss_m5 = self._detect_market_structure(m5_h, m5_l, m5_c, price, sym, "M5", 120)
             mss_m15 = self._detect_market_structure(m15_h, m15_l, m15_c, price, sym, "M15", 80)
             mss_m30 = self._detect_market_structure(m30_h, m30_l, m30_c, price, sym, "M30", 60)
+
+            # SSB M30/M15/M5 — lower timeframe Kumo boundaries
+            ssb_m30 = self._detect_ssb_near(m30_h, m30_l, price, sym, max_pips=5.0) if m30_h else []
+            ssb_m15 = self._detect_ssb_near(m15_h, m15_l, price, sym, max_pips=5.0) if m15_h else []
+            ssb_m5 = self._detect_ssb_near(m5_h, m5_l, price, sym, max_pips=3.0) if m5_h else []
             mss_m5_regime, mss_m5_bos, mss_m5_shift = mss_m5
             mss_m15_regime, mss_m15_bos, mss_m15_shift = mss_m15
             mss_m30_regime, mss_m30_bos, mss_m30_shift = mss_m30
@@ -2745,7 +2762,7 @@ class DiamondScanner:
             flat_h1=flat1, flat_h4=flat4,
             tenkan_flat_h1=tenkan_flat_h1, tenkan_flat_h4=tenkan_flat_h4,
             tenkan_flats=tenkan_flats, tenkan_flat_w1=tenkan_flat_w1, tenkan_flat_mn=tenkan_flat_mn,
-            ssb_h1=ssb_h1, ssb_h4=ssb_h4, ssb_proximity=ssb_h4,
+            ssb_h1=ssb_h1, ssb_h4=ssb_h4, ssb_proximity=ssb_h4, ssb_m30=ssb_m30, ssb_m15=ssb_m15, ssb_m5=ssb_m5,
             ssb_d1=ssb_d1, ssb_w1=ssb_w1, ssb_mn=ssb_mn,
             cloud_fut_h1_top=cf_h1_top, cloud_fut_h1_bot=cf_h1_bot, cloud_fut_h1_color=cf_h1_color, cloud_fut_h1_flat=cf_h1_flat,
             cloud_fut_h4_top=cf_h4_top, cloud_fut_h4_bot=cf_h4_bot, cloud_fut_h4_color=cf_h4_color, cloud_fut_h4_flat=cf_h4_flat,
@@ -2956,14 +2973,20 @@ class DiamondScanner:
                     "setups BULL non fiables, privilegier BEAR ou attendre (Lecon #8, 15/15 erreurs)"
                 )
 
-        # ── Stale market detection ──
+        # ── Stale market warning ──
         if _stale_market:
             _age_h = _last_bar_age_sec / 3600.0
             _last_dt = datetime.fromtimestamp(_last_h1_ts, UTC).strftime("%d/%m %H:%M UTC")
-            r.warnings.append(
-                f"MARCHE FERME: derniere bougie {_last_dt} "
-                f"({_age_h:.0f}h sans donnees) — prix et indicateurs potentiellement obsoletes"
-            )
+            if _market_closed:
+                r.warnings.append(
+                    f"MARCHE FERME (weekend/fermeture) — derniere bougie {_last_dt} "
+                    f"({_age_h:.0f}h sans donnees)"
+                )
+            else:
+                r.warnings.append(
+                    f"DONNEES STALES: derniere bougie {_last_dt} "
+                    f"({_age_h:.0f}h sans donnees) — broker deconnecte ?"
+                )
 
         # ── ML% Filter ──
         # Backtest v4-v18 : ML% >= 50% → PF 2.27 vs 1.02 sans filtre.
@@ -2981,6 +3004,17 @@ class DiamondScanner:
                     f"ML% FILTRE: {r.ml_win_pct*100:.0f}% < 50% — GOOD → WAIT"
                 )
 
+        # ── Garde-fou #5 : divergence DXY/Indices ──
+        # Si DXY et indices US montent ensemble, les biais BEAR sur
+        # indices sont non fiables (le flux macro domine la technique).
+        dxy_div = self._check_dxy_indices_divergence(r.symbol)
+        if dxy_div == 'DXY_INDICES_UP' and r.bias == 'BEAR':
+            r.quality = 'WAIT'
+            r.warnings.append(
+                'DXY/INDICES DIVERGENCE: DXY + indices US montent '
+                'simultanement -> biais BEAR desactive (flux macro domine)'
+            )
+
         return r
 
     def _predict_ml(self, r: DiamondResult) -> None:
@@ -2991,6 +3025,55 @@ class DiamondScanner:
             r.ml_win_pct = self._ml_predictor.predict(r)
         except Exception:
             pass  # silencieux — le ML est optionnel
+
+    # ── Garde-fou #5 : divergence DXY/Indices US ──
+
+    def _check_dxy_indices_divergence(self, sym: str) -> Optional[str]:
+        """Detecte si DXY et indices US montent simultanement (anormal).
+
+        Contexte macro : DXY monte = USD fort -> indices US baissent (car les
+        multinationales US gagnent moins a l'etranger). Si les DEUX montent
+        ensemble, un flux macro domine la technique et les biais BEAR sur
+        les indices sont non fiables.
+
+        Utilise 3 barres H4 (~12h de tendance) pour eviter le bruit.
+
+        Returns:
+            'DXY_INDICES_UP' si divergence haussiere detectee, None sinon.
+        """
+        INDEX_SYMBOLS = {'US30.cash', 'US500.cash', 'US100.cash'}
+        if sym not in INDEX_SYMBOLS:
+            return None
+
+        try:
+            # Essayer plusieurs variantes du symbole DXY (comme get_dxy_price)
+            dxy_rates = None
+            for dxy_sym in ['DXY.cash', 'DXY', 'USDX']:
+                dxy_rates = self._get_rates(dxy_sym, mt5.TIMEFRAME_H4, 3)
+                if dxy_rates is not None and len(dxy_rates) >= 3:
+                    break
+            if dxy_rates is None or len(dxy_rates) < 3:
+                return None
+            dxy_var = (dxy_rates[-1][3] - dxy_rates[0][3]) / dxy_rates[0][3] * 100
+
+            # Variation de l'indice sur 3 H4
+            idx_rates = self._get_rates(sym, mt5.TIMEFRAME_H4, 3)
+            if idx_rates is None or len(idx_rates) < 3:
+                return None
+            idx_var = (idx_rates[-1][3] - idx_rates[0][3]) / idx_rates[0][3] * 100
+
+            # Seuils : DXY > +0.10% ET indice > +0.15% sur 3 H4
+            if dxy_var > 0.10 and idx_var > 0.15:
+                logger.info(
+                    "DXY/Indices divergence: %s DXY=%+.2f%% idx=%+.2f%%",
+                    sym, dxy_var, idx_var,
+                )
+                return 'DXY_INDICES_UP'
+
+            return None
+        except Exception as e:
+            logger.debug("DXY/indices divergence check failed for %s: %s", sym, e)
+            return None
 
 
 # ── DXY helpers ──

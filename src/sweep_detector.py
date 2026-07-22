@@ -13,6 +13,8 @@ d extension Fibonacci ICT (+1.618, +2.0, +2.618, +3.0, +3.618, +4.0 et negatifs)
 
 import logging
 import time
+
+from src.time_utils import now_epoch, now_gmtime, today_str
 from dataclasses import dataclass, asdict
 from typing import Dict, List, Optional, Tuple
 
@@ -202,7 +204,7 @@ def detect_sweeps_for_symbol(
 
     current_tick = mt5.symbol_info_tick(symbol)
     current_price = float(current_tick.bid) if current_tick else bars[-1]["close"]
-    current_time = float(current_tick.time) if current_tick else time.time()
+    current_time = float(current_tick.time) if current_tick else now_epoch()
 
     recent_window = bars[-sens:]
     events: List[SweepEvent] = []
@@ -758,7 +760,7 @@ def detect_asian_range_for_symbol(
         return None
 
     if session_date is None:
-        session_date = time.strftime("%Y-%m-%d", time.gmtime())
+        session_date = today_str()
 
     # Reutiliser le connecteur fourni ou en creer un nouveau
     mt5c = _mt5c if _mt5c is not None else MT5Connector()
@@ -900,7 +902,7 @@ def detect_asian_range_for_symbol(
             spread_pct = (tick.ask - tick.bid) / tick.bid * 100.0
     else:
         current_price = bars[-1]["close"] if bars else 0.0
-        current_time = time.time()
+        current_time = now_epoch()
 
     distance_high_pct = (
         abs((current_price - asian_high) / asian_high * 100.0) if asian_high else 0.0
@@ -1088,7 +1090,7 @@ def detect_asian_range_for_symbol(
     is_elite = False
     elite_reason = ""
     if ELITE.enabled and trade_action != "-":
-        now = time.gmtime()
+        now = now_gmtime()
         now_hour = now.tm_hour
         now_min = now.tm_min
         in_window = (
@@ -1110,7 +1112,7 @@ def detect_asian_range_for_symbol(
     is_elite_v1 = False
     elite_v1_reason = ""
     if ELITE_V1.enabled and trade_action != "-":
-        now = time.gmtime()
+        now = now_gmtime()
         now_hour = now.tm_hour
         now_min = now.tm_min
         in_window_v1 = (

@@ -1,0 +1,4 @@
+  File "<string>", line 19
+    print(f'{Heure:>8} {S:>3} {ML%:>4} {Prix:>9} {Biais:>5} {TKx
+                                 ^
+SyntaxError: f-string: expecting '=', or '!', or ':', or '}'

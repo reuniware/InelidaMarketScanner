@@ -22,6 +22,8 @@ Usage:
 import logging
 import time as _time
 from datetime import datetime, timezone
+
+from src.time_utils import now_epoch
 from typing import Tuple
 
 UTC = timezone.utc
@@ -66,7 +68,19 @@ MAJOR_EVENTS = {
         "GDP: USD Housing Starts + Building Permits",
         "GDP: USD Industrial Production m/m",
     ],
-    "2026-07-20": [],
+    "2026-07-20": [
+        "NZD: Trade Balance",
+        "CALENDAR: JPY Bank Holiday (all day)",
+        "GBP: Rightmove HPI m/m",
+        "CNY: 1-y Loan Prime Rate",
+        "CNY: 5-y Loan Prime Rate",
+        "EUR: German PPI m/m",
+        "CPI: CAD CPI m/m",
+        "CPI: CAD Median CPI y/y",
+        "CPI: CAD Trimmed CPI y/y",
+        "CPI: CAD Common CPI y/y",
+        "CPI: CAD Core CPI m/m",
+    ],
     "2026-07-21": [],
     "2026-07-22": [],
     "2026-07-23": [],
@@ -155,7 +169,7 @@ def get_news_risk(date_str: str = None) -> Tuple[int, str, bool]:
 
     # ── Cache hybride (évite rescraper toutes les 5 minutes) ──
     global _HYBRID_CACHE
-    now = _time.time()
+    now = now_epoch()
     if _HYBRID_CACHE["date"] == date_str and (now - _HYBRID_CACHE["ts"]) < _HYBRID_TTL:
         count = _HYBRID_CACHE["count"]
         events = _HYBRID_CACHE["events"]

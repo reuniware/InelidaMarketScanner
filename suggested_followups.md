@@ -182,4 +182,4 @@ pytest tests/test_elite_filters.py -v
 
 ---
 
-> **Didier Vally / Reuniware Systems** — InelidaMarketScan
+> **Reuniware Systems** — InelidaMarketScan
