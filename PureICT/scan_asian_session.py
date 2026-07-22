@@ -443,11 +443,11 @@ def fmt_price(p: float) -> str:
 def _fmt_fvg_compact(fvg_dict: dict) -> str:
     """Formate un FVG en affichage compact pour le tableau live.
 
-    Ex: "B-M5" pour bearish M5, "B-M1" pour bullish M1.
+    Ex: "bear-M5" pour bearish M5, "bull-M1" pour bullish M1.
     """
     direction = fvg_dict.get("direction", "?")
     tf = fvg_dict.get("timeframe", "?")
-    prefix = "B" if direction == "bearish" else "b"  # B=bear, b=bull
+    prefix = "bear" if direction == "bearish" else "bull"
     return f"{prefix}-{tf}"
 
 
