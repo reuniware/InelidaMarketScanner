@@ -103,6 +103,20 @@ LOOKBACK_BARS = {
     "H1":  100,    # ~4 jours en H1
 }
 
+# Timeframes pour la detection FVG
+FVG_TIMEFRAMES = {
+    "M1":  mt5.TIMEFRAME_M1,
+    "M3":  mt5.TIMEFRAME_M3,
+    "M5":  mt5.TIMEFRAME_M5,
+    "M15": mt5.TIMEFRAME_M15,
+}
+
+# Nombre de barres a charger pour la detection FVG (couvre ~6h post-session)
+FVG_LOOKBACK = 360
+
+# Taille minimum du FVG en %%
+DEFAULT_FVG_MIN_PCT = 0.02
+
 
 # ===============================================================================
 # DATACLASSES
@@ -137,6 +151,9 @@ class AsianLevels:
     ah_swept_at: Optional[str]      # Heure UTC du sweep AH (HH:MM:SS)
     al_swept_at: Optional[str]      # Heure UTC du sweep AL
     current_price: float            # Prix actuel bid
+    # FVG detection (AH/AL reclaim)
+    fvg_ah: Optional[dict] = None   # FVG baissier pres AH (price a depasse AH puis est revenu dessous)
+    fvg_al: Optional[dict] = None   # FVG haussier pres AL (price a depasse AL puis est revenu dessus)
     # Extensions Fibonacci (calculees depuis le midpoint)
     fib_up_1618: float = 0.0        # Mid + dist*1.618
     fib_up_2618: float = 0.0        # Mid + dist*2.618
@@ -161,6 +178,27 @@ class PreviousAsianLevels:
     range_pips: float
     range_pct: float
     bars_in_session: int
+
+
+@dataclass
+class FvgInfo:
+    """Fair Value Gap detecte pres de l'AH ou de l'AL (reclaim ICT).
+
+    Quand le prix DEPASSE l'AH (peu importe la duree) puis REVIENT
+    en dessous, un FVG baissier peut se former. Quand le prix DEPASSE
+    l'AL puis REVIENT au-dessus, un FVG haussier peut se former.
+
+    !!! Il n'est pas necessaire que ce soit un sweep rapide !
+    Le prix peut etre reste des heures au-dessus/sous.
+    """
+    timeframe: str          # M1/M3/M5/M15
+    direction: str          # "bearish" (pres AH) ou "bullish" (pres AL)
+    zone_top: float         # Haut de la zone FVG
+    zone_bottom: float      # Bas de la zone FVG
+    gap_pct: float          # Taille du gap en %%
+    gap_size: float         # Taille du gap en pips/points
+    level_type: str         # "AH" ou "AL"
+    level_price: float      # Valeur du niveau concerne
 
 
 # ===============================================================================
@@ -328,6 +366,17 @@ def fmt_price(p: float) -> str:
     return f"{p:.5f}"
 
 
+def _fmt_fvg_compact(fvg_dict: dict) -> str:
+    """Formate un FVG en affichage compact pour le tableau live.
+
+    Ex: "B-M5" pour bearish M5, "B-M1" pour bullish M1.
+    """
+    direction = fvg_dict.get("direction", "?")
+    tf = fvg_dict.get("timeframe", "?")
+    prefix = "B" if direction == "bearish" else "b"  # B=bear, b=bull
+    return f"{prefix}-{tf}"
+
+
 # ===============================================================================
 # HELPERS MT5 / BOUGIES
 # ===============================================================================
@@ -357,6 +406,180 @@ def sweep_low(bar: dict, level: float) -> bool:
 
 
 # ===============================================================================
+# FVG DETECTION (AH/AL RECLAIM)
+# ===============================================================================
+
+def find_fvg_at(bars: List[dict], idx: int, direction: str, fvg_min_pct: float) -> Optional[dict]:
+    """Verifie si un FVG existe a l'index idx (3e bougie du pattern).
+
+    Definition ICT :
+      - Bullish FVG : high[i-2] < low[i]  (gap up, C1 high < C3 low)
+      - Bearish FVG : low[i-2] > high[i]  (gap down, C1 low > C3 high)
+
+    Args:
+        bars: Liste de dicts avec 'high', 'low', 'time'.
+        idx: Index de la 3e bougie (C3 du pattern 3-candles).
+        direction: "bull" pour bullish, "bear" pour bearish.
+        fvg_min_pct: Taille minimum du gap en %%.
+
+    Returns:
+        Dict FVG ou None.
+    """
+    if idx < 2:
+        return None
+    c1 = bars[idx - 2]
+    c3 = bars[idx]
+
+    if direction == "bull":
+        if c1["high"] >= c3["low"]:
+            return None  # pas de gap
+        gap_top, gap_bottom = c3["low"], c1["high"]
+    else:
+        if c1["low"] <= c3["high"]:
+            return None  # pas de gap
+        gap_top, gap_bottom = c1["low"], c3["high"]
+
+    gap_size = gap_top - gap_bottom
+    if gap_bottom <= 0 or gap_size <= 0:
+        return None
+    gap_pct = gap_size / gap_bottom * 100.0
+    if gap_pct < fvg_min_pct:
+        return None
+
+    return {
+        "type": "bullish" if direction == "bull" else "bearish",
+        "zone_top": gap_top,
+        "zone_bottom": gap_bottom,
+        "gap_size": gap_size,
+        "gap_pct": gap_pct,
+        "c1_time": c1["time"],
+        "c3_time": c3["time"],
+    }
+
+
+def _level_distance(fvg_zone_top: float, fvg_zone_bottom: float, level: float) -> float:
+    """Distance en %% entre la zone FVG et un niveau (AH/AL).
+
+    Retourne la distance minimum entre le niveau et la zone.
+    Si le niveau est dans la zone, distance = 0.
+    """
+    if fvg_zone_bottom <= level <= fvg_zone_top:
+        return 0.0
+    dist_to_top = abs(level - fvg_zone_top)
+    dist_to_bot = abs(level - fvg_zone_bottom)
+    return min(dist_to_top, dist_to_bot) / level * 100.0 if level > 0 else 999.0
+
+
+def scan_reclaim_fvgs(
+    symbol: str,
+    asian_high: float,
+    asian_low: float,
+    end_epoch: float,
+    fvg_min_pct: float = DEFAULT_FVG_MIN_PCT,
+) -> Tuple[Optional[FvgInfo], Optional[FvgInfo]]:
+    """Detecte les FVGs formes quand le prix repasse SOUS l'AH ou AU-DESSUS de l'AL.
+
+    !!! IMPORTANT : il n'est PAS necessaire que le depassement de l'AH/AL
+    soit un "sweep" rapide (meche + close). Le prix peut etre reste des
+    heures au-dessus de l'AH ou sous l'AL. La seule condition est :
+      - Le prix a DEPASSE l'AH a un moment donne (une ou plusieurs barres)
+        ET le close actuel est REVENU en dessous de l'AH
+        -> on cherche un FVG baissier pres de l'AH
+      - Le prix a DEPASSE l'AL a un moment donne
+        ET le close actuel est REVENU au-dessus de l'AL
+        -> on cherche un FVG haussier pres de l'AL
+
+    Les timeframes scannees : M15 -> M5 -> M3 -> M1 (du plus grand au plus petit).
+    On garde le premier FVG trouve sur le plus grand timeframe.
+
+    Args:
+        symbol: Symbole MT5.
+        asian_high: Asian High de la session.
+        asian_low: Asian Low de la session.
+        end_epoch: Fin de la session asiatique (epoch MT5).
+        fvg_min_pct: Taille minimum du FVG en %%.
+
+    Returns:
+        (fvg_ah, fvg_al) - FVGInfo ou None pour chaque niveau.
+    """
+    fvg_ah_result: Optional[FvgInfo] = None
+    fvg_al_result: Optional[FvgInfo] = None
+
+    # Parcourir les timeframes du plus grand au plus petit
+    tf_names = ["M15", "M5", "M3", "M1"]
+    for tf_name in tf_names:
+        tf = FVG_TIMEFRAMES.get(tf_name)
+        if tf is None:
+            continue
+
+        rates_raw = mt5.copy_rates_from_pos(symbol, tf, 0, FVG_LOOKBACK)
+        if rates_raw is None or len(rates_raw) == 0:
+            continue
+
+        bars = bars_to_dicts(rates_raw)
+        bars.sort(key=lambda b: b["time"])
+
+        # Barres post-session
+        post_bars = [b for b in bars if b["time"] >= end_epoch]
+        if len(post_bars) < 3:
+            continue
+
+        # Verifier si price a depasse AH ou AL (peu importe depuis combien de temps)
+        # any() = True si UNE SEULE barre a depasse le niveau, meme 200 barres plus tot
+        price_above_ah = any(b["high"] > asian_high for b in post_bars)
+        price_below_al = any(b["low"] < asian_low for b in post_bars)
+
+        # Verifier si le close actuel est revenu de l'autre cote du niveau
+        # (peu importe depuis combien de temps le prix etait au-dessus/sous)
+        last_close = post_bars[-1]["close"]
+        back_below_ah = price_above_ah and last_close < asian_high
+        back_above_al = price_below_al and last_close > asian_low
+
+        if not back_below_ah and not back_above_al:
+            continue
+
+        # Scanner les barres pour trouver des FVGs
+        for i in range(len(post_bars) - 1, 1, -1):  # de la fin vers le debut
+            if fvg_ah_result is None and back_below_ah:
+                fvg = find_fvg_at(post_bars, i, "bear", fvg_min_pct)
+                if fvg is not None:
+                    # Verifier que le FVG est pres de l'AH
+                    dist = _level_distance(fvg["zone_top"], fvg["zone_bottom"], asian_high)
+                    if dist < 0.5:  # dans les 0.5% de l'AH
+                        fvg_ah_result = FvgInfo(
+                            timeframe=tf_name,
+                            direction="bearish",
+                            zone_top=fvg["zone_top"],
+                            zone_bottom=fvg["zone_bottom"],
+                            gap_pct=fvg["gap_pct"],
+                            gap_size=fvg["gap_size"],
+                            level_type="AH",
+                            level_price=asian_high,
+                        )
+
+            if fvg_al_result is None and back_above_al:
+                fvg = find_fvg_at(post_bars, i, "bull", fvg_min_pct)
+                if fvg is not None:
+                    dist = _level_distance(fvg["zone_top"], fvg["zone_bottom"], asian_low)
+                    if dist < 0.5:
+                        fvg_al_result = FvgInfo(
+                            timeframe=tf_name,
+                            direction="bullish",
+                            zone_top=fvg["zone_top"],
+                            zone_bottom=fvg["zone_bottom"],
+                            gap_pct=fvg["gap_pct"],
+                            gap_size=fvg["gap_size"],
+                            level_type="AL",
+                            level_price=asian_low,
+                        )
+
+            if fvg_ah_result is not None and fvg_al_result is not None:
+                break
+
+    return fvg_ah_result, fvg_al_result
+
+
+# ===============================================================================
 # SCAN D'UN SYMBOLE
 # ===============================================================================
 
@@ -368,7 +591,9 @@ def scan_symbol(
     timeframe: str = DEFAULT_TF,
     tz_mode: str = DEFAULT_TIMEZONE,
     _mt5c: Optional[MT5Connector] = None,
-) -> Optional[AsianLevels]:
+    fvg_mode: bool = False,
+    fvg_min_pct: float = DEFAULT_FVG_MIN_PCT,
+) -> Tuple[Optional[AsianLevels], Optional[str]]:
     """Calcule les niveaux asiatiques pour un symbole.
 
     Args:
@@ -379,17 +604,26 @@ def scan_symbol(
         timeframe: M1/M5/M15/M30/H1.
         tz_mode: PARIS, BROKER ou UTC.
         _mt5c: Connecteur MT5 partage.
+        fvg_mode: Activer la detection des FVGs pres AH/AL.
+        fvg_min_pct: Taille minimum du FVG en %%.
 
     Returns:
-        AsianLevels ou None si donnees insuffisantes.
+        (AsianLevels, None) si succes, (None, raison_erreur) si echec.
+        Les raisons possibles :
+          "MT5 non connecte"
+          "select_symbol a echoue"
+          "Pas de donnees"
+          "Aucune barre dans la fenetre session"
     """
     if session_date_paris is None:
         session_date_paris = paris_date_str()
 
     mt5c = _mt5c if _mt5c is not None else MT5Connector()
     if not mt5c.ensure_connected():
-        return None
-    mt5c.select_symbol(symbol)
+        return None, "MT5 non connecte"
+    if not mt5c.select_symbol(symbol):
+        return None, "select_symbol a echoue"
+
 
     # -- Epochs compatibles MT5 (heure broker traitee comme UTC) --
     start_epoch, end_epoch = _session_epochs(session_date_paris, start_hour, end_hour,
@@ -406,13 +640,13 @@ def scan_symbol(
     if tf is None:
         logger.error("Timeframe inconnu : %s (disponibles: %s)",
                      timeframe, ', '.join(TIMEFRAMES.keys()))
-        return None
+        return None, "Timeframe invalide"
     lookback = LOOKBACK_BARS.get(timeframe.upper(), 400)
 
     # -- Bougies --
     rates_raw = mt5.copy_rates_from_pos(symbol, tf, 0, lookback)
     if rates_raw is None or len(rates_raw) == 0:
-        return None
+        return None, "Pas de donnees"
 
     bars = bars_to_dicts(rates_raw)
     bars.sort(key=lambda b: b["time"])
@@ -420,7 +654,7 @@ def scan_symbol(
     # -- Barres de la session asiatique --
     session_bars = [b for b in bars if start_epoch <= b["time"] < end_epoch]
     if not session_bars:
-        return None
+        return None, "Aucune barre dans la fenetre session"
 
     # Tracker le AH/AL avec leurs timestamps exacts
     asian_high = -float('inf')
@@ -497,6 +731,17 @@ def scan_symbol(
     tick = mt5.symbol_info_tick(symbol)
     current_price = float(tick.bid) if tick else (bars[-1]["close"] if bars else 0.0)
 
+    # -- Detection FVG pres AH/AL (si active) --
+    fvg_ah_result: Optional[FvgInfo] = None
+    fvg_al_result: Optional[FvgInfo] = None
+    if fvg_mode:
+        try:
+            fvg_ah_result, fvg_al_result = scan_reclaim_fvgs(
+                symbol, asian_high, asian_low, end_epoch, fvg_min_pct,
+            )
+        except Exception as e:
+            logger.debug("FVG scan failed for %s: %s", symbol, e)
+
     label = "LIVE" if is_live else "OK"
 
     return AsianLevels(
@@ -519,9 +764,11 @@ def scan_symbol(
         ah_swept_at=ah_swept_at,
         al_swept_at=al_swept_at,
         current_price=current_price,
+        fvg_ah=asdict(fvg_ah_result) if fvg_ah_result else None,
+        fvg_al=asdict(fvg_al_result) if fvg_al_result else None,
         **fib_up_vals,
         **fib_dn_vals,
-    )
+    ), None
 
 
 def scan_previous_session(
@@ -557,7 +804,7 @@ def scan_previous_session(
     dt = datetime.strptime(session_date_paris, "%Y-%m-%d") - timedelta(days=1)
     prev_date = dt.strftime("%Y-%m-%d")
 
-    r = scan_symbol(symbol, prev_date, start_hour, end_hour, timeframe, tz_mode, _mt5c=_mt5c)
+    r, err = scan_symbol(symbol, prev_date, start_hour, end_hour, timeframe, tz_mode, _mt5c=_mt5c)
     if r is None:
         return None
 
@@ -574,6 +821,62 @@ def scan_previous_session(
 
 
 # ===============================================================================
+# FORCE SELECT (pre-activation massive des symboles)
+# ===============================================================================
+
+def _force_select_all(symbols: List[str], batch_size: int = 20) -> Tuple[int, int]:
+    """Tente d'activer tous les symboles dans Market Watch AVANT le scan.
+
+    Certains brokers (FTMO, etc.) ne laissent pas `copy_rates_from_pos`
+    acceder aux donnees des symboles hors Market Watch. Cette fonction
+    pre-active chaque symbole un par un pour contourner cette limitation.
+
+    Args:
+        symbols: Liste des symboles a activer.
+        batch_size: Nombre d'activations entre chaque progression + pause.
+
+    Returns:
+        (ok_count, fail_count) - nombre de symboles actives vs echoues.
+    """
+    if not symbols:
+        print(f"  Pre-activation : aucun symbole a traiter.")
+        return 0, 0
+
+    total = len(symbols)
+    ok_count = 0
+    fail_count = 0
+
+    print(f"  Pre-activation de {total} symboles dans Market Watch...")
+
+    for i, sym in enumerate(symbols):
+        try:
+            info = mt5.symbol_info(sym)
+            if info is None:
+                fail_count += 1
+                continue
+            if info.visible:
+                ok_count += 1  # deja visible
+                continue
+            # Tenter d'activer
+            if mt5.symbol_select(sym, True):
+                ok_count += 1
+            else:
+                fail_count += 1
+        except Exception:
+            fail_count += 1
+
+        # Progression toutes les batch_size activations
+        if (i + 1) % batch_size == 0 or i == total - 1:
+            print(f"    Progression : {i+1}/{total}  |  OK: {ok_count}  FAIL: {fail_count}")
+            # Pause pour ne pas saturer MT5 avec trop de symbol_select() rapides
+            if i + 1 < total:
+                time.sleep(0.1)
+
+    print(f"  Pre-activation terminee : {ok_count} actifs, {fail_count} echoues")
+    return ok_count, fail_count
+
+
+# ===============================================================================
 # SCAN DE TOUS LES SYMBOLES
 # ===============================================================================
 
@@ -587,8 +890,13 @@ def scan_all_symbols(
     symbol_filters: Optional[List[str]] = None,
     timeframe: str = DEFAULT_TF,
     tz_mode: str = DEFAULT_TIMEZONE,
-) -> Tuple[List[AsianLevels], List[PreviousAsianLevels]]:
+    force_select: bool = False,
+    fvg_mode: bool = False,
+    fvg_min_pct: float = DEFAULT_FVG_MIN_PCT,
+) -> Tuple[List[AsianLevels], List[PreviousAsianLevels], List[Tuple[str, str]]]:
     """Scanne TOUS les symboles disponibles chez le broker, avec filtre optionnel.
+
+    Collecte aussi la liste des symboles exclus et la raison.
 
     Args:
         session_date_paris: Date Paris de la session.
@@ -598,13 +906,17 @@ def scan_all_symbols(
         start_hour: Heure debut session.
         end_hour: Heure fin session.
         symbol_filters: Liste de motifs fnmatch (ex: ['EUR*', '*JPY']).
+        force_select: Pre-active tous les symboles dans Market Watch avant scan.
+        fvg_mode: Activer la detection des FVGs pres AH/AL.
+        fvg_min_pct: Taille minimum du FVG en %%.
 
     Returns:
-        (current_results, previous_results)
+        (current_results, previous_results, excluded_symbols)
+        excluded_symbols = [(symbole, raison), ...] pour ceux qui ont echoue.
     """
     mt5c = MT5Connector()
     if not mt5c.ensure_connected():
-        return [], []
+        return [], [], []
 
     # Symboles : Market Watch ou tous
     if market_watch_only:
@@ -616,7 +928,7 @@ def scan_all_symbols(
 
     if not all_syms:
         logger.error("Aucun symbole trouve chez le broker.")
-        return [], []
+        return [], [], []
 
     # Appliquer le filtre --symbol (motifs fnmatch)
     if symbol_filters:
@@ -630,16 +942,31 @@ def scan_all_symbols(
         source += f" (filtre: {', '.join(symbol_filters)})"
         if not all_syms:
             logger.error("Aucun symbole ne correspond aux filtres : %s", symbol_filters)
-            return [], []
+            return [], [], []
 
     if max_symbols and len(all_syms) > max_symbols:
         all_syms = all_syms[:max_symbols]
+
+    # Sauvegarder les symboles deja visibles (pour ne pas les deselectionner)
+    originally_visible: set = set()
+
+    # Pre-activation massive des symboles (si demande)
+    if force_select and not market_watch_only:
+        # Capturer les symboles deja visibles avant la pre-activation
+        for s in all_syms:
+            info = mt5.symbol_info(s)
+            if info and info.visible:
+                originally_visible.add(s)
+        ok, fail = _force_select_all(all_syms)
+        print(f"    OK: {ok}  |  FAIL: {fail}  |  Deja visibles: {len(originally_visible)}")
+        print()
 
     if session_date_paris is None:
         session_date_paris = paris_date_str()
 
     current_results: List[AsianLevels] = []
     previous_results: List[PreviousAsianLevels] = []
+    excluded: List[Tuple[str, str]] = []
     total = len(all_syms)
 
     print(f"  Scan de {total} symboles ({source})...")
@@ -650,10 +977,13 @@ def scan_all_symbols(
             print(f"    Progression : {i+1}/{total}")
 
         try:
-            r = scan_symbol(sym, session_date_paris, start_hour, end_hour,
-                              timeframe, tz_mode, _mt5c=mt5c)
+            r, err = scan_symbol(sym, session_date_paris, start_hour, end_hour,
+                                  timeframe, tz_mode, _mt5c=mt5c,
+                                  fvg_mode=fvg_mode, fvg_min_pct=fvg_min_pct)
             if r is not None:
                 current_results.append(r)
+            else:
+                excluded.append((sym, err or "Erreur inconnue"))
 
             if include_previous:
                 p = scan_previous_session(sym, session_date_paris,
@@ -662,15 +992,17 @@ def scan_all_symbols(
                 if p is not None:
                     previous_results.append(p)
         except Exception as e:
-            logger.debug("Erreur sur %s: %s", sym, e)
+            excluded.append((sym, f"Exception: {e}"))
         finally:
-            # Nettoyer le Market Watch pour eviter la saturation
+            # Nettoyer le Market Watch : ne deselectionner QUE les symboles
+            # qui n'y etaient PAS avant --force-select
             try:
-                mt5.symbol_select(sym, False)
+                if sym not in originally_visible:
+                    mt5.symbol_select(sym, False)
             except Exception:
                 pass
 
-    return current_results, previous_results
+    return current_results, previous_results, excluded
 
 
 # ===============================================================================
@@ -807,6 +1139,39 @@ def _print_previous(previous: List[PreviousAsianLevels]):
     print(sep)
 
 
+def display_exclusions(excluded: List[Tuple[str, str]], scanned_count: int):
+    """Affiche le tableau des symboles exclus avec la raison."""
+    if not excluded:
+        return
+
+    # Compter par raison
+    by_reason: dict = {}
+    for sym, reason in excluded:
+        by_reason.setdefault(reason, []).append(sym)
+
+    print()
+    print(f"  -- Symboles EXCLUS du scan ({len(excluded)} exclus / {scanned_count} retenus) --")
+    sep = "  " + "-" * 80
+    print(sep)
+    print(f"  {'Symbole':<30} {'Raison':<45}")
+    print(sep)
+
+    # Grouper par raison pour le confort de lecture
+    for reason in sorted(by_reason.keys()):
+        syms = sorted(by_reason[reason])
+        for i, sym in enumerate(syms):
+            if i == 0:
+                print(f"  {sym:<30} {reason:<45}")
+            else:
+                print(f"  {sym:<30} {'':<45}")
+        if len(syms) > 1:
+            print(f"  {'':>30} ({len(syms)} symboles)")
+
+    print(sep)
+    print(f"  Resume : {len(excluded)} exclus / {scanned_count + len(excluded)} total broker")
+    print()
+
+
 def export_csv(results: List[AsianLevels], filepath: str):
     """Exporte les resultats en CSV."""
     if not results:
@@ -821,6 +1186,112 @@ def export_csv(results: List[AsianLevels], filepath: str):
             writer.writerow(asdict(r))
 
     print(f"\n  \u2705 {len(results)} lignes exportees -> {os.path.abspath(filepath)}")
+
+
+# ===============================================================================
+# MODE LIVE
+# ===============================================================================
+
+def live_monitor(results: List[AsianLevels], tz_mode: str, interval: int):
+    """Mode live : rafraichit les prix en continu et affiche distances AH/AL."""
+    if not results:
+        return
+
+    mt5c = MT5Connector()
+    if not mt5c.ensure_connected():
+        print("  !! MT5 non connecte - impossible de passer en mode live.")
+        return
+
+    offset = _tz_offset(tz_mode)
+    n = len(results)
+
+    print(f"\n  === MODE LIVE (Ctrl+C pour quitter) ===")
+    print(f"  Symboles : {n}  |  Rafraichissement : {interval}s")
+    print(f"  Niveaux fixes (session terminee) - Prix temps reel\n")
+
+    tick_count = 0
+    try:
+        while True:
+            tick_count += 1
+            local_now = now_datetime() + timedelta(hours=offset)
+
+            # Effacer l'ecran (compatible Windows et Unix)
+            if tick_count > 1:
+                os.system('cls' if os.name == 'nt' else 'clear')
+
+            print(f"  PureICT Live - {local_now.strftime('%H:%M:%S')} {tz_mode}  |  tick #{tick_count}")
+
+            # Verifier si un symbole a des FVGs actifs
+            _has_fvg_live = any(r.fvg_ah or r.fvg_al for r in results)
+            if _has_fvg_live:
+                hdr = (f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} "
+                       f"{'Dist AH':>9} {'Dist AL':>9} {'vs Mid':>8} {'FVG AH':>8} {'FVG AL':>8}")
+                sep_len = 98
+            else:
+                hdr = (f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} "
+                       f"{'Dist AH':>9} {'Dist AL':>9} {'vs Mid':>8} {'Sweeps':>8}")
+                sep_len = 85
+            print(hdr)
+            print(f"  {'-' * sep_len}")
+
+            for r in results:
+                tick = mt5.symbol_info_tick(r.symbol)
+                if tick is None:
+                    continue
+                price = float(tick.bid)
+
+                # Distances
+                dist_ah_pct = (price - r.asian_high) / r.asian_high * 100.0 if r.asian_high else 0.0
+                dist_al_pct = (price - r.asian_low) / r.asian_low * 100.0 if r.asian_low else 0.0
+                vs_mid = (price - r.midpoint) / r.midpoint * 100.0 if r.midpoint else 0.0
+
+                # Direction visuelle
+                ah_sign = "+" if dist_ah_pct > 0 else ""
+                al_sign = "+" if dist_al_pct > 0 else ""
+                mid_sign = ">" if vs_mid > 0 else ("<" if vs_mid < 0 else "=")
+
+                # Sweeps
+                sweep_str = ""
+                if r.ah_swept:
+                    sweep_str += "AH"
+                if r.al_swept:
+                    sweep_str += "AL" if not sweep_str else ",AL"
+                if not sweep_str:
+                    sweep_str = "-"
+
+                # Couleur selon position vs AH/AL
+                if price > r.asian_high:
+                    marker = " ABOVE"
+                elif price < r.asian_low:
+                    marker = " BELOW"
+                else:
+                    marker = "  IN  "
+
+                # FVG affichage compact
+                fvg_ah_str = _fmt_fvg_compact(r.fvg_ah) if r.fvg_ah else ""
+                fvg_al_str = _fmt_fvg_compact(r.fvg_al) if r.fvg_al else ""
+
+                if _has_fvg_live:
+                    print(f"  {r.symbol:<12} {fmt_price(price):>10} {fmt_price(r.asian_high):>10} "
+                          f"{fmt_price(r.asian_low):>10} "
+                          f"{ah_sign}{dist_ah_pct:>7.2f}% "
+                          f"{al_sign}{dist_al_pct:>7.2f}% "
+                          f"{mid_sign}{abs(vs_mid):>6.2f}% "
+                          f"{fvg_ah_str:>8} {fvg_al_str:>8}{marker}")
+                else:
+                    print(f"  {r.symbol:<12} {fmt_price(price):>10} {fmt_price(r.asian_high):>10} "
+                          f"{fmt_price(r.asian_low):>10} "
+                          f"{ah_sign}{dist_ah_pct:>7.2f}% "
+                          f"{al_sign}{dist_al_pct:>7.2f}% "
+                          f"{mid_sign}{abs(vs_mid):>6.2f}% "
+                          f"{sweep_str:>8}{marker}")
+
+            print(f"  {'-' * sep_len}")
+            print(f"  Ctrl+C pour quitter  |  Intervalle: {interval}s")
+
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        print(f"\n\n  Mode live termine apres {tick_count} tick(s).")
 
 
 # ===============================================================================
@@ -871,6 +1342,20 @@ Exemples :
                         help="Utiliser uniquement les symboles visibles dans Market Watch (plus rapide).")
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="Mode verbeux (logs debug).")
+    parser.add_argument("--live", "-l", action="store_true",
+                        help="Mode live : rafraichit le prix en continu (Ctrl+C pour quitter).")
+    parser.add_argument("--interval", "-i", type=int, default=10,
+                        help="Intervalle de rafraichissement en secondes (defaut: 10s).")
+    parser.add_argument("--force-select", action="store_true",
+                        help="Pre-active tous les symboles dans Market Watch avant le scan. "
+                             "Tente de contourner la limitation FTMO qui bloque les donnees "
+                             "des symboles hors Market Watch.")
+    parser.add_argument("--fvg", action="store_true",
+                        help="Active la detection des Fair Value Gaps pres de l'AH/AL. "
+                             "Detecte quand le prix est revenu sous l'AH ou au-dessus de l'AL "
+                             "(peu importe la duree du depassement).")
+    parser.add_argument("--fvg-min", type=float, default=DEFAULT_FVG_MIN_PCT,
+                        help=f"Taille minimum du FVG en %% (defaut: {DEFAULT_FVG_MIN_PCT}%%).")
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -914,11 +1399,11 @@ Exemples :
     is_previous = in_session and not args.date
     if is_previous:
         today_str_local = (now_datetime() + timedelta(hours=offset)).strftime("%Y-%m-%d")
-    print(f"  !! Session d'aujourd'hui ({today_str_local}) encore en cours ->")
-    print(f"     affichage de la session precedente ({session_date}) terminee.")
+        print(f"  !! Session d'aujourd'hui ({today_str_local}) encore en cours ->")
+        print(f"     affichage de la session precedente ({session_date}) terminee.")
     print()
 
-    current, previous = scan_all_symbols(
+    current, previous, excluded = scan_all_symbols(
         session_date_paris=session_date,
         max_symbols=args.max_symbols,
         include_previous=args.previous,
@@ -928,6 +1413,9 @@ Exemples :
         symbol_filters=args.symbol if args.symbol else None,
         timeframe=args.timeframe,
         tz_mode=args.timezone,
+        force_select=args.force_select,
+        fvg_mode=args.fvg,
+        fvg_min_pct=args.fvg_min,
     )
 
     if not current:
@@ -935,8 +1423,26 @@ Exemples :
         print(f"  Verifie que MT5 est connecte et que les symboles sont disponibles.")
         return 1
 
+    if args.live:
+        if args.export:
+            print(f"  !! --live et --export sont incompatibles, l'export est ignore.\n")
+        live_monitor(current, args.timezone, args.interval)
+        return 0
+
     display_results(current, previous if args.previous else None, args.timezone,
                     is_previous_session=is_previous)
+
+    # Afficher les exclus si --verbose
+    if excluded and args.verbose:
+        display_exclusions(excluded, len(current))
+    elif excluded and not args.verbose:
+        # Petit resume meme sans --verbose
+        reasons = {}
+        for _, reason in excluded:
+            reasons[reason] = reasons.get(reason, 0) + 1
+        resume = ", ".join(f"{n}x {r}" for r, n in sorted(reasons.items()))
+        print(f"\n  {len(excluded)} symbole(s) exclus ({resume})")
+        print(f"  Utilise --verbose (-v) pour voir le detail.")
 
     if args.export:
         export_csv(current, args.export)
