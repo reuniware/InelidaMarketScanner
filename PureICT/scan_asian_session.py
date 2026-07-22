@@ -222,8 +222,8 @@ class AsianLevels:
     al_swept_at: Optional[str]      # Heure UTC du sweep AL
     current_price: float            # Prix actuel bid
     # FVG detection (AH/AL reclaim)
-    fvg_ah: Optional[dict] = None   # FVG baissier pres AH (price a depasse AH puis est revenu dessous)
-    fvg_al: Optional[dict] = None   # FVG haussier pres AL (price a depasse AL puis est revenu dessus)
+    fvg_ah: Optional[list] = None  # Liste des FVGs baissiers pres AH (price a depasse AH puis est revenu dessous)
+    fvg_al: Optional[list] = None  # Liste des FVGs haussiers pres AL (price a depasse AL puis est revenu dessus)
     # Max lots calcules depuis la marge libre du compte
     max_lots: Optional[float] = None  # Nombre de lots max (base sur marge libre)
     account_currency: str = ""        # Devise du compte (ex: USD, EUR)
@@ -440,15 +440,34 @@ def fmt_price(p: float) -> str:
     return f"{p:.5f}"
 
 
-def _fmt_fvg_compact(fvg_dict: dict) -> str:
-    """Formate un FVG en affichage compact pour le tableau live.
+def _fmt_fvg_compact(fvg_entries: Optional[list]) -> str:
+    """Formate un ou plusieurs FVGs en affichage compact pour le tableau live.
 
-    Ex: "bear-M5" pour bearish M5, "bull-M1" pour bullish M1.
+    - 1 FVG : "bear-M5" ou "bull-M15" (prefixe direction + timeframe)
+    - 2+ FVGs : "M15+M5" (timeframes concatenes, direction implicite = colonne)
+    - None / [] : ""
+
+    Ex: "bear-M5" pour 1 bearish M5, "M15+M5" pour 2 bearish sur M15 et M5.
     """
-    direction = fvg_dict.get("direction", "?")
-    tf = fvg_dict.get("timeframe", "?")
+    if not fvg_entries:
+        return ""
+    # Determiner la direction depuis le premier element
+    d0 = fvg_entries[0]
+    direction = d0.get("direction", "?") if isinstance(d0, dict) else getattr(d0, "direction", "?")
     prefix = "bear" if direction == "bearish" else "bull"
-    return f"{prefix}-{tf}"
+
+    if len(fvg_entries) == 1:
+        tf = d0.get("timeframe", "?") if isinstance(d0, dict) else getattr(d0, "timeframe", "?")
+        return f"{prefix}-{tf}"
+    # Multiples FVGs : timeframes concatenes (direction implicite = colonne)
+    seen_tfs = set()
+    tfs = []
+    for d in fvg_entries:
+        tf = d.get("timeframe", "?") if isinstance(d, dict) else getattr(d, "timeframe", "?")
+        if tf not in seen_tfs:
+            seen_tfs.add(tf)
+            tfs.append(tf)
+    return "+".join(tfs)
 
 
 # ===============================================================================
@@ -550,7 +569,7 @@ def scan_reclaim_fvgs(
     asian_low: float,
     end_epoch: float,
     fvg_min_pct: float = DEFAULT_FVG_MIN_PCT,
-) -> Tuple[Optional[FvgInfo], Optional[FvgInfo]]:
+) -> Tuple[List[FvgInfo], List[FvgInfo]]:
     """Detecte les FVGs formes quand le prix repasse SOUS l'AH ou AU-DESSUS de l'AL.
 
     !!! IMPORTANT : il n'est PAS necessaire que le depassement de l'AH/AL
@@ -564,7 +583,7 @@ def scan_reclaim_fvgs(
         -> on cherche un FVG haussier pres de l'AL
 
     Les timeframes scannees : M15 -> M5 -> M3 -> M1 (du plus grand au plus petit).
-    On garde le premier FVG trouve sur le plus grand timeframe.
+    Collecte TOUS les FVGs trouves sur tous les timeframes (pas seulement le premier).
 
     Args:
         symbol: Symbole MT5.
@@ -574,10 +593,13 @@ def scan_reclaim_fvgs(
         fvg_min_pct: Taille minimum du FVG en %%.
 
     Returns:
-        (fvg_ah, fvg_al) - FVGInfo ou None pour chaque niveau.
+        (fvg_ah_list, fvg_al_list) - listes de FvgInfo (vides si aucun FVG trouve).
     """
-    fvg_ah_result: Optional[FvgInfo] = None
-    fvg_al_result: Optional[FvgInfo] = None
+    fvg_ah_list: List[FvgInfo] = []
+    fvg_al_list: List[FvgInfo] = []
+    # Suivi des timeframes deja traites pour eviter les doublons
+    ah_tfs_done: set = set()
+    al_tfs_done: set = set()
 
     # Parcourir les timeframes du plus grand au plus petit
     tf_names = ["M15", "M5", "M3", "M1"]
@@ -613,14 +635,16 @@ def scan_reclaim_fvgs(
             continue
 
         # Scanner les barres pour trouver des FVGs
+        # On garde au maximum 1 FVG par timeframe (le premier trouve le plus proche du prix)
+        found_ah_on_tf = False
+        found_al_on_tf = False
         for i in range(len(post_bars) - 1, 1, -1):  # de la fin vers le debut
-            if fvg_ah_result is None and back_below_ah:
+            if back_below_ah and not found_ah_on_tf and tf_name not in ah_tfs_done:
                 fvg = find_fvg_at(post_bars, i, "bear", fvg_min_pct)
                 if fvg is not None:
-                    # Verifier que le FVG est pres de l'AH
                     dist = _level_distance(fvg["zone_top"], fvg["zone_bottom"], asian_high)
                     if dist < 0.5:  # dans les 0.5% de l'AH
-                        fvg_ah_result = FvgInfo(
+                        fvg_ah_list.append(FvgInfo(
                             timeframe=tf_name,
                             direction="bearish",
                             zone_top=fvg["zone_top"],
@@ -629,14 +653,16 @@ def scan_reclaim_fvgs(
                             gap_size=fvg["gap_size"],
                             level_type="AH",
                             level_price=asian_high,
-                        )
+                        ))
+                        found_ah_on_tf = True
+                        ah_tfs_done.add(tf_name)
 
-            if fvg_al_result is None and back_above_al:
+            if back_above_al and not found_al_on_tf and tf_name not in al_tfs_done:
                 fvg = find_fvg_at(post_bars, i, "bull", fvg_min_pct)
                 if fvg is not None:
                     dist = _level_distance(fvg["zone_top"], fvg["zone_bottom"], asian_low)
                     if dist < 0.5:
-                        fvg_al_result = FvgInfo(
+                        fvg_al_list.append(FvgInfo(
                             timeframe=tf_name,
                             direction="bullish",
                             zone_top=fvg["zone_top"],
@@ -645,12 +671,11 @@ def scan_reclaim_fvgs(
                             gap_size=fvg["gap_size"],
                             level_type="AL",
                             level_price=asian_low,
-                        )
+                        ))
+                        found_al_on_tf = True
+                        al_tfs_done.add(tf_name)
 
-            if fvg_ah_result is not None and fvg_al_result is not None:
-                break
-
-    return fvg_ah_result, fvg_al_result
+    return fvg_ah_list, fvg_al_list
 
 
 # ===============================================================================
@@ -806,11 +831,11 @@ def scan_symbol(
     current_price = float(tick.bid) if tick else (bars[-1]["close"] if bars else 0.0)
 
     # -- Detection FVG pres AH/AL (si active) --
-    fvg_ah_result: Optional[FvgInfo] = None
-    fvg_al_result: Optional[FvgInfo] = None
+    fvg_ah_list: List[FvgInfo] = []
+    fvg_al_list: List[FvgInfo] = []
     if fvg_mode:
         try:
-            fvg_ah_result, fvg_al_result = scan_reclaim_fvgs(
+            fvg_ah_list, fvg_al_list = scan_reclaim_fvgs(
                 symbol, asian_high, asian_low, end_epoch, fvg_min_pct,
             )
         except Exception as e:
@@ -841,8 +866,8 @@ def scan_symbol(
         ah_swept_at=ah_swept_at,
         al_swept_at=al_swept_at,
         current_price=current_price,
-        fvg_ah=asdict(fvg_ah_result) if fvg_ah_result else None,
-        fvg_al=asdict(fvg_al_result) if fvg_al_result else None,
+        fvg_ah=[asdict(f) for f in fvg_ah_list] if fvg_ah_list else None,
+        fvg_al=[asdict(f) for f in fvg_al_list] if fvg_al_list else None,
         max_lots=max_lots_val,
         account_currency=acc_currency,
         margin_per_lot=margin_per_lot_val,
@@ -1337,13 +1362,13 @@ def live_monitor(results: List[AsianLevels], tz_mode: str, interval: int):
                 if _has_margin_live:
                     hdr = f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} " \
                           f"{'Dist AH':>9} {'Dist AL':>9} {'vs Mid':>8} " \
-                          f"{'FVG AH':>8} {'FVG AL':>8} {'AHS':>5} {'ALS':>5} {'Lots':>7}   {'Pos':<6}"
-                    sep_len = 129
+                          f"{'FVG AH':>16} {'FVG AL':>16} {'AHS':>5} {'ALS':>5} {'Lots':>7}   {'Pos':<6}"
+                    sep_len = 145
                 else:
                     hdr = f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} " \
                           f"{'Dist AH':>9} {'Dist AL':>9} {'vs Mid':>8} " \
-                          f"{'FVG AH':>8} {'FVG AL':>8} {'AHS':>5} {'ALS':>5}   {'Pos':<6}"
-                    sep_len = 121
+                          f"{'FVG AH':>16} {'FVG AL':>16} {'AHS':>5} {'ALS':>5}   {'Pos':<6}"
+                    sep_len = 137
             else:
                 if _has_margin_live:
                     hdr = f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} " \
@@ -1384,9 +1409,9 @@ def live_monitor(results: List[AsianLevels], tz_mode: str, interval: int):
                 else:
                     marker = "IN    "
 
-                # FVG affichage compact
-                fvg_ah_str = _fmt_fvg_compact(r.fvg_ah) if r.fvg_ah else ""
-                fvg_al_str = _fmt_fvg_compact(r.fvg_al) if r.fvg_al else ""
+                # FVG affichage compact (liste de FVGs)
+                fvg_ah_str = _fmt_fvg_compact(r.fvg_ah)
+                fvg_al_str = _fmt_fvg_compact(r.fvg_al)
 
                 # Max lots column (ajoutee dynamiquement si marge disponible)
                 lots_col = f" {r.max_lots:.2f}" if _has_margin_live and r.max_lots is not None else ""
@@ -1399,7 +1424,7 @@ def live_monitor(results: List[AsianLevels], tz_mode: str, interval: int):
                           f"{dist_ah_pct:+8.2f}% "
                           f"{dist_al_pct:+8.2f}% "
                           f"{mid_sign}{abs(vs_mid):>6.2f}% "
-                          f"{fvg_ah_str:>8} {fvg_al_str:>8} {ah_swept_str:>5} {al_swept_str:>5} {lots_col:>8}   {marker}")
+                          f"{fvg_ah_str:>16} {fvg_al_str:>16} {ah_swept_str:>5} {al_swept_str:>5} {lots_col:>8}   {marker}")
                 else:
                     print(f"  {r.symbol:<12} {fmt_price(price):>10} {fmt_price(r.asian_high):>10} "
                           f"{fmt_price(r.asian_low):>10} "
