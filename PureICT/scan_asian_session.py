@@ -39,6 +39,7 @@ Usage :
 import argparse
 import csv
 import fnmatch
+import json
 import logging
 import os
 import sys
@@ -1389,6 +1390,29 @@ def export_csv(results: List[AsianLevels], filepath: str):
     print(f"\n  \u2705 {len(results)} lignes exportees -> {os.path.abspath(filepath)}")
 
 
+def export_json(results: List[AsianLevels], filepath: str):
+    """Exporte les resultats en JSON.
+
+    Chaque symbole est un objet. Les grands tableaux sont indentes
+    pour rester lisibles dans un editeur.
+    """
+    if not results:
+        print("  Aucun resultat a exporter.")
+        return
+
+    data = [asdict(r) for r in results]
+    # Convertir les champs Optionnel non serialisables
+    for d in data:
+        for k, v in d.items():
+            if isinstance(v, float) and (v != v):  # NaN -> None
+                d[k] = None
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+    print(f"\n  \u2705 {len(results)} symboles exportes -> {os.path.abspath(filepath)}")
+
+
 # ===============================================================================
 # MODE LIVE
 # ===============================================================================
@@ -1582,6 +1606,12 @@ Exemples :
     parser.add_argument("--ote", action="store_true",
                         help="Affiche la zone OTE (Optimal Trade Entry) : retracement 0.618-0.382 "
                              "du range asiatique. Le prix dans cette zone est un signal ICT de continuation.")
+    parser.add_argument("--swept-only", action="store_true",
+                        help="Filtre les resultats pour n'afficher que les symboles ou "
+                             "un sweep AH ou AL a ete detecte.")
+    parser.add_argument("--json", default=None,
+                        help="Exporte les resultats au format JSON (chemin du fichier). "
+                             "Compatible avec --export (les deux formats peuvent etre generes simultanement).")
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -1649,9 +1679,25 @@ Exemples :
         print(f"  Verifie que MT5 est connecte et que les symboles sont disponibles.")
         return 1
 
+    # -- Filtre --swept-only (AH ou AL sweepe) --
+    if args.swept_only:
+        n_before = len(current)
+        current = [r for r in current if r.ah_swept or r.al_swept]
+        n_after = len(current)
+        n_filtre = n_before - n_after
+        if n_filtre > 0:
+            print(f"  Filtre --swept-only : {n_after} symbole(s) avec sweep / {n_filtre} exclus")
+        elif n_before == 0:
+            print(f"  Aucun symbole avec sweep detecte.")
+        else:
+            print(f"  Filtre --swept-only : tous les {n_after} symboles ont un sweep.")
+        if not current:
+            print(f"  Aucun resultat apres filtrage --swept-only.")
+            return 1
+
     if args.live:
-        if args.export:
-            print(f"  !! --live et --export sont incompatibles, l'export est ignore.\n")
+        if args.export or args.json:
+            print(f"  !! --live est incompatible avec --export et --json, les exports sont ignores.\n")
         live_monitor(current, args.timezone, args.interval, show_ote=args.ote)
         return 0
 
@@ -1672,6 +1718,8 @@ Exemples :
 
     if args.export:
         export_csv(current, args.export)
+    if args.json:
+        export_json(current, args.json)
 
     print()
     return 0
