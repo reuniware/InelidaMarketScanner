@@ -111,8 +111,13 @@ FVG_TIMEFRAMES = {
     "M15": mt5.TIMEFRAME_M15,
 }
 
-# Nombre de barres a charger pour la detection FVG (couvre ~6h post-session)
-FVG_LOOKBACK = 360
+# Nombre de barres a charger pour la detection FVG (couvre ~24h pour M1, ~6h pour les autres)
+FVG_LOOKBACK = {
+    "M1":  1440,  # ~24h en M1 (assez pour capturer les reclaims lointains)
+    "M3":  480,   # ~24h en M3
+    "M5":  288,   # ~24h en M5
+    "M15": 96,    # ~24h en M15
+}
 
 # Taille minimum du FVG en %%
 DEFAULT_FVG_MIN_PCT = 0.02
@@ -309,46 +314,6 @@ def _tz_offset(mode: str = DEFAULT_TIMEZONE) -> int:
     return 2 if dst else 1
 
 
-def _session_epochs(
-    session_date: str,
-    start_hour: int = DEFAULT_START_HOUR,
-    end_hour: int = DEFAULT_END_HOUR,
-    tz_mode: str = DEFAULT_TIMEZONE,
-) -> Tuple[float, float]:
-    """Retourne (start_epoch, end_epoch) compatibles avec les timestamps MT5.
-
-    !! CRITIQUE : les timestamps de `copy_rates_from_pos` sont en heure SERVEUR
-    (broker) traites comme si c'etait UTC. Ex: barre a 01:00 broker (UTC+3) ->
-    epoch equivalent a "01:00 UTC" (PAS "22:00 UTC veille").
-
-    Convertit les heures du fuseau utilisateur (tz_mode) en heures BROKER,
-    puis construit les epochs en traitant ces heures comme UTC.
-
-    Args:
-        session_date: Date de la session au format YYYY-MM-DD.
-        start_hour: Heure de debut (fuseau tz_mode).
-        end_hour: Heure de fin (fuseau tz_mode).
-        tz_mode: Fuseau de la session (PARIS, BROKER, UTC).
-
-    Returns:
-        (start_epoch, end_epoch) - timestamps compatibles MT5.
-    """
-    dt = datetime.strptime(session_date, "%Y-%m-%d")
-    # MT5 stocke les heures en heure SERVEUR (BROKER). Convertir du fuseau
-    # utilisateur vers le fuseau BROKER. Ex: PARIS 0->8 = BROKER 1->9.
-    broker_off = _tz_offset("BROKER")
-    user_off = _tz_offset(tz_mode)
-    hour_shift = broker_off - user_off  # 0 pour BROKER, 1 pour PARIS, 3 pour UTC
-
-    # Utiliser timedelta (pas replace) pour gerer le rollover >23h ou <0h
-    base = dt.replace(hour=0, minute=0, second=0)
-    start_dt = base + timedelta(hours=start_hour + hour_shift)
-    end_dt = base + timedelta(hours=end_hour + hour_shift)
-    start_epoch = start_dt.replace(tzinfo=timezone.utc).timestamp()
-    end_epoch = end_dt.replace(tzinfo=timezone.utc).timestamp()
-    return (start_epoch, end_epoch)
-
-
 def _session_true_utc_end(
     session_date: str,
     end_hour: int = DEFAULT_END_HOUR,
@@ -363,6 +328,21 @@ def _session_true_utc_end(
     local_tz = timezone(timedelta(hours=offset))
     local_dt = datetime.strptime(session_date, "%Y-%m-%d").replace(tzinfo=local_tz)
     return local_dt.replace(hour=end_hour, minute=0, second=0).astimezone(timezone.utc)
+
+
+def _session_true_utc_start(
+    session_date: str,
+    start_hour: int = DEFAULT_START_HOUR,
+    tz_mode: str = DEFAULT_TIMEZONE,
+) -> datetime:
+    """Retourne la VRAIE date/heure de debut de session en UTC.
+
+    Calque exact de _session_true_utc_end mais pour le debut.
+    """
+    offset = _tz_offset(tz_mode)
+    local_tz = timezone(timedelta(hours=offset))
+    local_dt = datetime.strptime(session_date, "%Y-%m-%d").replace(tzinfo=local_tz)
+    return local_dt.replace(hour=start_hour, minute=0, second=0).astimezone(timezone.utc)
 
 
 def is_in_asian_session(
@@ -456,18 +436,15 @@ def _fmt_fvg_compact(fvg_entries: Optional[list]) -> str:
     direction = d0.get("direction", "?") if isinstance(d0, dict) else getattr(d0, "direction", "?")
     prefix = "bear" if direction == "bearish" else "bull"
 
-    if len(fvg_entries) == 1:
-        tf = d0.get("timeframe", "?") if isinstance(d0, dict) else getattr(d0, "timeframe", "?")
-        return f"{prefix}-{tf}"
-    # Multiples FVGs : timeframes concatenes (direction implicite = colonne)
-    seen_tfs = set()
-    tfs = []
+    # Collecter les timeframes dans l'ordre du scan (M15->M5->M3->M1)
+    seen_tfs = []
     for d in fvg_entries:
         tf = d.get("timeframe", "?") if isinstance(d, dict) else getattr(d, "timeframe", "?")
         if tf not in seen_tfs:
-            seen_tfs.add(tf)
-            tfs.append(tf)
-    return "+".join(tfs)
+            seen_tfs.append(tf)
+    tfs_str = "+".join(seen_tfs)
+    # Toujours inclure le prefixe pour uniformite : bear-M15, bear-M15+M5+M3+M1, etc.
+    return f"{prefix}-{tfs_str}"
 
 
 # ===============================================================================
@@ -567,7 +544,7 @@ def scan_reclaim_fvgs(
     symbol: str,
     asian_high: float,
     asian_low: float,
-    end_epoch: float,
+    end_epoch_utc: float,
     fvg_min_pct: float = DEFAULT_FVG_MIN_PCT,
 ) -> Tuple[List[FvgInfo], List[FvgInfo]]:
     """Detecte les FVGs formes quand le prix repasse SOUS l'AH ou AU-DESSUS de l'AL.
@@ -589,7 +566,7 @@ def scan_reclaim_fvgs(
         symbol: Symbole MT5.
         asian_high: Asian High de la session.
         asian_low: Asian Low de la session.
-        end_epoch: Fin de la session asiatique (epoch MT5).
+        end_epoch_utc: Fin de la session asiatique (epoch UTC).
         fvg_min_pct: Taille minimum du FVG en %%.
 
     Returns:
@@ -601,6 +578,9 @@ def scan_reclaim_fvgs(
     ah_tfs_done: set = set()
     al_tfs_done: set = set()
 
+    # Offset broker en secondes (cacule une fois pour tous les timeframes)
+    _broker_offset_sec = _tz_offset("BROKER") * 3600
+
     # Parcourir les timeframes du plus grand au plus petit
     tf_names = ["M15", "M5", "M3", "M1"]
     for tf_name in tf_names:
@@ -608,15 +588,20 @@ def scan_reclaim_fvgs(
         if tf is None:
             continue
 
-        rates_raw = mt5.copy_rates_from_pos(symbol, tf, 0, FVG_LOOKBACK)
+        lookback = FVG_LOOKBACK.get(tf_name, 360)
+        rates_raw = mt5.copy_rates_from_pos(symbol, tf, 0, lookback)
         if rates_raw is None or len(rates_raw) == 0:
             continue
 
         bars = bars_to_dicts(rates_raw)
         bars.sort(key=lambda b: b["time"])
 
-        # Barres post-session
-        post_bars = [b for b in bars if b["time"] >= end_epoch]
+        # Convertir les timestamps MT5 (broker) en vrai UTC
+        for b in bars:
+            b["time_utc"] = b["time"] - _broker_offset_sec
+
+        # Barres post-session (filtre UTC)
+        post_bars = [b for b in bars if b["time_utc"] >= end_epoch_utc]
         if len(post_bars) < 3:
             continue
 
@@ -724,15 +709,10 @@ def scan_symbol(
         return None, "select_symbol a echoue"
 
 
-    # -- Epochs compatibles MT5 (heure broker traitee comme UTC) --
-    start_epoch, end_epoch = _session_epochs(session_date_paris, start_hour, end_hour,
-                                               tz_mode)
-
-    # Offset BROKER pour convertir epochs MT5 -> vrai UTC (affichage)
+    # -- Vraies bornes UTC du debut et fin de session --
     _broker_offset_sec = _tz_offset("BROKER") * 3600
-
-    # Vraie fin de session UTC (pour is_live)
-    true_end_utc = _session_true_utc_end(session_date_paris, end_hour, tz_mode)
+    session_start_utc = _session_true_utc_start(session_date_paris, start_hour, tz_mode)
+    session_end_utc = _session_true_utc_end(session_date_paris, end_hour, tz_mode)
 
     # -- Choix du timeframe --
     tf = TIMEFRAMES.get(timeframe.upper())
@@ -750,8 +730,14 @@ def scan_symbol(
     bars = bars_to_dicts(rates_raw)
     bars.sort(key=lambda b: b["time"])
 
-    # -- Barres de la session asiatique --
-    session_bars = [b for b in bars if start_epoch <= b["time"] < end_epoch]
+    # -- Convertir les timestamps MT5 (broker) en vrai UTC --
+    for b in bars:
+        b["time_utc"] = b["time"] - _broker_offset_sec
+
+    # -- Barres de la session asiatique (filtre UTC) --
+    session_start_epoch = session_start_utc.timestamp()
+    session_end_epoch = session_end_utc.timestamp()
+    session_bars = [b for b in bars if session_start_epoch <= b["time_utc"] < session_end_epoch]
     if not session_bars:
         return None, "Aucune barre dans la fenetre session"
 
@@ -764,10 +750,10 @@ def scan_symbol(
     for b in session_bars:
         if b["high"] > asian_high:
             asian_high = b["high"]
-            high_at_epoch = float(b["time"]) - _broker_offset_sec  # MT5->UTC
+            high_at_epoch = b["time_utc"]  # deja en UTC
         if b["low"] < asian_low:
             asian_low = b["low"]
-            low_at_epoch = float(b["time"]) - _broker_offset_sec  # MT5->UTC
+            low_at_epoch = b["time_utc"]  # deja en UTC
 
     midpoint = (asian_high + asian_low) / 2.0
     range_pips = asian_high - asian_low
@@ -795,20 +781,19 @@ def scan_symbol(
     open_first_bar = session_bars[0]["open"]
     close_last_bar = session_bars[-1]["close"]
 
-    # -- Session live ? --
-    is_live = time.time() < true_end_utc.timestamp()
+    # -- Session live ? (comparaison UTC via now_datetime NTP-synced) --
+    is_live = now_datetime() < session_end_utc
     if is_live:
         # Si session en cours, le close est le prix actuel
         tick = mt5.symbol_info_tick(symbol)
         close_last_bar = float(tick.bid) if tick else close_last_bar
 
-    # -- Barres post-session pour sweeps --
-    true_end_epoch = true_end_utc.timestamp()
-    today_date_utc = time.strftime("%Y-%m-%d", time.gmtime(true_end_epoch))
+    # -- Barres post-session pour sweeps (filtre UTC) --
+    today_date_utc = session_end_utc.strftime("%Y-%m-%d")
     post_bars = [
         b for b in bars
-        if b["time"] >= end_epoch
-        and time.strftime("%Y-%m-%d", time.gmtime(b["time"] - _broker_offset_sec)) == today_date_utc
+        if b["time_utc"] >= session_end_epoch
+        and time.strftime("%Y-%m-%d", time.gmtime(b["time_utc"])) == today_date_utc
     ]
 
     ah_swept = False
@@ -819,10 +804,10 @@ def scan_symbol(
     for b in post_bars:
         if not ah_swept and sweep_high(b, asian_high):
             ah_swept = True
-            ah_swept_at = format_epoch(b["time"] - _broker_offset_sec)
+            ah_swept_at = format_epoch(b["time_utc"])
         if not al_swept and sweep_low(b, asian_low):
             al_swept = True
-            al_swept_at = format_epoch(b["time"] - _broker_offset_sec)
+            al_swept_at = format_epoch(b["time_utc"])
         if ah_swept and al_swept:
             break
 
@@ -836,7 +821,7 @@ def scan_symbol(
     if fvg_mode:
         try:
             fvg_ah_list, fvg_al_list = scan_reclaim_fvgs(
-                symbol, asian_high, asian_low, end_epoch, fvg_min_pct,
+                symbol, asian_high, asian_low, session_end_epoch, fvg_min_pct,
             )
         except Exception as e:
             logger.debug("FVG scan failed for %s: %s", symbol, e)
@@ -1362,13 +1347,13 @@ def live_monitor(results: List[AsianLevels], tz_mode: str, interval: int):
                 if _has_margin_live:
                     hdr = f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} " \
                           f"{'Dist AH':>9} {'Dist AL':>9} {'vs Mid':>8} " \
-                          f"{'FVG AH':>16} {'FVG AL':>16} {'AHS':>5} {'ALS':>5} {'Lots':>7}   {'Pos':<6}"
-                    sep_len = 145
+                          f"{'FVG AH':>26} {'FVG AL':>26} {'AHS':>5} {'ALS':>5} {'Lots':>7}   {'Pos':<6}"
+                    sep_len = 165
                 else:
                     hdr = f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} " \
                           f"{'Dist AH':>9} {'Dist AL':>9} {'vs Mid':>8} " \
-                          f"{'FVG AH':>16} {'FVG AL':>16} {'AHS':>5} {'ALS':>5}   {'Pos':<6}"
-                    sep_len = 137
+                          f"{'FVG AH':>26} {'FVG AL':>26} {'AHS':>5} {'ALS':>5}   {'Pos':<6}"
+                    sep_len = 157
             else:
                 if _has_margin_live:
                     hdr = f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} " \
@@ -1424,7 +1409,7 @@ def live_monitor(results: List[AsianLevels], tz_mode: str, interval: int):
                           f"{dist_ah_pct:+8.2f}% "
                           f"{dist_al_pct:+8.2f}% "
                           f"{mid_sign}{abs(vs_mid):>6.2f}% "
-                          f"{fvg_ah_str:>16} {fvg_al_str:>16} {ah_swept_str:>5} {al_swept_str:>5} {lots_col:>8}   {marker}")
+                          f"{fvg_ah_str:>26} {fvg_al_str:>26} {ah_swept_str:>5} {al_swept_str:>5} {lots_col:>8}   {marker}")
                 else:
                     print(f"  {r.symbol:<12} {fmt_price(price):>10} {fmt_price(r.asian_high):>10} "
                           f"{fmt_price(r.asian_low):>10} "
@@ -1541,7 +1526,7 @@ Exemples :
     print(f"  {'(Session en cours)' if in_session else '(Session terminee)'}")
     if in_session:
         fin = true_end_utc.strftime('%H:%M')
-        print(f"  Fin de session dans ~{true_end_utc.timestamp() - time.time():.0f}s ({fin} UTC)")
+        print(f"  Fin de session dans ~{(true_end_utc - now_datetime()).total_seconds():.0f}s ({fin} UTC)")
     # Indique clairement si on affiche la session d'hier
     is_previous = in_session and not args.date
     if is_previous:
