@@ -119,6 +119,76 @@ DEFAULT_FVG_MIN_PCT = 0.02
 
 
 # ===============================================================================
+# MAX LOTS CALCULATION (inspire du script MQL5 MaxMargin_Limit)
+# ===============================================================================
+
+def calc_max_lots(symbol: str, price: float) -> Tuple[Optional[float], Optional[float], str]:
+    """Calcule le nombre de lots maximum negociable pour un symbole.
+
+    Logique (inspiree du script MQL5 MaxMargin_Limit) :
+      1. Recuperer la marge libre du compte (ACCOUNT_MARGIN_FREE)
+      2. Demander au broker la marge requise pour 1 lot standard
+         (mt5.order_calc_margin = equivalent de OrderCalcMargin)
+      3. max_lots = free_margin / margin_for_1_lot
+      4. Arrondir au volume_step inferieur (ne pas depasser la marge)
+      5. Plafonner a SYMBOL_VOLUME_MAX
+
+    Args:
+        symbol: Symbole MT5 (ex: EURUSD, XAUUSD).
+        price: Prix d'entree (ASK pour BUY, BID pour SELL).
+
+    Returns:
+        (max_lots, margin_per_lot, currency)
+        - max_lots: nombre de lots max (arrondi au step), ou None si erreur
+        - margin_per_lot: marge requise pour 1 lot, ou None si erreur
+        - currency: devise du compte ("USD", "EUR", etc.)
+    """
+    try:
+        # 1. Marge libre du compte
+        acc = mt5.account_info()
+        if acc is None:
+            return None, None, ""
+        free_margin = acc.margin_free
+        currency = acc.currency or ""
+
+        if free_margin <= 0:
+            return 0.0, None, currency
+
+        # 2. Marge requise pour 1 lot (ORDER_TYPE_BUY est un bon proxy)
+        margin_for_1 = mt5.order_calc_margin(
+            mt5.ORDER_TYPE_BUY, symbol, 1.0, price
+        )
+        if margin_for_1 is None or margin_for_1 <= 0:
+            return None, None, currency
+
+        # 3. Calcul brut
+        max_lots_raw = free_margin / margin_for_1
+
+        # 4. Arrondir au volume_step du symbole (vers le bas pour securite)
+        info = mt5.symbol_info(symbol)
+        if info is None:
+            return None, margin_for_1, currency
+
+        step = info.volume_step or 0.01
+        max_lots = (int(max_lots_raw / step)) * step
+
+        # 5. Plafonner a la taille max autorisee par le broker
+        limit_max = info.volume_max
+        if max_lots > limit_max:
+            max_lots = limit_max
+
+        # Securite : pas moins que le volume_min
+        if max_lots < info.volume_min:
+            max_lots = info.volume_min
+
+        return round(max_lots, 2), round(margin_for_1, 2), currency
+
+    except Exception as e:
+        logger.debug("calc_max_lots(%s) a echoue: %s", symbol, e)
+        return None, None, ""
+
+
+# ===============================================================================
 # DATACLASSES
 # ===============================================================================
 
@@ -154,6 +224,10 @@ class AsianLevels:
     # FVG detection (AH/AL reclaim)
     fvg_ah: Optional[dict] = None   # FVG baissier pres AH (price a depasse AH puis est revenu dessous)
     fvg_al: Optional[dict] = None   # FVG haussier pres AL (price a depasse AL puis est revenu dessus)
+    # Max lots calcules depuis la marge libre du compte
+    max_lots: Optional[float] = None  # Nombre de lots max (base sur marge libre)
+    account_currency: str = ""        # Devise du compte (ex: USD, EUR)
+    margin_per_lot: Optional[float] = None  # Marge requise pour 1 lot standard
     # Extensions Fibonacci (calculees depuis le midpoint)
     fib_up_1618: float = 0.0        # Mid + dist*1.618
     fib_up_2618: float = 0.0        # Mid + dist*2.618
@@ -742,6 +816,9 @@ def scan_symbol(
         except Exception as e:
             logger.debug("FVG scan failed for %s: %s", symbol, e)
 
+    # -- Calcul du nombre de lots max (marge libre) --
+    max_lots_val, margin_per_lot_val, acc_currency = calc_max_lots(symbol, current_price)
+
     label = "LIVE" if is_live else "OK"
 
     return AsianLevels(
@@ -766,6 +843,9 @@ def scan_symbol(
         current_price=current_price,
         fvg_ah=asdict(fvg_ah_result) if fvg_ah_result else None,
         fvg_al=asdict(fvg_al_result) if fvg_al_result else None,
+        max_lots=max_lots_val,
+        account_currency=acc_currency,
+        margin_per_lot=margin_per_lot_val,
         **fib_up_vals,
         **fib_dn_vals,
     ), None
@@ -1041,12 +1121,23 @@ def display_results(results: List[AsianLevels],
     print(f"  Symboles : {n_total}  |  Session en cours : {n_live}")
     print()
 
+    # Verifier si on a des infos de marge (au moins un symbole avec max_lots)
+    _has_margin_info = any(r.max_lots is not None for r in results)
+
     # -- Tableau unique --
-    sep = "  " + "-" * 135
-    print(sep)
-    hdr = (f"  {'Actif':<14} {'Open':>12} {'Close':>12} "
-           f"{'AH':>12} {'@UTC':>7} {'@Paris':>9} {'@Bkr':>9} "
-           f"{'AL':>12} {'@UTC':>7} {'@Paris':>9} {'@Bkr':>9} ")
+    if _has_margin_info:
+        sep = "  " + "-" * 165
+        print(sep)
+        hdr = (f"  {'Actif':<14} {'Open':>12} {'Close':>12} "
+               f"{'AH':>12} {'@UTC':>7} {'@Paris':>9} {'@Bkr':>9} "
+               f"{'AL':>12} {'@UTC':>7} {'@Paris':>9} {'@Bkr':>9} "
+               f"{'LotsMax':>8} {'Marge/Lot':>10}")
+    else:
+        sep = "  " + "-" * 135
+        print(sep)
+        hdr = (f"  {'Actif':<14} {'Open':>12} {'Close':>12} "
+               f"{'AH':>12} {'@UTC':>7} {'@Paris':>9} {'@Bkr':>9} "
+               f"{'AL':>12} {'@UTC':>7} {'@Paris':>9} {'@Bkr':>9} ")
     print(hdr)
     print(sep)
 
@@ -1058,16 +1149,33 @@ def display_results(results: List[AsianLevels],
         al_paris = _fmt_epoch_tz(r.low_at_epoch, "%H:%M", "PARIS")
         al_broker = _fmt_epoch_tz(r.low_at_epoch, "%H:%M", "BROKER")
 
-        print(f"  {r.symbol:<14}"
-              f"{fmt_price(r.open_first_bar):>12} "
-              f"{fmt_price(r.close_last_bar):>12} "
-              f"{fmt_price(r.asian_high):>12} "
-              f"{ah_utc.split()[0]:>7} {ah_paris.split()[0]:>9} {ah_broker.split()[0]:>9} "
-              f"{fmt_price(r.asian_low):>12} "
-              f"{al_utc.split()[0]:>7} {al_paris.split()[0]:>9} {al_broker.split()[0]:>9}")
+        if _has_margin_info:
+            max_str = f"{r.max_lots:.2f}" if r.max_lots is not None else "-"
+            margin_str = f"{r.margin_per_lot:.0f}" if r.margin_per_lot is not None else "-"
+            print(f"  {r.symbol:<14}"
+                  f"{fmt_price(r.open_first_bar):>12} "
+                  f"{fmt_price(r.close_last_bar):>12} "
+                  f"{fmt_price(r.asian_high):>12} "
+                  f"{ah_utc.split()[0]:>7} {ah_paris.split()[0]:>9} {ah_broker.split()[0]:>9} "
+                  f"{fmt_price(r.asian_low):>12} "
+                  f"{al_utc.split()[0]:>7} {al_paris.split()[0]:>9} {al_broker.split()[0]:>9} "
+                  f"{max_str:>8} {margin_str:>10}")
+        else:
+            print(f"  {r.symbol:<14}"
+                  f"{fmt_price(r.open_first_bar):>12} "
+                  f"{fmt_price(r.close_last_bar):>12} "
+                  f"{fmt_price(r.asian_high):>12} "
+                  f"{ah_utc.split()[0]:>7} {ah_paris.split()[0]:>9} {ah_broker.split()[0]:>9} "
+                  f"{fmt_price(r.asian_low):>12} "
+                  f"{al_utc.split()[0]:>7} {al_paris.split()[0]:>9} {al_broker.split()[0]:>9}")
 
     print(sep)
     print(f"  TZ: UTC / Paris / Broker  |  Live = session en cours (donnees partielles)")
+    if _has_margin_info:
+        # Afficher la devise du compte a partir du 1er symbole qui en a
+        currency = next((r.account_currency for r in results if r.account_currency), "")
+        dev_label = f" {currency}" if currency else ""
+        print(f"  LotsMax = lots max negociables (marge libre{dev_label})  |  Marge/Lot = marge requise pour 1 lot{dev_label}")
 
     # -- Extensions Fibonacci --
     _print_fibonacci(results)
@@ -1223,14 +1331,30 @@ def live_monitor(results: List[AsianLevels], tz_mode: str, interval: int):
 
             # Verifier si un symbole a des FVGs actifs
             _has_fvg_live = any(r.fvg_ah or r.fvg_al for r in results)
+            # Verifier si on a des infos de marge (au moins un symbole avec max_lots)
+            _has_margin_live = any(r.max_lots is not None for r in results)
             if _has_fvg_live:
-                hdr = (f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} "
-                       f"{'Dist AH':>9} {'Dist AL':>9} {'vs Mid':>8} {'FVG AH':>8} {'FVG AL':>8}")
-                sep_len = 98
+                if _has_margin_live:
+                    hdr = f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} " \
+                          f"{'Dist AH':>9} {'Dist AL':>9} {'vs Mid':>8} " \
+                          f"{'FVG AH':>8} {'FVG AL':>8} {'Lots':>7}   {'Pos':<6}"
+                    sep_len = 117
+                else:
+                    hdr = f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} " \
+                          f"{'Dist AH':>9} {'Dist AL':>9} {'vs Mid':>8} " \
+                          f"{'FVG AH':>8} {'FVG AL':>8}   {'Pos':<6}"
+                    sep_len = 109
             else:
-                hdr = (f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} "
-                       f"{'Dist AH':>9} {'Dist AL':>9} {'vs Mid':>8} {'Sweeps':>8}")
-                sep_len = 85
+                if _has_margin_live:
+                    hdr = f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} " \
+                          f"{'Dist AH':>9} {'Dist AL':>9} {'vs Mid':>8} " \
+                          f"{'Sweeps':>8} {'Lots':>7}   {'Pos':<6}"
+                    sep_len = 104
+                else:
+                    hdr = f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} " \
+                          f"{'Dist AH':>9} {'Dist AL':>9} {'vs Mid':>8} " \
+                          f"{'Sweeps':>8}   {'Pos':<6}"
+                    sep_len = 96
             print(hdr)
             print(f"  {'-' * sep_len}")
 
@@ -1245,9 +1369,7 @@ def live_monitor(results: List[AsianLevels], tz_mode: str, interval: int):
                 dist_al_pct = (price - r.asian_low) / r.asian_low * 100.0 if r.asian_low else 0.0
                 vs_mid = (price - r.midpoint) / r.midpoint * 100.0 if r.midpoint else 0.0
 
-                # Direction visuelle
-                ah_sign = "+" if dist_ah_pct > 0 else ""
-                al_sign = "+" if dist_al_pct > 0 else ""
+                # Direction visuelle (vs_mid utilise >/<, pas de + explicite)
                 mid_sign = ">" if vs_mid > 0 else ("<" if vs_mid < 0 else "=")
 
                 # Sweeps
@@ -1261,30 +1383,35 @@ def live_monitor(results: List[AsianLevels], tz_mode: str, interval: int):
 
                 # Couleur selon position vs AH/AL
                 if price > r.asian_high:
-                    marker = " ABOVE"
+                    marker = "ABOVE "
                 elif price < r.asian_low:
-                    marker = " BELOW"
+                    marker = "BELOW "
                 else:
-                    marker = "  IN  "
+                    marker = "IN    "
 
                 # FVG affichage compact
                 fvg_ah_str = _fmt_fvg_compact(r.fvg_ah) if r.fvg_ah else ""
                 fvg_al_str = _fmt_fvg_compact(r.fvg_al) if r.fvg_al else ""
 
+                # Max lots column (ajoutee dynamiquement si marge disponible)
+                lots_col = f" {r.max_lots:.2f}" if _has_margin_live and r.max_lots is not None else ""
+
+                # Dist AH/AL : format +8.2f = signe (+/-) inclus dans la largeur
+                # pour que les valeurs positives et negatives soient alignees
                 if _has_fvg_live:
                     print(f"  {r.symbol:<12} {fmt_price(price):>10} {fmt_price(r.asian_high):>10} "
                           f"{fmt_price(r.asian_low):>10} "
-                          f"{ah_sign}{dist_ah_pct:>7.2f}% "
-                          f"{al_sign}{dist_al_pct:>7.2f}% "
+                          f"{dist_ah_pct:+8.2f}% "
+                          f"{dist_al_pct:+8.2f}% "
                           f"{mid_sign}{abs(vs_mid):>6.2f}% "
-                          f"{fvg_ah_str:>8} {fvg_al_str:>8}{marker}")
+                          f"{fvg_ah_str:>8} {fvg_al_str:>8} {lots_col:>8}   {marker}")
                 else:
                     print(f"  {r.symbol:<12} {fmt_price(price):>10} {fmt_price(r.asian_high):>10} "
                           f"{fmt_price(r.asian_low):>10} "
-                          f"{ah_sign}{dist_ah_pct:>7.2f}% "
-                          f"{al_sign}{dist_al_pct:>7.2f}% "
+                          f"{dist_ah_pct:+8.2f}% "
+                          f"{dist_al_pct:+8.2f}% "
                           f"{mid_sign}{abs(vs_mid):>6.2f}% "
-                          f"{sweep_str:>8}{marker}")
+                          f"{sweep_str:>8} {lots_col:>8}   {marker}")
 
             print(f"  {'-' * sep_len}")
             print(f"  Ctrl+C pour quitter  |  Intervalle: {interval}s")

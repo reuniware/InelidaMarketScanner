@@ -25,6 +25,33 @@ python PureICT/scan_asian_session.py --force-select --verbose
 python PureICT/scan_asian_session.py --force-select --verbose --symbol EURUSD --live
 ```
 
+### État des lots max (calcul marge)
+
+Les colonnes `LotsMax` et `Marge/Lot` apparaissent automatiquement
+**(aucun flag nécessaire)** dès que le scanner peut lire les infos du compte MT5 :
+
+```bash
+# Scan simple — si marge dispo, les colonnes apparaissent
+python PureICT/scan_asian_session.py --symbol EURUSD
+
+# Mode live — colonne Lots visible à droite du tableau
+python PureICT/scan_asian_session.py --live --symbol EURUSD
+
+# Avec FVG + lots max combinés
+python PureICT/scan_asian_session.py --fvg --live --symbol EURUSD
+```
+
+**Exemple de sortie en mode live :**
+```
+  Symbole      Prix         AH         AL   Dist AH   Dist AL  vs Mid   Sweeps    Lots   Pos
+  EURUSD    1.12345    1.12500    1.12000     -0.14%    +0.31%  >0.08%       AL    3.25   IN
+```
+
+Le calcul est le même que le script MQL5 `MaxMargin_Limit` :
+- Marge libre du compte ÷ marge requise pour 1 lot
+- Arrondi au step du symbole (0.01 par défaut)
+- Plafonné au volume max autorisé par le broker
+
 ### Détection FVG (Fair Value Gap) près AH/AL
 
 ```bash
@@ -101,15 +128,39 @@ python PureICT/scan_asian_session.py --timezone BROKER --start-hour 1 --end-hour
 python PureICT/scan_asian_session.py --timezone UTC --start-hour 22 --end-hour 6
 ```
 
+### À propos des colonnes LotsMax / Marge/Lot
+
+Depuis la mise à jour du **22 juillet 2026**, le scanner PureICT affiche automatiquement
+deux colonnes supplémentaires dans le tableau principal et le mode live :
+
+| Colonne | Description |
+|---|---|
+| `LotsMax` | Nombre de lots maximum négociable pour ce symbole, calculé depuis **la marge libre de votre compte** MT5 et la marge requise pour 1 lot. |
+| `Marge/Lot` | Marge requise par le broker pour ouvrir **1 lot standard** sur ce symbole (dans la devise du compte). |
+
+**Comment le calcul fonctionne (équivalent du script MQL5 `MaxMargin_Limit`) :**
+1. Récupère la **marge libre** du compte (`ACCOUNT_MARGIN_FREE`)
+2. Calcule la **marge pour 1 lot** via `mt5.order_calc_margin()`
+3. `LotsMax = marge libre / marge pour 1 lot`
+4. Arrondi **vers le bas** au `volume_step` du symbole (ex: 0.01 lot)
+5. Plafonné au `volume_max` du symbole (limite broker)
+
+> ⚠️ Les colonnes apparaissent **uniquement** si le scanner parvient à récupérer
+> les informations de marge (compte MT5 connecté et marge libre > 0).
+> Sinon, le tableau reste dans sa forme classique sans ces colonnes.
+
 ### Export
 
 ```bash
-# Export CSV des niveaux
+# Export CSV des niveaux (inclut les colonnes max_lots, account_currency, margin_per_lot)
 python PureICT/scan_asian_session.py --export asian_levels.csv
 
 # Export avec session précédente
 python PureICT/scan_asian_session.py --previous --export asian_complet.csv
 ```
+
+Le CSV exporté contient **tous les champs** de la dataclass `AsianLevels`, y compris
+`max_lots`, `account_currency` et `margin_per_lot` pour une analyse offline.
 
 ### Forcer une date
 
