@@ -1337,24 +1337,24 @@ def live_monitor(results: List[AsianLevels], tz_mode: str, interval: int):
                 if _has_margin_live:
                     hdr = f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} " \
                           f"{'Dist AH':>9} {'Dist AL':>9} {'vs Mid':>8} " \
-                          f"{'FVG AH':>8} {'FVG AL':>8} {'Lots':>7}   {'Pos':<6}"
-                    sep_len = 117
+                          f"{'FVG AH':>8} {'FVG AL':>8} {'AHS':>5} {'ALS':>5} {'Lots':>7}   {'Pos':<6}"
+                    sep_len = 129
                 else:
                     hdr = f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} " \
                           f"{'Dist AH':>9} {'Dist AL':>9} {'vs Mid':>8} " \
-                          f"{'FVG AH':>8} {'FVG AL':>8}   {'Pos':<6}"
-                    sep_len = 109
+                          f"{'FVG AH':>8} {'FVG AL':>8} {'AHS':>5} {'ALS':>5}   {'Pos':<6}"
+                    sep_len = 121
             else:
                 if _has_margin_live:
                     hdr = f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} " \
                           f"{'Dist AH':>9} {'Dist AL':>9} {'vs Mid':>8} " \
-                          f"{'Sweeps':>8} {'Lots':>7}   {'Pos':<6}"
-                    sep_len = 104
+                          f"{'AHS':>5} {'ALS':>5} {'Lots':>7}   {'Pos':<6}"
+                    sep_len = 107
                 else:
                     hdr = f"  {'Symbole':<12} {'Prix':>10} {'AH':>10} {'AL':>10} " \
                           f"{'Dist AH':>9} {'Dist AL':>9} {'vs Mid':>8} " \
-                          f"{'Sweeps':>8}   {'Pos':<6}"
-                    sep_len = 96
+                          f"{'AHS':>5} {'ALS':>5}   {'Pos':<6}"
+                    sep_len = 99
             print(hdr)
             print(f"  {'-' * sep_len}")
 
@@ -1372,14 +1372,9 @@ def live_monitor(results: List[AsianLevels], tz_mode: str, interval: int):
                 # Direction visuelle (vs_mid utilise >/<, pas de + explicite)
                 mid_sign = ">" if vs_mid > 0 else ("<" if vs_mid < 0 else "=")
 
-                # Sweeps
-                sweep_str = ""
-                if r.ah_swept:
-                    sweep_str += "AH"
-                if r.al_swept:
-                    sweep_str += "AL" if not sweep_str else ",AL"
-                if not sweep_str:
-                    sweep_str = "-"
+                # Sweeps individuels AH/AL
+                ah_swept_str = "AH" if r.ah_swept else "-"
+                al_swept_str = "AL" if r.al_swept else "-"
 
                 # Couleur selon position vs AH/AL
                 if price > r.asian_high:
@@ -1404,14 +1399,14 @@ def live_monitor(results: List[AsianLevels], tz_mode: str, interval: int):
                           f"{dist_ah_pct:+8.2f}% "
                           f"{dist_al_pct:+8.2f}% "
                           f"{mid_sign}{abs(vs_mid):>6.2f}% "
-                          f"{fvg_ah_str:>8} {fvg_al_str:>8} {lots_col:>8}   {marker}")
+                          f"{fvg_ah_str:>8} {fvg_al_str:>8} {ah_swept_str:>5} {al_swept_str:>5} {lots_col:>8}   {marker}")
                 else:
                     print(f"  {r.symbol:<12} {fmt_price(price):>10} {fmt_price(r.asian_high):>10} "
                           f"{fmt_price(r.asian_low):>10} "
                           f"{dist_ah_pct:+8.2f}% "
                           f"{dist_al_pct:+8.2f}% "
                           f"{mid_sign}{abs(vs_mid):>6.2f}% "
-                          f"{sweep_str:>8} {lots_col:>8}   {marker}")
+                          f"{ah_swept_str:>5} {al_swept_str:>5} {lots_col:>8}   {marker}")
 
             print(f"  {'-' * sep_len}")
             print(f"  Ctrl+C pour quitter  |  Intervalle: {interval}s")
