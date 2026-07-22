@@ -5,28 +5,28 @@ PureICT / scan_asian_session.py
 Scanne TOUS les actifs disponibles dans MetaTrader 5 et calcule les niveaux
 de la session asiatique (High/Low/Mid) en fuseau Paris (00:00-08:00).
 
-Inspiré du Pine Script "AsiaSessionHighLowMidLines" pour TradingView (
+Inspire du Pine Script "AsiaSessionHighLowMidLines" pour TradingView (
 https://www.tradingview.com/script/AsiaSessionHighLowMidLines/ ).
 
 Comportement (identique au Pine Script) :
-  ┌─ Pendant la session asiatique ──────────────────────────┐
-  │  • Le AH/AL est DYNAMIQUE : il évolue à chaque bougie   │
-  │  • La session précédente est FIGÉE (gelée)              │
-  └─────────────────────────────────────────────────────────┘
-  ┌─ Après la session ──────────────────────────────────────┐
-  │  • Le AH/AL de la session terminée devient FIGÉ         │
-  │  • La session d'hier est la "précédente"                │
-  │  • Les sweeps post-session sont détectés                │
-  └─────────────────────────────────────────────────────────┘
+  +-------------------------- Pendant la session asiatique --------------------------+
+  |  * Le AH/AL est DYNAMIQUE : il evolue a chaque bougie   |
+  |  * La session precedente est FIGEE (gelee)              |
+  +-------------------------------------------------------------------------------+
+  +- Apres la session ------------------------------------------------------------+
+  |  * Le AH/AL de la session terminee devient FIGE         |
+  |  * La session d'hier est la "precedente"                |
+  |  * Les sweeps post-session sont detectes                |
+  +-------------------------------------------------------------------------------+
 
-Fonctionnalités :
-  • Session asiatique configurable (défaut : Paris 00:00-08:00)
-  • Session courante (dynamique si en cours, figée si terminée)
-  • Session précédente (toujours figée — comme var lines du Pine)
-  • Détection des sweeps AH/AL post-session (définition ICT)
-  • Scan de TOUS les symboles disponibles chez le broker
-  • Affichage tableau + export CSV optionnel
-  • Fuseau horaire automatique (été/hiver)
+Fonctionnalites :
+  * Session asiatique configurable (defaut : Paris 00:00-08:00)
+  * Session courante (dynamique si en cours, figee si terminee)
+  * Session precedente (toujours figee - comme var lines du Pine)
+  * Detection des sweeps AH/AL post-session (definition ICT)
+  * Scan de TOUS les symboles disponibles chez le broker
+  * Affichage tableau + export CSV optionnel
+  * Fuseau horaire automatique (ete/hiver)
 
 Usage :
   python PureICT/scan_asian_session.py
@@ -51,8 +51,8 @@ from typing import List, Optional, Tuple
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
-# Forcer l'encodage UTF-8 pour les caractères unicode (box-drawing, emoji)
-# Nécessaire sur Windows où le terminal utilise cp1252 par défaut
+# Forcer l'encodage UTF-8 pour les caracteres unicode (box-drawing, emoji)
+# Necessaire sur Windows ou le terminal utilise cp1252 par defaut
 try:
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 except AttributeError:
@@ -73,11 +73,11 @@ from src.config import _dst_eu_summer, format_epoch as _fmt_epoch_tz
 logger = logging.getLogger("PureICT.AsianSession")
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 # CONFIGURATION
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 
-# Session asiatique par défaut : Paris 00:00-08:00
+# Session asiatique par defaut : Paris 00:00-08:00
 DEFAULT_START_HOUR = 0
 DEFAULT_END_HOUR = 8
 DEFAULT_TIMEZONE = "PARIS"
@@ -104,9 +104,9 @@ LOOKBACK_BARS = {
 }
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 # DATACLASSES
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 
 @dataclass
 class AsianLevels:
@@ -116,7 +116,7 @@ class AsianLevels:
       - open_first_bar / close_last_bar : prix d'ouverture/fermeture de la session
       - high_at_epoch / low_at_epoch    : timestamp exact du AH et du AL
       - ah_swept / al_swept             : sweep ICT post-session
-      - fib_up_*/fib_dn_*               : extensions Fibonacci (1.618–5.618)
+      - fib_up_*/fib_dn_*               : extensions Fibonacci (1.618-5.618)
     """
     symbol: str
     session_date: str               # Date Paris de la session (YYYY-MM-DD)
@@ -124,7 +124,6 @@ class AsianLevels:
     is_live: bool                   # True si session en cours (AH/AL evolutifs)
     open_first_bar: float           # Prix d'ouverture de la 1ere bougie Asian
     close_last_bar: float           # Prix de fermeture de la derniere bougie
-                                    # (ou prix en cours si session live)
     asian_high: float               # Plus haut de la session (refHigh)
     asian_low: float                # Plus bas de la session (refLow)
     high_at_epoch: float            # Timestamp UTC de la bougie du AH
@@ -138,7 +137,7 @@ class AsianLevels:
     ah_swept_at: Optional[str]      # Heure UTC du sweep AH (HH:MM:SS)
     al_swept_at: Optional[str]      # Heure UTC du sweep AL
     current_price: float            # Prix actuel bid
-    # Extensions Fibonacci (calculées depuis le midpoint)
+    # Extensions Fibonacci (calculees depuis le midpoint)
     fib_up_1618: float = 0.0        # Mid + dist*1.618
     fib_up_2618: float = 0.0        # Mid + dist*2.618
     fib_up_3618: float = 0.0        # Mid + dist*3.618
@@ -153,7 +152,7 @@ class AsianLevels:
 
 @dataclass
 class PreviousAsianLevels:
-    """Session asiatique PRÉCÉDENTE (figée, comme les lignes var du Pine Script)."""
+    """Session asiatique PRECEDENTE (figee, comme les lignes var du Pine Script)."""
     symbol: str
     session_date: str
     asian_high: float
@@ -164,12 +163,12 @@ class PreviousAsianLevels:
     bars_in_session: int
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 # HELPERS TEMPS
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 
 def paris_offset() -> int:
-    """Décalage Paris vs UTC : +2 été (CEST), +1 hiver (CET)."""
+    """Decalage Paris vs UTC : +2 ete (CEST), +1 hiver (CET)."""
     return 2 if _dst_eu_summer() else 1
 
 
@@ -206,30 +205,30 @@ def _session_epochs(
 ) -> Tuple[float, float]:
     """Retourne (start_epoch, end_epoch) compatibles avec les timestamps MT5.
 
-    ⚠️ CRITIQUE : les timestamps de `copy_rates_from_pos` sont en heure SERVEUR
-    (broker) traités comme si c'était UTC. Ex: barre à 01:00 broker (UTC+3) →
-    epoch équivalent à "01:00 UTC" (PAS "22:00 UTC veille").
+    !! CRITIQUE : les timestamps de `copy_rates_from_pos` sont en heure SERVEUR
+    (broker) traites comme si c'etait UTC. Ex: barre a 01:00 broker (UTC+3) ->
+    epoch equivalent a "01:00 UTC" (PAS "22:00 UTC veille").
 
     Convertit les heures du fuseau utilisateur (tz_mode) en heures BROKER,
     puis construit les epochs en traitant ces heures comme UTC.
 
     Args:
         session_date: Date de la session au format YYYY-MM-DD.
-        start_hour: Heure de début (fuseau tz_mode).
+        start_hour: Heure de debut (fuseau tz_mode).
         end_hour: Heure de fin (fuseau tz_mode).
         tz_mode: Fuseau de la session (PARIS, BROKER, UTC).
 
     Returns:
-        (start_epoch, end_epoch) — timestamps compatibles MT5.
+        (start_epoch, end_epoch) - timestamps compatibles MT5.
     """
     dt = datetime.strptime(session_date, "%Y-%m-%d")
     # MT5 stocke les heures en heure SERVEUR (BROKER). Convertir du fuseau
-    # utilisateur vers le fuseau BROKER. Ex: PARIS 0→8 = BROKER 1→9.
+    # utilisateur vers le fuseau BROKER. Ex: PARIS 0->8 = BROKER 1->9.
     broker_off = _tz_offset("BROKER")
     user_off = _tz_offset(tz_mode)
     hour_shift = broker_off - user_off  # 0 pour BROKER, 1 pour PARIS, 3 pour UTC
 
-    # Utiliser timedelta (pas replace) pour gérer le rollover >23h ou <0h
+    # Utiliser timedelta (pas replace) pour gerer le rollover >23h ou <0h
     base = dt.replace(hour=0, minute=0, second=0)
     start_dt = base + timedelta(hours=start_hour + hour_shift)
     end_dt = base + timedelta(hours=end_hour + hour_shift)
@@ -245,7 +244,7 @@ def _session_true_utc_end(
 ) -> datetime:
     """Retourne la VRAIE fin de session en UTC (pour is_live et affichage).
 
-    Contrairement à _session_epochs (compatibilité MT5), cette fonction fait
+    Contrairement a _session_epochs (compatibilite MT5), cette fonction fait
     une vraie conversion de fuseau horaire.
     """
     offset = _tz_offset(tz_mode)
@@ -259,19 +258,19 @@ def is_in_asian_session(
     end_hour: int = DEFAULT_END_HOUR,
     tz_mode: str = DEFAULT_TIMEZONE,
 ) -> bool:
-    """Vérifie si maintenant est dans la fenêtre de session asiatique.
+    """Verifie si maintenant est dans la fenetre de session asiatique.
 
-    Utilise la comparaison timestamp (comme MQL5) pour gérer les sessions overnight.
+    Utilise la comparaison timestamp (comme MQL5) pour gerer les sessions overnight.
     """
     offset = _tz_offset(tz_mode)
     local_now = now_datetime() + timedelta(hours=offset)
     session_start_today = local_now.replace(hour=start_hour, minute=0, second=0, microsecond=0)
     session_end_today = local_now.replace(hour=end_hour, minute=0, second=0, microsecond=0)
     if start_hour < end_hour:
-        # Session normale (ex: 0→8)
+        # Session normale (ex: 0->8)
         return session_start_today <= local_now < session_end_today
     else:
-        # Session overnight (ex: 22→6) : après start OU avant end
+        # Session overnight (ex: 22->6) : apres start OU avant end
         return local_now >= session_start_today or local_now < session_end_today
 
 
@@ -279,21 +278,17 @@ def _smart_session_date(
     end_hour: int = DEFAULT_END_HOUR,
     tz_mode: str = DEFAULT_TIMEZONE,
 ) -> str:
-    """Sélection intelligente de la session (logique MQL5 — comparaison timestamp).
+    """Selection intelligente de la session (logique MQL5 - comparaison timestamp).
 
-    ┌─ Règle (identique à l'indicateur MT5) ──────────────────────┐
-    │ Si on est AVANT la fin de session aujourd'hui               │
-    │ (now < session_end_today) → session d'HIER (figée).        │
-    │ Si on est APRÈS → session d'AUJOURD'HUI (terminée).        │
-    └──────────────────────────────────────────────────────────────┘
+    +- Regle (identique a l'indicateur MT5) ----------------------------------------+
+    | Si on est AVANT la fin de session aujourd'hui               |
+    | (now < session_end_today) -> session d'HIER (figee).        |
+    | Si on est APRES -> session d'AUJOURD'HUI (terminee).        |
+    +------------------------------------------------------------------------------+
 
     Exemple avec Paris 00:00-08:00 :
-      - À 03:00 Paris → session d'hier (celle d'aujourd'hui est en cours)
-      - À 11:00 Paris → session d'aujourd'hui (terminée à 08:00)
-
-    Exemple overnight 22:00-06:00 :
-      - À 23:00 (avant 06:00) → session d'hier
-      - À 07:00 (après 06:00)  → session d'aujourd'hui
+      - A 03:00 Paris -> session d'hier (celle d'aujourd'hui est en cours)
+      - A 11:00 Paris -> session d'aujourd'hui (terminee a 08:00)
 
     Args:
         end_hour: Heure de fin de session (fuseau tz_mode).
@@ -304,15 +299,15 @@ def _smart_session_date(
 
     Note:
         Comme l'indicateur MQL5 original, cette fonction suppose que
-        start_hour < end_hour (session dans la même journée civile).
-        Les sessions overnight (ex: 22→6) ne sont pas supportées ici.
+        start_hour < end_hour (session dans la meme journee civile).
+        Les sessions overnight (ex: 22->6) ne sont pas supportees ici.
     """
     offset = _tz_offset(tz_mode)
     local_now = now_datetime() + timedelta(hours=offset)
     # Construire le timestamp de fin de session aujourd'hui (comparaison MQL5)
     session_end_today = local_now.replace(hour=end_hour, minute=0, second=0, microsecond=0)
     if local_now < session_end_today:
-        # Encore avant la fin de session → montrer celle d'hier
+        # Encore avant la fin de session -> montrer celle d'hier
         local_now -= timedelta(days=1)
     return local_now.strftime("%Y-%m-%d")
 
@@ -333,9 +328,9 @@ def fmt_price(p: float) -> str:
     return f"{p:.5f}"
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 # HELPERS MT5 / BOUGIES
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 
 def bars_to_dicts(rates_raw) -> List[dict]:
     """Convertit le ndarray MT5 en liste de dicts simples."""
@@ -352,18 +347,18 @@ def bars_to_dicts(rates_raw) -> List[dict]:
 
 
 def sweep_high(bar: dict, level: float) -> bool:
-    """ICT sweep AH : mèche au-dessus + close en-dessous (BSL)."""
+    """ICT sweep AH : meche au-dessus + close en-dessous (BSL)."""
     return bar["high"] > level and bar["close"] < level
 
 
 def sweep_low(bar: dict, level: float) -> bool:
-    """ICT sweep AL : mèche en-dessous + close au-dessus (SSL)."""
+    """ICT sweep AL : meche en-dessous + close au-dessus (SSL)."""
     return bar["low"] < level and bar["close"] > level
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 # SCAN D'UN SYMBOLE
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 
 def scan_symbol(
     symbol: str,
@@ -383,10 +378,10 @@ def scan_symbol(
         end_hour: Heure fin session (fuseau tz_mode).
         timeframe: M1/M5/M15/M30/H1.
         tz_mode: PARIS, BROKER ou UTC.
-        _mt5c: Connecteur MT5 partagé.
+        _mt5c: Connecteur MT5 partage.
 
     Returns:
-        AsianLevels ou None si données insuffisantes.
+        AsianLevels ou None si donnees insuffisantes.
     """
     if session_date_paris is None:
         session_date_paris = paris_date_str()
@@ -396,17 +391,17 @@ def scan_symbol(
         return None
     mt5c.select_symbol(symbol)
 
-    # ── Epochs compatibles MT5 (heure broker traitée comme UTC) ──
+    # -- Epochs compatibles MT5 (heure broker traitee comme UTC) --
     start_epoch, end_epoch = _session_epochs(session_date_paris, start_hour, end_hour,
                                                tz_mode)
 
-    # Offset BROKER pour convertir epochs MT5 → vrai UTC (affichage)
+    # Offset BROKER pour convertir epochs MT5 -> vrai UTC (affichage)
     _broker_offset_sec = _tz_offset("BROKER") * 3600
 
     # Vraie fin de session UTC (pour is_live)
     true_end_utc = _session_true_utc_end(session_date_paris, end_hour, tz_mode)
 
-    # ── Choix du timeframe ──
+    # -- Choix du timeframe --
     tf = TIMEFRAMES.get(timeframe.upper())
     if tf is None:
         logger.error("Timeframe inconnu : %s (disponibles: %s)",
@@ -414,7 +409,7 @@ def scan_symbol(
         return None
     lookback = LOOKBACK_BARS.get(timeframe.upper(), 400)
 
-    # ── Bougies ──
+    # -- Bougies --
     rates_raw = mt5.copy_rates_from_pos(symbol, tf, 0, lookback)
     if rates_raw is None or len(rates_raw) == 0:
         return None
@@ -422,7 +417,7 @@ def scan_symbol(
     bars = bars_to_dicts(rates_raw)
     bars.sort(key=lambda b: b["time"])
 
-    # ── Barres de la session asiatique ──
+    # -- Barres de la session asiatique --
     session_bars = [b for b in bars if start_epoch <= b["time"] < end_epoch]
     if not session_bars:
         return None
@@ -436,17 +431,17 @@ def scan_symbol(
     for b in session_bars:
         if b["high"] > asian_high:
             asian_high = b["high"]
-            high_at_epoch = float(b["time"]) - _broker_offset_sec  # MT5→UTC
+            high_at_epoch = float(b["time"]) - _broker_offset_sec  # MT5->UTC
         if b["low"] < asian_low:
             asian_low = b["low"]
-            low_at_epoch = float(b["time"]) - _broker_offset_sec  # MT5→UTC
+            low_at_epoch = float(b["time"]) - _broker_offset_sec  # MT5->UTC
 
     midpoint = (asian_high + asian_low) / 2.0
     range_pips = asian_high - asian_low
     range_pct = (range_pips / midpoint * 100.0) if midpoint > 0 else 0.0
 
-    # ── Extensions Fibonacci ──
-    # dist = moitié du range (midpoint → AH ou AL)
+    # -- Extensions Fibonacci --
+    # dist = moitie du range (midpoint -> AH ou AL)
     fib_levels = [1.618, 2.618, 3.618, 4.618, 5.618]
     fib_up_vals: dict = {}
     fib_dn_vals: dict = {}
@@ -457,7 +452,7 @@ def scan_symbol(
             fib_up_vals[f"fib_up_{key}"] = round(midpoint + dist * lvl, 5)
             fib_dn_vals[f"fib_dn_{key}"] = round(midpoint - dist * lvl, 5)
     else:
-        # Session plate (AH==AL) → toutes les extensions = midpoint
+        # Session plate (AH==AL) -> toutes les extensions = midpoint
         for lvl in fib_levels:
             key = int(lvl * 1000)
             fib_up_vals[f"fib_up_{key}"] = midpoint
@@ -467,14 +462,14 @@ def scan_symbol(
     open_first_bar = session_bars[0]["open"]
     close_last_bar = session_bars[-1]["close"]
 
-    # ── Session live ? ──
+    # -- Session live ? --
     is_live = time.time() < true_end_utc.timestamp()
     if is_live:
         # Si session en cours, le close est le prix actuel
         tick = mt5.symbol_info_tick(symbol)
         close_last_bar = float(tick.bid) if tick else close_last_bar
 
-    # ── Barres post-session pour sweeps ──
+    # -- Barres post-session pour sweeps --
     true_end_epoch = true_end_utc.timestamp()
     today_date_utc = time.strftime("%Y-%m-%d", time.gmtime(true_end_epoch))
     post_bars = [
@@ -498,7 +493,7 @@ def scan_symbol(
         if ah_swept and al_swept:
             break
 
-    # ── Prix actuel ──
+    # -- Prix actuel --
     tick = mt5.symbol_info_tick(symbol)
     current_price = float(tick.bid) if tick else (bars[-1]["close"] if bars else 0.0)
 
@@ -538,19 +533,19 @@ def scan_previous_session(
     tz_mode: str = DEFAULT_TIMEZONE,
     _mt5c: Optional[MT5Connector] = None,
 ) -> Optional[PreviousAsianLevels]:
-    """Calcule les niveaux de la session asiatique PRÉCÉDENTE.
+    """Calcule les niveaux de la session asiatique PRECEDENTE.
 
-    Dans le Pine Script, les lignes var persistent après la session :
-      timeIsAllowed and not timeIsAllowed[1] → newSession → figer l'ancienne
+    Dans le Pine Script, les lignes var persistent apres la session :
+      timeIsAllowed and not timeIsAllowed[1] -> newSession -> figer l'ancienne
 
-    Ici on décale simplement d'un jour vers le passé.
+    Ici on decale simplement d'un jour vers le passe.
 
     Args:
         symbol: Symbole MT5.
         session_date_paris: Date de la session courante.
-        start_hour: Heure de début de session (Paris).
+        start_hour: Heure de debut de session (Paris).
         end_hour: Heure de fin de session (Paris).
-        _mt5c: Connecteur partagé.
+        _mt5c: Connecteur partage.
 
     Returns:
         PreviousAsianLevels ou None.
@@ -558,7 +553,7 @@ def scan_previous_session(
     if session_date_paris is None:
         session_date_paris = paris_date_str()
 
-    # Décaler d'un jour vers le passé
+    # Decaler d'un jour vers le passe
     dt = datetime.strptime(session_date_paris, "%Y-%m-%d") - timedelta(days=1)
     prev_date = dt.strftime("%Y-%m-%d")
 
@@ -578,9 +573,9 @@ def scan_previous_session(
     )
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 # SCAN DE TOUS LES SYMBOLES
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 
 def scan_all_symbols(
     session_date_paris: Optional[str] = None,
@@ -620,7 +615,7 @@ def scan_all_symbols(
         source = "broker complet"
 
     if not all_syms:
-        logger.error("Aucun symbole trouvé chez le broker.")
+        logger.error("Aucun symbole trouve chez le broker.")
         return [], []
 
     # Appliquer le filtre --symbol (motifs fnmatch)
@@ -678,13 +673,14 @@ def scan_all_symbols(
     return current_results, previous_results
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 # AFFICHAGE
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 
 def display_results(results: List[AsianLevels],
                     previous: List[PreviousAsianLevels] = None,
-                    tz_mode: str = DEFAULT_TIMEZONE):
+                    tz_mode: str = DEFAULT_TIMEZONE,
+                    is_previous_session: bool = False):
     """Affiche un tableau unique des AH/AL avec timestamps 3tz."""
     if not results:
         print("  Aucun resultat a afficher.")
@@ -700,14 +696,20 @@ def display_results(results: List[AsianLevels],
     offset = _tz_offset(tz_mode)
     local_now = now_datetime() + timedelta(hours=offset)
 
+    # Label clair : session d'aujourd'hui vs session precedente
+    if is_previous_session:
+        session_kind = "PRECEDENTE (hier, figee)"
+    else:
+        session_kind = "du jour (terminee)"
+
     print()
-    print(f"  ##### PureICT - Session Asiatique #####")
+    print(f"  ##### PureICT - Session Asiatique {session_kind} #####")
     print(f"  Date  : {results[0].session_date}")
     print(f"  Heure : {local_now.strftime('%H:%M:%S')} {tz_mode}")
     print(f"  Symboles : {n_total}  |  Session en cours : {n_live}")
     print()
 
-    # ── Tableau unique ──
+    # -- Tableau unique --
     sep = "  " + "-" * 135
     print(sep)
     hdr = (f"  {'Actif':<14} {'Open':>12} {'Close':>12} "
@@ -735,18 +737,16 @@ def display_results(results: List[AsianLevels],
     print(sep)
     print(f"  TZ: UTC / Paris / Broker  |  Live = session en cours (donnees partielles)")
 
-    # ── Extensions Fibonacci ──
+    # -- Extensions Fibonacci --
     _print_fibonacci(results)
 
-    # ── Session precedente (optionnelle) ──
+    # -- Session precedente (optionnelle) --
     if previous:
         _print_previous(previous)
 
 
-
-
 def _print_fibonacci(results: List[AsianLevels]):
-    """Affiche les extensions Fibonacci (1.618–5.618) pour chaque symbole."""
+    """Affiche les extensions Fibonacci (1.618-5.618) pour chaque symbole."""
     if not results:
         return
 
@@ -758,13 +758,13 @@ def _print_fibonacci(results: List[AsianLevels]):
     print(f"  -- Extensions Fibonacci (depuis le midpoint) --")
     sep = "  " + "-" * 140
     print(sep)
-    # En-tête : symbole + 5 niveaux UP + 5 niveaux DOWN
+    # En-tete : symbole + 5 niveaux UP + 5 niveaux DOWN
     hdr = f"  {'Symbole':<14} {'Mid':>12}"
     for lvl in fib_levels:
-        hdr += f" {'▲'+str(lvl):>12}"
+        hdr += f" {'\u25b2'+str(lvl):>12}"
     hdr += "  |"
     for lvl in fib_levels:
-        hdr += f" {'▼'+str(lvl):>12}"
+        hdr += f" {'\u25bc'+str(lvl):>12}"
     print(hdr)
     print(sep)
 
@@ -783,11 +783,11 @@ def _print_fibonacci(results: List[AsianLevels]):
 
 
 def _print_previous(previous: List[PreviousAsianLevels]):
-    """Affiche la session précédente (figée)."""
+    """Affiche la session precedente (figee)."""
     if not previous:
         return
 
-    # Trier par range décroissant (les plus intéressants d'abord)
+    # Trier par range decroissant (les plus interessants d'abord)
     previous.sort(key=lambda p: -p.range_pips)
 
     print()
@@ -808,9 +808,9 @@ def _print_previous(previous: List[PreviousAsianLevels]):
 
 
 def export_csv(results: List[AsianLevels], filepath: str):
-    """Exporte les résultats en CSV."""
+    """Exporte les resultats en CSV."""
     if not results:
-        print("  Aucun résultat à exporter.")
+        print("  Aucun resultat a exporter.")
         return
 
     fieldnames = [f.name for f in fields(AsianLevels)]
@@ -820,16 +820,16 @@ def export_csv(results: List[AsianLevels], filepath: str):
         for r in results:
             writer.writerow(asdict(r))
 
-    print(f"\n  ✅ {len(results)} lignes exportées → {os.path.abspath(filepath)}")
+    print(f"\n  \u2705 {len(results)} lignes exportees -> {os.path.abspath(filepath)}")
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 # CLI
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 
 def main():
     parser = argparse.ArgumentParser(
-        description="PureICT — Scan Session Asiatique (niveaux AH/AL/Mid)",
+        description="PureICT - Scan Session Asiatique (niveaux AH/AL/Mid)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Exemples :
@@ -846,19 +846,19 @@ Exemples :
         """,
     )
     parser.add_argument("--date", default=None,
-                        help="Date Paris de la session (YYYY-MM-DD). Défaut: aujourd'hui.")
+                        help="Date Paris de la session (YYYY-MM-DD). Defaut: aujourd'hui.")
     parser.add_argument("--max-symbols", type=int, default=None,
-                        help="Limite du nombre de symboles à scanner.")
+                        help="Limite du nombre de symboles a scanner.")
     parser.add_argument("--previous", action="store_true",
-                        help="Inclure la session précédente (figée, comme les var lines du Pine Script).")
+                        help="Inclure la session precedente (figee, comme les var lines du Pine Script).")
     parser.add_argument("--export", default=None,
                         help="Chemin du fichier CSV d'export.")
     parser.add_argument("--start-hour", type=int, default=DEFAULT_START_HOUR,
-                        help=f"Heure de début de session. Défaut: {DEFAULT_START_HOUR}h.")
+                        help=f"Heure de debut de session. Defaut: {DEFAULT_START_HOUR}h.")
     parser.add_argument("--end-hour", type=int, default=DEFAULT_END_HOUR,
-                        help=f"Heure de fin de session. Défaut: {DEFAULT_END_HOUR}h.")
+                        help=f"Heure de fin de session. Defaut: {DEFAULT_END_HOUR}h.")
     parser.add_argument("--timezone", default=DEFAULT_TIMEZONE,
-                        help=f"Fuseau de la session. Défaut: {DEFAULT_TIMEZONE}.")
+                        help=f"Fuseau de la session. Defaut: {DEFAULT_TIMEZONE}.")
     parser.add_argument("--symbol", "-s", action="append", default=[],
                         help="Filtre par motif (fnmatch). Accepte les wildcards * et ?. "
                              "Peut etre utilise plusieurs fois : --symbol EUR* --symbol *JPY. "
@@ -887,29 +887,35 @@ Exemples :
 
     offset = _tz_offset(args.timezone)
 
-    # ── Sélection intelligente de la session (logique MQL5) ──
+    # -- Selection intelligente de la session (logique MQL5) --
     if args.date:
         session_date = args.date
         date_source = "manuelle (--date)"
     else:
         session_date = _smart_session_date(args.end_hour, args.timezone)
-        date_source = "auto (MQL5: avant fin session → hier, après → aujourd'hui)"
+        date_source = "auto (MQL5: avant fin session -> hier, apres -> aujourd'hui)"
 
     print(f"  Fuseau session : {args.timezone} (UTC{'+' if offset > 0 else ''}{offset})")
     print(f"  Creneau        : {args.start_hour:02d}:00 -> {args.end_hour:02d}:00 {args.timezone}")
     print(f"  Date session   : {session_date} ({date_source})")
     print(f"  Timeframe      : {args.timeframe}")
-    # ── Intervalle UTC réel pour affichage ──
+    # -- Intervalle UTC reel pour affichage --
     true_end_utc = _session_true_utc_end(session_date, args.end_hour, args.timezone)
     offset_hours = _tz_offset(args.timezone)
     true_start_utc = true_end_utc - timedelta(hours=(args.end_hour - args.start_hour))
-    print(f"  Intervalle UTC : {true_start_utc.strftime('%Y-%m-%d %H:%M')} → {true_end_utc.strftime('%H:%M')}")
+    print(f"  Intervalle UTC : {true_start_utc.strftime('%Y-%m-%d %H:%M')} -> {true_end_utc.strftime('%H:%M')}")
     print(f"  Heure {args.timezone} : {paris_now().strftime('%H:%M:%S')}")
     in_session = is_in_asian_session(args.start_hour, args.end_hour, args.timezone)
-    print(f"  {'(Session en cours)' if in_session else '(Session terminée)'}")
+    print(f"  {'(Session en cours)' if in_session else '(Session terminee)'}")
     if in_session:
         fin = true_end_utc.strftime('%H:%M')
         print(f"  Fin de session dans ~{true_end_utc.timestamp() - time.time():.0f}s ({fin} UTC)")
+    # Indique clairement si on affiche la session d'hier
+    is_previous = in_session and not args.date
+    if is_previous:
+        today_str_local = (now_datetime() + timedelta(hours=offset)).strftime("%Y-%m-%d")
+    print(f"  !! Session d'aujourd'hui ({today_str_local}) encore en cours ->")
+    print(f"     affichage de la session precedente ({session_date}) terminee.")
     print()
 
     current, previous = scan_all_symbols(
@@ -925,11 +931,12 @@ Exemples :
     )
 
     if not current:
-        print(f"  Aucune donnée asiatique trouvée.")
-        print(f"  Vérifie que MT5 est connecté et que les symboles sont disponibles.")
+        print(f"  Aucune donnee asiatique trouvee.")
+        print(f"  Verifie que MT5 est connecte et que les symboles sont disponibles.")
         return 1
 
-    display_results(current, previous if args.previous else None, args.timezone)
+    display_results(current, previous if args.previous else None, args.timezone,
+                    is_previous_session=is_previous)
 
     if args.export:
         export_csv(current, args.export)
