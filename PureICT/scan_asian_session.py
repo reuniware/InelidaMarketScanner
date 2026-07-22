@@ -206,6 +206,8 @@ class AsianLevels:
       - high_at_epoch / low_at_epoch    : timestamp exact du AH et du AL
       - ah_swept / al_swept             : sweep ICT post-session
       - fib_up_*/fib_dn_*               : extensions Fibonacci (1.618-5.618)
+      - ote_bear/bull_high/low          : zone OTE retracement 0.618-0.382
+      - in_ote_bear / in_ote_bull       : prix dans la zone OTE ?
     """
     symbol: str
     session_date: str               # Date Paris de la session (YYYY-MM-DD)
@@ -244,6 +246,13 @@ class AsianLevels:
     fib_dn_3618: float = 0.0        # Mid - dist*3.618
     fib_dn_4618: float = 0.0        # Mid - dist*4.618
     fib_dn_5618: float = 0.0        # Mid - dist*5.618
+    # OTE (Optimal Trade Entry) — retracement 0.618-0.382 du range
+    ote_bear_high: float = 0.0      # AH - 0.382*range (haut zone OTE bearish)
+    ote_bear_low: float = 0.0       # AH - 0.618*range (bas zone OTE bearish)
+    ote_bull_high: float = 0.0      # AL + 0.618*range (haut zone OTE bullish)
+    ote_bull_low: float = 0.0       # AL + 0.382*range (bas zone OTE bullish)
+    in_ote_bear: bool = False       # Prix dans la zone OTE bearish ?
+    in_ote_bull: bool = False       # Prix dans la zone OTE bullish ?
 
 
 @dataclass
@@ -815,6 +824,25 @@ def scan_symbol(
     tick = mt5.symbol_info_tick(symbol)
     current_price = float(tick.bid) if tick else (bars[-1]["close"] if bars else 0.0)
 
+    # -- Zone OTE (Optimal Trade Entry) : retracement 0.618-0.382 du range --
+    ote_bear_high = 0.0  # zone bearish : AH - 0.382*range
+    ote_bear_low  = 0.0  #                   AH - 0.618*range
+    ote_bull_high = 0.0  # zone bullish : AL + 0.618*range
+    ote_bull_low  = 0.0  #                  AL + 0.382*range
+    in_ote_bear = False
+    in_ote_bull = False
+    if range_pips > 0:
+        # Bearish OTE (apres sweep AH) : retracement depuis AH vers AL
+        ote_bear_high = asian_high - 0.382 * range_pips  # 38.2% en dessous AH
+        ote_bear_low  = asian_high - 0.618 * range_pips  # 61.8% en dessous AH
+        # Bullish OTE (apres sweep AL) : retracement depuis AL vers AH
+        ote_bull_high = asian_low  + 0.618 * range_pips  # 61.8% au-dessus AL
+        ote_bull_low  = asian_low  + 0.382 * range_pips  # 38.2% au-dessus AL
+        # Detection temps reel : le prix actuel est-il dans une zone OTE ?
+        # (on utilise le current_price deja recupere au-dessus)
+        in_ote_bear = ote_bear_low <= current_price <= ote_bear_high
+        in_ote_bull = ote_bull_low <= current_price <= ote_bull_high
+
     # -- Detection FVG pres AH/AL (si active) --
     fvg_ah_list: List[FvgInfo] = []
     fvg_al_list: List[FvgInfo] = []
@@ -856,6 +884,12 @@ def scan_symbol(
         max_lots=max_lots_val,
         account_currency=acc_currency,
         margin_per_lot=margin_per_lot_val,
+        ote_bear_high=round(ote_bear_high, 5),
+        ote_bear_low=round(ote_bear_low, 5),
+        ote_bull_high=round(ote_bull_high, 5),
+        ote_bull_low=round(ote_bull_low, 5),
+        in_ote_bear=in_ote_bear,
+        in_ote_bull=in_ote_bull,
         **fib_up_vals,
         **fib_dn_vals,
     ), None
@@ -1102,7 +1136,8 @@ def scan_all_symbols(
 def display_results(results: List[AsianLevels],
                     previous: List[PreviousAsianLevels] = None,
                     tz_mode: str = DEFAULT_TIMEZONE,
-                    is_previous_session: bool = False):
+                    is_previous_session: bool = False,
+                    show_ote: bool = False):
     """Affiche un tableau unique des AH/AL avec timestamps 3tz."""
     if not results:
         print("  Aucun resultat a afficher.")
@@ -1190,6 +1225,10 @@ def display_results(results: List[AsianLevels],
     # -- Extensions Fibonacci --
     _print_fibonacci(results)
 
+    # -- Zone OTE (Optimal Trade Entry) --
+    if show_ote:
+        _print_ote(results)
+
     # -- Session precedente (optionnelle) --
     if previous:
         _print_previous(previous)
@@ -1230,6 +1269,50 @@ def _print_fibonacci(results: List[AsianLevels]):
         print(row)
 
     print(sep)
+
+
+def _print_ote(results: List[AsianLevels]):
+    """Affiche la zone OTE (Optimal Trade Entry 0.618-0.382) pour chaque symbole.
+
+    OTE = Fibonacci retracement zone. Apres un sweep AH, le prix retrace souvent
+    dans la zone 0.618-0.382 du range (OTE bearish). Apres un sweep AL, le prix
+    retrace dans la zone 0.382-0.618 (OTE bullish). Affiche un indicateur quand
+    le prix actuel est DANS la zone.
+    """
+    if not results:
+        return
+
+    # Filtrer les symboles avec un range non nul
+    ote_results = [r for r in results if r.range_pips > 0]
+    if not ote_results:
+        return
+
+    print()
+    print(f"  -- OTE (Optimal Trade Entry) : retracement 0.618-0.382 --")
+    sep = "  " + "-" * 155
+    print(sep)
+    hdr = (f"  {'Symbole':<14} {'Range':>10} {'AH':>12} {'AL':>12} "
+           f"{'OTE Bear H':>12} {'OTE Bear L':>12} {'BZ':>5} "
+           f"{'OTE Bull H':>12} {'OTE Bull L':>12} {'BZ':>5} "
+           f"{'Now':>12}")
+    print(hdr)
+    print(sep)
+
+    for r in ote_results:
+        range_str = f"{r.range_pips:.1f}" if r.range_pips < 100 else f"{r.range_pips:.0f}"
+        # Indicateur "dans la zone" (BZ = Breath Zone, ou "In Zone")
+        bear_zone = "[Z]" if r.in_ote_bear else "   "
+        bull_zone = "[Z]" if r.in_ote_bull else "   "
+        print(f"  {r.symbol:<14}"
+              f"{range_str:>10} "
+              f"{fmt_price(r.asian_high):>12} {fmt_price(r.asian_low):>12} "
+              f"{fmt_price(r.ote_bear_high):>12} {fmt_price(r.ote_bear_low):>12} {bear_zone:>5} "
+              f"{fmt_price(r.ote_bull_high):>12} {fmt_price(r.ote_bull_low):>12} {bull_zone:>5} "
+              f"{fmt_price(r.current_price):>12}")
+
+    print(sep)
+    print(f"  BZ = Prix dans la zone OTE  |  Bear zone = retracement 38.2%-61.8% depuis AH vers AL")
+    print(f"                                   Bull zone = retracement 38.2%-61.8% depuis AL vers AH")
 
 
 def _print_previous(previous: List[PreviousAsianLevels]):
@@ -1310,7 +1393,7 @@ def export_csv(results: List[AsianLevels], filepath: str):
 # MODE LIVE
 # ===============================================================================
 
-def live_monitor(results: List[AsianLevels], tz_mode: str, interval: int):
+def live_monitor(results: List[AsianLevels], tz_mode: str, interval: int, show_ote: bool = False):
     """Mode live : rafraichit les prix en continu et affiche distances AH/AL."""
     if not results:
         return
@@ -1394,6 +1477,14 @@ def live_monitor(results: List[AsianLevels], tz_mode: str, interval: int):
                 else:
                     marker = "IN    "
 
+                # Indicateur OTE (recalcule en live a partir des niveaux stockes)
+                ote_marker = ""
+                if show_ote:
+                    in_ote_live_bear = r.ote_bear_low <= price <= r.ote_bear_high if r.range_pips > 0 else False
+                    in_ote_live_bull = r.ote_bull_low <= price <= r.ote_bull_high if r.range_pips > 0 else False
+                    if in_ote_live_bear or in_ote_live_bull:
+                        ote_marker = " OTE"
+
                 # FVG affichage compact (liste de FVGs)
                 fvg_ah_str = _fmt_fvg_compact(r.fvg_ah)
                 fvg_al_str = _fmt_fvg_compact(r.fvg_al)
@@ -1409,14 +1500,14 @@ def live_monitor(results: List[AsianLevels], tz_mode: str, interval: int):
                           f"{dist_ah_pct:+8.2f}% "
                           f"{dist_al_pct:+8.2f}% "
                           f"{mid_sign}{abs(vs_mid):>6.2f}% "
-                          f"{fvg_ah_str:>26} {fvg_al_str:>26} {ah_swept_str:>5} {al_swept_str:>5} {lots_col:>8}   {marker}")
+                          f"{fvg_ah_str:>26} {fvg_al_str:>26} {ah_swept_str:>5} {al_swept_str:>5} {lots_col:>8}   {marker}{ote_marker}")
                 else:
                     print(f"  {r.symbol:<12} {fmt_price(price):>10} {fmt_price(r.asian_high):>10} "
                           f"{fmt_price(r.asian_low):>10} "
                           f"{dist_ah_pct:+8.2f}% "
                           f"{dist_al_pct:+8.2f}% "
                           f"{mid_sign}{abs(vs_mid):>6.2f}% "
-                          f"{ah_swept_str:>5} {al_swept_str:>5} {lots_col:>8}   {marker}")
+                          f"{ah_swept_str:>5} {al_swept_str:>5} {lots_col:>8}   {marker}{ote_marker}")
 
             print(f"  {'-' * sep_len}")
             print(f"  Ctrl+C pour quitter  |  Intervalle: {interval}s")
@@ -1488,6 +1579,9 @@ Exemples :
                              "(peu importe la duree du depassement).")
     parser.add_argument("--fvg-min", type=float, default=DEFAULT_FVG_MIN_PCT,
                         help=f"Taille minimum du FVG en %% (defaut: {DEFAULT_FVG_MIN_PCT}%%).")
+    parser.add_argument("--ote", action="store_true",
+                        help="Affiche la zone OTE (Optimal Trade Entry) : retracement 0.618-0.382 "
+                             "du range asiatique. Le prix dans cette zone est un signal ICT de continuation.")
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -1558,11 +1652,11 @@ Exemples :
     if args.live:
         if args.export:
             print(f"  !! --live et --export sont incompatibles, l'export est ignore.\n")
-        live_monitor(current, args.timezone, args.interval)
+        live_monitor(current, args.timezone, args.interval, show_ote=args.ote)
         return 0
 
     display_results(current, previous if args.previous else None, args.timezone,
-                    is_previous_session=is_previous)
+                    is_previous_session=is_previous, show_ote=args.ote)
 
     # Afficher les exclus si --verbose
     if excluded and args.verbose:
