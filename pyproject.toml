@@ -9,7 +9,7 @@ description = "Scanner multi-TF ICT x Ichimoku automatise — Diamond Analysis, 
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
-    {name = "Reuniware/DVA", email = "Reunisoft@Gmail.com"}
+    {name = "Reuniware", email = "Reunisoft@Gmail.com"}
 ]
 keywords = ["forex", "trading", "ict", "ichimoku", "mt5", "metatrader", "scanner", "technical-analysis"]
 classifiers = [
